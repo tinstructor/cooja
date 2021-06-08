@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Ghent University
+ * Copyright (c) 2021, Ghent University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ import java.util.Collection;
  * @author Robbe Elsas
  * @see ContikiRadio
  */
-@ClassDescription("Twofaced Interface")
+@ClassDescription("Twofaced Radio Interface")
 public class TwofacedRadio extends Radio implements ContikiMoteInterface, PolledAfterActiveTicks {
     private ContikiMote mote;
 
@@ -94,7 +94,7 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
 
     /* Contiki mote interface support */
     public static String[] getCoreInterfaceDependencies() {
-        return new String[]{"twofaced_interface"};
+        return new String[]{"twofaced_radio_interface"};
     }
 
     @Override

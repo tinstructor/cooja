@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008, Swedish Institute of Computer Science.
+ * Copyright (c) 2021, Ghent University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,7 @@ package org.contikios.cooja;
 import java.util.*;
 
 import org.apache.log4j.Logger;
+import org.contikios.cooja.contikimote.interfaces.TwofacedRadio;
 import org.contikios.cooja.interfaces.*;
 
 /**
@@ -45,6 +47,7 @@ import org.contikios.cooja.interfaces.*;
  * @see #doPassiveActionsBeforeTick()
  *
  * @author Fredrik Osterlind
+ * @author Robbe Elsas
  */
 public class MoteInterfaceHandler {
   private static Logger logger = Logger.getLogger(MoteInterfaceHandler.class);
@@ -64,6 +67,7 @@ public class MoteInterfaceHandler {
   private PIR myPIR;
   private Position myPosition;
   private Radio myRadio;
+  private Radio myTwofacedRadio;
   private PolledBeforeActiveTicks[] polledBeforeActive = null;
   private PolledAfterActiveTicks[] polledAfterActive = null;
   private PolledBeforeAllTicks[] polledBeforeAll = null;
@@ -95,7 +99,8 @@ public class MoteInterfaceHandler {
 
   /**
    * Returns interface of given type. Returns the first interface found that
-   * is either of the given class or of a subclass.
+   * is either of the given class or of a subclass (except {@link TwofacedRadio},
+   * unless explicitly specified).
    *
    * Usage: getInterfaceOfType(Radio.class)
    *
@@ -104,7 +109,8 @@ public class MoteInterfaceHandler {
    */
   public <N extends MoteInterface> N getInterfaceOfType(Class<N> interfaceType) {
     for (MoteInterface intf : moteInterfaces) {
-      if (interfaceType.isInstance(intf)) {
+      if (interfaceType.isInstance(intf) && (!(intf instanceof TwofacedRadio) ||
+              (interfaceType == TwofacedRadio.class))) {
         return interfaceType.cast(intf);
       }
     }
@@ -260,7 +266,8 @@ public class MoteInterfaceHandler {
   }
 
   /**
-   * Returns the radio interface (if any).
+   * Returns the radio interface (if any), except if it's an
+   * instance of {@link TwofacedRadio}.
    *
    * @return Radio interface
    */
@@ -269,6 +276,18 @@ public class MoteInterfaceHandler {
       myRadio = getInterfaceOfType(Radio.class);
     }
     return myRadio;
+  }
+
+  /**
+   * Returns the twofaced radio interface (if any).
+   *
+   * @return Twofaced radio interface
+   */
+  public Radio getTwofacedRadio() {
+    if (myTwofacedRadio == null) {
+      myTwofacedRadio = getInterfaceOfType(TwofacedRadio.class);
+    }
+    return myTwofacedRadio;
   }
 
   /**
