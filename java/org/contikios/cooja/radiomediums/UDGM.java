@@ -104,7 +104,9 @@ public class UDGM extends AbstractRadioMedium {
           for (Radio dest: UDGM.this.getRegisteredRadios()) {
             Position destPos = dest.getPosition();
             /* Ignore ourselves */
-            if (source == dest) {
+            /* We're checking the mote instead of the Radio because
+             * a mote may possess multiple Radio interfaces. */
+            if (source.getMote() == dest.getMote()) {
               continue;
             }
             double distance = sourcePos.getDistanceTo(destPos);
@@ -187,6 +189,14 @@ public class UDGM extends AbstractRadioMedium {
     Position senderPos = sender.getPosition();
     for (DestinationRadio dest: potentialDestinations) {
       Radio recv = dest.radio;
+
+      /* TODO check if the following is really necessary */
+      /* Ignore ourselves */
+      /* We're checking the mote instead of the Radio because
+       * a mote may possess multiple Radio interfaces. */
+      if (sender.getMote() == recv.getMote()) {
+        continue;
+      }
 
       /* Fail if radios are on different (but configured) channels */ 
       if (sender.getChannel() >= 0 &&

@@ -429,10 +429,12 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 	};
 	
 	public void registerMote(Mote mote, Simulation sim) {
+		registerRadioInterface(mote.getInterfaces().getTwofacedRadio(), sim);
 		registerRadioInterface(mote.getInterfaces().getRadio(), sim);
 	}
 	
 	public void unregisterMote(Mote mote, Simulation sim) {
+		unregisterRadioInterface(mote.getInterfaces().getTwofacedRadio(), sim);
 		unregisterRadioInterface(mote.getInterfaces().getRadio(), sim);
 	}
 	
