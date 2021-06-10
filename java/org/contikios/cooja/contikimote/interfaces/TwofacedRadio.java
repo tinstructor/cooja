@@ -368,20 +368,6 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
 
     @Override
     public String toString() {
-        return "TwofacedRadio{" +
-                "mote=" + mote +
-                ", myMoteMemory=" + myMoteMemory +
-                ", RADIO_TRANSMISSION_RATE_kbps=" + RADIO_TRANSMISSION_RATE_kbps +
-                ", packetToMote=" + packetToMote +
-                ", packetFromMote=" + packetFromMote +
-                ", radioOn=" + radioOn +
-                ", isTransmitting=" + isTransmitting +
-                ", isInterfered=" + isInterfered +
-                ", transmissionEndTime=" + transmissionEndTime +
-                ", lastEvent=" + lastEvent +
-                ", lastEventTime=" + lastEventTime +
-                ", oldOutputPowerIndicator=" + oldOutputPowerIndicator +
-                ", oldRadioChannel=" + oldRadioChannel +
-                '}';
+        return "TwofacedRadio at " + mote;
     }
 }
