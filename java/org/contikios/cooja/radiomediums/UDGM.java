@@ -107,6 +107,7 @@ public class UDGM extends AbstractRadioMedium {
             /* We're checking the mote instead of the Radio because
              * a mote may possess multiple Radio interfaces. */
             if (source.getMote() == dest.getMote()) {
+              logger.info("Not adding edge because both interfaces belong to mote with ID = " + source.getMote().getID());
               continue;
             }
             double distance = sourcePos.getDistanceTo(destPos);
