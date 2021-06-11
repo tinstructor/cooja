@@ -198,6 +198,11 @@ public class UDGM extends AbstractRadioMedium {
       if (sender.getMote() == recv.getMote()) {
         continue;
       }
+      /* TODO check if the following is really necessary */
+      /* Ignore dest interfaces of a different type */
+      if (sender.getClass() != recv.getClass()) {
+        continue;
+      }
 
       /* Fail if radios are on different (but configured) channels */ 
       if (sender.getChannel() >= 0 &&
