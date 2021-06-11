@@ -81,7 +81,7 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
 
     private int oldRadioChannel = -1;
 
-    public TwofacedRadio(ContikiMote mote) {
+    public TwofacedRadio(Mote mote) {
         // Read class configurations of this mote type
         RADIO_TRANSMISSION_RATE_kbps = mote.getType().getConfig().getDoubleValue(
                 TwofacedRadio.class, "RADIO_TRANSMISSION_RATE_kbps");
