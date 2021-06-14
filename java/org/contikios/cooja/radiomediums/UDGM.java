@@ -110,6 +110,12 @@ public class UDGM extends AbstractRadioMedium {
               logger.info("Not adding edge because both interfaces belong to mote with ID = " + source.getMote().getID());
               continue;
             }
+            /* TODO check if the following is really necessary */
+            /* Ignore dest interfaces of a different type */
+            if (source.getClass() != dest.getClass()) {
+              logger.info("Not adding edge because both interfaces are of different type");
+              continue;
+            }
             double distance = sourcePos.getDistanceTo(destPos);
             if (distance < Math.max(TRANSMITTING_RANGE, INTERFERENCE_RANGE)) {
               /* Add potential destination */
