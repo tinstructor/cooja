@@ -177,7 +177,16 @@ public class LogisticLoss extends AbstractRadioMedium {
                         for (Radio dest: LogisticLoss.this.getRegisteredRadios()) {
                             Position destPos = dest.getPosition();
                             /* Ignore ourselves */
-                            if (source == dest) {
+                            /* We're checking the mote instead of the Radio because
+                             * a mote may possess multiple Radio interfaces. */
+                            if (source.getMote() == dest.getMote()) {
+                                logger.info("Not adding edge because both interfaces belong to mote with ID = " + source.getMote().getID());
+                                continue;
+                            }
+                            /* TODO check if the following is really necessary */
+                            /* Ignore dest interfaces of a different type */
+                            if (source.getClass() != dest.getClass()) {
+                                logger.info("Not adding edge because both interfaces are of different type");
                                 continue;
                             }
                             double distance = sourcePos.getDistanceTo(destPos);
@@ -254,6 +263,19 @@ public class LogisticLoss extends AbstractRadioMedium {
         Position senderPos = sender.getPosition();
         for (DestinationRadio dest: potentialDestinations) {
             Radio recv = dest.radio;
+
+            /* TODO check if the following is really necessary */
+            /* Ignore ourselves */
+            /* We're checking the mote instead of the Radio because
+             * a mote may possess multiple Radio interfaces. */
+            if (sender.getMote() == recv.getMote()) {
+                continue;
+            }
+            /* TODO check if the following is really necessary */
+            /* Ignore dest interfaces of a different type */
+            if (sender.getClass() != recv.getClass()) {
+                continue;
+            }
 
             /* Fail if radios are on different (but configured) channels */ 
             if (sender.getChannel() >= 0 &&
