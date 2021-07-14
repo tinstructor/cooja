@@ -120,10 +120,6 @@ public class LogisticLoss extends AbstractRadioMedium {
      */
     public double RSSI_INFLECTION_POINT_DBM = -92.0;
 
-    /* At this distance (in meters), the RSSI is equal to the RX_SENSITIVITY_DBM */
-    public double TRANSMITTING_RANGE = 20.0;
-    public double INTERFERENCE_RANGE = TRANSMITTING_RANGE;
-
     /* For the log-distance model, indoors, 2.4 GHz */
     public double PATH_LOSS_EXPONENT = 3.0;
 
@@ -141,6 +137,16 @@ public class LogisticLoss extends AbstractRadioMedium {
      * TODO: figure out how to getCurrentOutputPowerIndicator() to dBm use that.
      */
     public final double DEFAULT_TX_POWER_DBM = 0.0;
+
+    /*
+     * Gain of the antennas used, in dBi.
+     */
+    public final double ANTENNA_GAIN = 0.0;
+
+    /* At this distance (in meters), the RSSI is equal to the RX_SENSITIVITY_DBM */
+    public double TRANSMITTING_RANGE = Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2 * ANTENNA_GAIN
+            - 20.0 * Math.log10(4.0 * Math.PI * 2400.0 / 300.0)) / (10 * PATH_LOSS_EXPONENT));
+    public double INTERFERENCE_RANGE = TRANSMITTING_RANGE;
 
     /* Enable the time-varying component? */
     public boolean ENABLE_TIME_VARIATION = false;
