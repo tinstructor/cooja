@@ -143,9 +143,38 @@ public class LogisticLoss extends AbstractRadioMedium {
      */
     public final double ANTENNA_GAIN = 0.0;
 
-    /* At this distance (in meters), the RSSI is equal to the RX_SENSITIVITY_DBM */
-    public double TRANSMITTING_RANGE = Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2 * ANTENNA_GAIN
-            - 20.0 * Math.log10(4.0 * Math.PI * 2400.0 / 300.0)) / (10 * PATH_LOSS_EXPONENT));
+    /*
+     * At this distance (in meters), the RSSI is equal to the RX_SENSITIVITY_DBM.
+     * The range is calculated based on the assumption that PL_0 can be found using
+     * the modified Friis equation (i.e., the version incorporating the path loss
+     * exponent). More specifically, given:
+     *
+     * PL_0 = PL_tx - rssi = 20 * \log_10 (4 * PI * f / c) - AG_tx - AG_rx + 10 * \alpha * \log_10 (d_0)
+     *
+     * where:
+     * - `d_0` is the transmission range in meters;
+     * - `PL_0` is the loss at `d_0` in dBm;
+     * - `PL_tx` is the transmit power in dBm;
+     * - `\alpha` is the path loss exponent;
+     * - `AG_tx` is the transmitter antenna gain in dBi;
+     * - `AG_rx` is the receiver antenna gain in dBi;
+     * - `f` is the operating frequency in Hz;
+     * - `c` is the speed of light = 300 000 000 m/s.
+     *
+     * Then, if we isolate for d_0, we get:
+     *
+     * d_0 = 10 ^ ((PL_tx - rssi + AG_tx + AG_rx - 20 * \log_10 (4 * PI * f / c)) / (\alpha * 10))
+     *
+     * For example, assuming the rx sensitivity (i.e., the rx power below which the PRR
+     * is approximately 0%) equals -100 dBm, assuming the rssi is a good approximation
+     * of the actual rx power, and given f = 2.4 GHz, AG_tx = AG_rx = 0 dBi, \alpha = 3,
+     * PL_tx = 0 dBm we get:
+     *
+     * d_0 = 10 ^ ((100 dBm - 20 * \log_10 (4 * PI * 2.4 GHz / 0.3 Gm/s)) / (3 * 10))
+     *     = 99.648 m
+     */
+    public double TRANSMITTING_RANGE = Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN
+            - 20.0 * Math.log10(4.0 * Math.PI * 2.4 / 0.3)) / (10.0 * PATH_LOSS_EXPONENT));
     public double INTERFERENCE_RANGE = TRANSMITTING_RANGE;
 
     /* Enable the time-varying component? */
