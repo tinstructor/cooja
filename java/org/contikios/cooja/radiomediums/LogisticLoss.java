@@ -30,7 +30,6 @@
 
 package org.contikios.cooja.radiomediums;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
@@ -39,6 +38,7 @@ import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.contikios.cooja.contikimote.interfaces.TwofacedRadio;
 import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
@@ -121,10 +121,14 @@ public class LogisticLoss extends AbstractRadioMedium {
     public double RSSI_INFLECTION_POINT_DBM = -92.0;
 
     /* For the log-distance model, indoors, 2.4 GHz */
-    public double PATH_LOSS_EXPONENT = 3.0;
+    public double PATH_LOSS_EXPONENT_2400 = 3.0;
+    /* The same but for a secondary 868 MHz channel */
+    public double PATH_LOSS_EXPONENT_868 = 3.0;
 
     /* The standard deviation of the AWGN distribution */
-    public double AWGN_SIGMA = 3.0;
+    public double AWGN_SIGMA_2400 = 3.0;
+    /* The same but for a secondary 868 MHz channel */
+    public double AWGN_SIGMA_868 = 5.0;
 
     /* 
      * This is required to implement the Capture Effect.
@@ -173,9 +177,13 @@ public class LogisticLoss extends AbstractRadioMedium {
      * d_0 = 10 ^ ((100 dBm - 20 * \log_10 (4 * PI * 2.4 GHz / 0.3 Gm/s)) / (3 * 10))
      *     = 99.648 m
      */
-    public double TRANSMITTING_RANGE = Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN
-            - 20.0 * Math.log10(4.0 * Math.PI * 2.4 / 0.3)) / (10.0 * PATH_LOSS_EXPONENT));
-    public double INTERFERENCE_RANGE = TRANSMITTING_RANGE;
+    public double TRANSMITTING_RANGE_2400 = Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN
+            - 20.0 * Math.log10(4.0 * Math.PI * 2.4 / 0.3)) / (10.0 * PATH_LOSS_EXPONENT_2400));
+    public double INTERFERENCE_RANGE_2400 = TRANSMITTING_RANGE_2400;
+    /* The same but for a secondary 868 MHz channel */
+    public double TRANSMITTING_RANGE_868 = Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN
+            - 20.0 * Math.log10(4.0 * Math.PI * 0.868 / 0.3)) / (10.0 * PATH_LOSS_EXPONENT_868));
+    public double INTERFERENCE_RANGE_868 = TRANSMITTING_RANGE_868;
 
     /* Enable the time-varying component? */
     public boolean ENABLE_TIME_VARIATION = false;
@@ -225,7 +233,7 @@ public class LogisticLoss extends AbstractRadioMedium {
                                 continue;
                             }
                             double distance = sourcePos.getDistanceTo(destPos);
-                            if (distance < TRANSMITTING_RANGE) {
+                            if (distance < (source.getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)) {
                                 /* Add potential destination */
                                 addEdge(
                                         new DirectedGraphMedium.Edge(source, 
@@ -328,7 +336,7 @@ public class LogisticLoss extends AbstractRadioMedium {
             Position recvPos = recv.getPosition();
 
             double distance = senderPos.getDistanceTo(recvPos);
-            if (distance <= TRANSMITTING_RANGE) {
+            if (distance <= (sender.getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)) {
                 /* Within transmission range */
 
                 if (!recv.isRadioOn()) {
@@ -417,8 +425,11 @@ public class LogisticLoss extends AbstractRadioMedium {
     }
 
     /* Additive White Gaussian Noise, sampled from the distribution N(0.0, AWGN_SIGMA) */
-    private double getAWGN() {
-        return random.nextGaussian() * AWGN_SIGMA;
+    private double getAWGN(Class<?> radioType) {
+        if(radioType == TwofacedRadio.class) {
+            return random.nextGaussian() * AWGN_SIGMA_868;
+        }
+        return random.nextGaussian() * AWGN_SIGMA_2400;
     }
 
     private double getRSSI(Radio source, Radio dst) {
@@ -429,7 +440,12 @@ public class LogisticLoss extends AbstractRadioMedium {
         }
 
         /* Using the log-distance formula */
-        double path_loss_dbm = -RX_SENSITIVITY_DBM + 10 * PATH_LOSS_EXPONENT * Math.log10(d / TRANSMITTING_RANGE);
+        double path_loss_dbm;
+        if(source.getClass() == TwofacedRadio.class) {
+            path_loss_dbm = -RX_SENSITIVITY_DBM + 10 * PATH_LOSS_EXPONENT_868 * Math.log10(d / TRANSMITTING_RANGE_868);
+        } else {
+            path_loss_dbm = -RX_SENSITIVITY_DBM + 10 * PATH_LOSS_EXPONENT_2400 * Math.log10(d / TRANSMITTING_RANGE_2400);
+        }
 
         /* Add the time-varying component if enabled */
         if (ENABLE_TIME_VARIATION) {
@@ -442,7 +458,7 @@ public class LogisticLoss extends AbstractRadioMedium {
             }
         }
 
-        return DEFAULT_TX_POWER_DBM - path_loss_dbm + getAWGN();
+        return DEFAULT_TX_POWER_DBM - path_loss_dbm + getAWGN(source.getClass());
     }
 
     private void updateTimeVariationComponent() {
@@ -528,9 +544,14 @@ public class LogisticLoss extends AbstractRadioMedium {
         Collection<Element> config = super.getConfigXML();
         Element element;
 
-        /* Transmitting range */
-        element = new Element("transmitting_range");
-        element.setText(Double.toString(TRANSMITTING_RANGE));
+        /* Transmitting range for 2.4 Ghz channel */
+        element = new Element("transmitting_range_2400");
+        element.setText(Double.toString(TRANSMITTING_RANGE_2400));
+        config.add(element);
+
+        /* Transmitting range for 868 MHz channel */
+        element = new Element("transmitting_range_868");
+        element.setText(Double.toString(TRANSMITTING_RANGE_868));
         config.add(element);
 
         /* Transmission success probability */
@@ -548,14 +569,24 @@ public class LogisticLoss extends AbstractRadioMedium {
         element.setText("" + RSSI_INFLECTION_POINT_DBM);
         config.add(element);
 
-        /* Path loss exponent */
-        element = new Element("path_loss_exponent");
-        element.setText("" + PATH_LOSS_EXPONENT);
+        /* Path loss exponent for 2.4 Ghz channel */
+        element = new Element("path_loss_exponent_2400");
+        element.setText("" + PATH_LOSS_EXPONENT_2400);
         config.add(element);
 
-        /* AWGN sigma */
-        element = new Element("awgn_sigma");
-        element.setText("" + AWGN_SIGMA);
+        /* Path loss exponent for 868 MHz channel */
+        element = new Element("path_loss_exponent_868");
+        element.setText("" + PATH_LOSS_EXPONENT_868);
+        config.add(element);
+
+        /* AWGN sigma for 2.4 Ghz channel */
+        element = new Element("awgn_sigma_2400");
+        element.setText("" + AWGN_SIGMA_2400);
+        config.add(element);
+
+        /* AWGN sigma for 868 MHz channel */
+        element = new Element("awgn_sigma_868");
+        element.setText("" + AWGN_SIGMA_868);
         config.add(element);
 
         /* Time variation enabled? */
@@ -579,9 +610,14 @@ public class LogisticLoss extends AbstractRadioMedium {
     public boolean setConfigXML(Collection<Element> configXML, boolean visAvailable) {
         super.setConfigXML(configXML, visAvailable);
         for (Element element : configXML) {
-            if (element.getName().equals("transmitting_range")) {
-                TRANSMITTING_RANGE = Double.parseDouble(element.getText());
-                INTERFERENCE_RANGE = TRANSMITTING_RANGE;
+            if (element.getName().equals("transmitting_range_2400")) {
+                TRANSMITTING_RANGE_2400 = Double.parseDouble(element.getText());
+                INTERFERENCE_RANGE_2400 = TRANSMITTING_RANGE_2400;
+            }
+
+            if (element.getName().equals("transmitting_range_868")) {
+                TRANSMITTING_RANGE_868 = Double.parseDouble(element.getText());
+                INTERFERENCE_RANGE_868 = TRANSMITTING_RANGE_868;
             }
 
             if (element.getName().equals("success_ratio_tx")) {
@@ -596,12 +632,20 @@ public class LogisticLoss extends AbstractRadioMedium {
                 RSSI_INFLECTION_POINT_DBM = Double.parseDouble(element.getText());
             }
 
-            if (element.getName().equals("path_loss_exponent")) {
-                PATH_LOSS_EXPONENT = Double.parseDouble(element.getText());
+            if (element.getName().equals("path_loss_exponent_2400")) {
+                PATH_LOSS_EXPONENT_2400 = Double.parseDouble(element.getText());
             }
 
-            if (element.getName().equals("awgn_sigma")) {
-                 AWGN_SIGMA = Double.parseDouble(element.getText());
+            if (element.getName().equals("path_loss_exponent_868")) {
+                PATH_LOSS_EXPONENT_868 = Double.parseDouble(element.getText());
+            }
+
+            if (element.getName().equals("awgn_sigma_2400")) {
+                 AWGN_SIGMA_2400 = Double.parseDouble(element.getText());
+            }
+
+            if (element.getName().equals("awgn_sigma_868")) {
+                AWGN_SIGMA_868 = Double.parseDouble(element.getText());
             }
 
             if (element.getName().equals("enable_time_variation")) {
