@@ -34,6 +34,7 @@ import org.apache.log4j.Logger;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Simulation;
+import org.contikios.cooja.contikimote.interfaces.TwofacedRadio;
 import org.contikios.cooja.interfaces.Radio;
 
 /**
@@ -52,7 +53,7 @@ public class UDGMConstantLoss extends UDGM {
 
   public double getRxSuccessProbability(Radio source, Radio dest) {
     double distance = source.getPosition().getDistanceTo(dest.getPosition());
-    double moteTransmissionRange = TRANSMITTING_RANGE
+    double moteTransmissionRange = (source.getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)
     * ((double) source.getCurrentOutputPowerIndicator() / (double) source.getOutputPowerIndicatorMax());
     if (distance > moteTransmissionRange) {
     	return 0.0d;

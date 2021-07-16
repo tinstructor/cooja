@@ -30,13 +30,13 @@
 
 package org.contikios.cooja.radiomediums;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
+import org.contikios.cooja.contikimote.interfaces.TwofacedRadio;
 import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
@@ -84,8 +84,10 @@ public class UDGM extends AbstractRadioMedium {
 
   public double SUCCESS_RATIO_TX = 1.0; /* Success ratio of TX. If this fails, no radios receive the packet */
   public double SUCCESS_RATIO_RX = 1.0; /* Success ratio of RX. If this fails, the single affected receiver does not receive the packet */
-  public double TRANSMITTING_RANGE = 50; /* Transmission range. */
-  public double INTERFERENCE_RANGE = 100; /* Interference range. Ignored if below transmission range. */
+  public double TRANSMITTING_RANGE_2400 = 50; /* Transmission range. */
+  public double TRANSMITTING_RANGE_868 = 70; /* Transmission range for secondary. */
+  public double INTERFERENCE_RANGE_2400 = 100; /* Interference range. Ignored if below transmission range. */
+  public double INTERFERENCE_RANGE_868 = 120; /* Interference range for secondary. Ignored if below transmission range. */
 
   private DirectedGraphMedium dgrm; /* Used only for efficient destination lookup */
 
@@ -117,7 +119,8 @@ public class UDGM extends AbstractRadioMedium {
               continue;
             }
             double distance = sourcePos.getDistanceTo(destPos);
-            if (distance < Math.max(TRANSMITTING_RANGE, INTERFERENCE_RANGE)) {
+            if (distance < (source.getClass() == TwofacedRadio.class ? Math.max(TRANSMITTING_RANGE_868, INTERFERENCE_RANGE_868)
+                    : Math.max(TRANSMITTING_RANGE_2400, INTERFERENCE_RANGE_2400))) {
               /* Add potential destination */
               addEdge(
                   new DirectedGraphMedium.Edge(source, 
@@ -163,12 +166,12 @@ public class UDGM extends AbstractRadioMedium {
   }
   
   public void setTxRange(double r) {
-    TRANSMITTING_RANGE = r;
+    TRANSMITTING_RANGE_2400 = r;
     dgrm.requestEdgeAnalysis();
   }
 
   public void setInterferenceRange(double r) {
-    INTERFERENCE_RANGE = r;
+    INTERFERENCE_RANGE_2400 = r;
     dgrm.requestEdgeAnalysis();
   }
 
@@ -181,9 +184,9 @@ public class UDGM extends AbstractRadioMedium {
     }
 
     /* Calculate ranges: grows with radio output power */
-    double moteTransmissionRange = TRANSMITTING_RANGE
+    double moteTransmissionRange = (sender.getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)
     * ((double) sender.getCurrentOutputPowerIndicator() / (double) sender.getOutputPowerIndicatorMax());
-    double moteInterferenceRange = INTERFERENCE_RANGE
+    double moteInterferenceRange = (sender.getClass() == TwofacedRadio.class ? INTERFERENCE_RANGE_868 : INTERFERENCE_RANGE_2400)
     * ((double) sender.getCurrentOutputPowerIndicator() / (double) sender.getOutputPowerIndicatorMax());
 
     /* Get all potential destination radios */
@@ -287,8 +290,8 @@ public class UDGM extends AbstractRadioMedium {
   public double getRxSuccessProbability(Radio source, Radio dest) {
   	double distance = source.getPosition().getDistanceTo(dest.getPosition());
     double distanceSquared = Math.pow(distance,2.0);
-    double distanceMax = TRANSMITTING_RANGE * 
-    ((double) source.getCurrentOutputPowerIndicator() / (double) source.getOutputPowerIndicatorMax());
+    double distanceMax = (source.getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)
+    * ((double) source.getCurrentOutputPowerIndicator() / (double) source.getOutputPowerIndicatorMax());
     if (distanceMax == 0.0) {
       return 0.0;
     }
@@ -323,7 +326,7 @@ public class UDGM extends AbstractRadioMedium {
 
         double dist = conn.getSource().getPosition().getDistanceTo(dstRadio.getPosition());
 
-        double maxTxDist = TRANSMITTING_RANGE
+        double maxTxDist = (conn.getSource().getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)
         * ((double) conn.getSource().getCurrentOutputPowerIndicator() / (double) conn.getSource().getOutputPowerIndicatorMax());
         double distFactor = dist/maxTxDist;
 
@@ -345,7 +348,7 @@ public class UDGM extends AbstractRadioMedium {
 
         double dist = conn.getSource().getPosition().getDistanceTo(intfRadio.getPosition());
 
-        double maxTxDist = TRANSMITTING_RANGE
+        double maxTxDist = (conn.getSource().getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)
         * ((double) conn.getSource().getCurrentOutputPowerIndicator() / (double) conn.getSource().getOutputPowerIndicatorMax());
         double distFactor = dist/maxTxDist;
 
@@ -373,14 +376,24 @@ public class UDGM extends AbstractRadioMedium {
     Collection<Element> config = super.getConfigXML();
     Element element;
 
-    /* Transmitting range */
-    element = new Element("transmitting_range");
-    element.setText(Double.toString(TRANSMITTING_RANGE));
+    /* Transmitting range for 2.4 Ghz channel */
+    element = new Element("transmitting_range_2400");
+    element.setText(Double.toString(TRANSMITTING_RANGE_2400));
     config.add(element);
 
-    /* Interference range */
-    element = new Element("interference_range");
-    element.setText(Double.toString(INTERFERENCE_RANGE));
+    /* Transmitting range for 868 MHz channel */
+    element = new Element("transmitting_range_868");
+    element.setText(Double.toString(TRANSMITTING_RANGE_868));
+    config.add(element);
+
+    /* Interference range for 2.4 Ghz channel */
+    element = new Element("interference_range_2400");
+    element.setText(Double.toString(INTERFERENCE_RANGE_2400));
+    config.add(element);
+
+    /* Interference range for 868 MHz channel */
+    element = new Element("interference_range_868");
+    element.setText(Double.toString(INTERFERENCE_RANGE_868));
     config.add(element);
 
     /* Transmission success probability */
@@ -399,12 +412,20 @@ public class UDGM extends AbstractRadioMedium {
   public boolean setConfigXML(Collection<Element> configXML, boolean visAvailable) {
     super.setConfigXML(configXML, visAvailable);
     for (Element element : configXML) {
-      if (element.getName().equals("transmitting_range")) {
-        TRANSMITTING_RANGE = Double.parseDouble(element.getText());
+      if (element.getName().equals("transmitting_range_2400")) {
+        TRANSMITTING_RANGE_2400 = Double.parseDouble(element.getText());
       }
 
-      if (element.getName().equals("interference_range")) {
-        INTERFERENCE_RANGE = Double.parseDouble(element.getText());
+      if (element.getName().equals("transmitting_range_868")) {
+        TRANSMITTING_RANGE_868 = Double.parseDouble(element.getText());
+      }
+
+      if (element.getName().equals("interference_range_2400")) {
+        INTERFERENCE_RANGE_2400 = Double.parseDouble(element.getText());
+      }
+
+      if (element.getName().equals("interference_range_868")) {
+        INTERFERENCE_RANGE_868 = Double.parseDouble(element.getText());
       }
 
       /* Backwards compatibility */

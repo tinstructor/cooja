@@ -111,12 +111,12 @@ public class UDGMVisualizerSkin implements VisualizerSkin {
 
     /* Spinner GUI components */
     SpinnerNumberModel transmissionModel = new SpinnerNumberModel();
-    transmissionModel.setValue(new Double(radioMedium.TRANSMITTING_RANGE));
+    transmissionModel.setValue(new Double(radioMedium.TRANSMITTING_RANGE_2400));
     transmissionModel.setStepSize(new Double(1.0)); // 1m
     transmissionModel.setMinimum(new Double(0.0));
 
     SpinnerNumberModel interferenceModel = new SpinnerNumberModel();
-    interferenceModel.setValue(new Double(radioMedium.INTERFERENCE_RANGE));
+    interferenceModel.setValue(new Double(radioMedium.INTERFERENCE_RANGE_2400));
     interferenceModel.setStepSize(new Double(1.0)); // 1m
     interferenceModel.setMinimum(new Double(0.0));
 
@@ -293,11 +293,11 @@ public class UDGMVisualizerSkin implements VisualizerSkin {
       // Fetch current output power indicator (scale with as percent)
       Radio selectedRadio = selectedMote.getInterfaces().getRadio();
       double moteInterferenceRange
-              = radioMedium.INTERFERENCE_RANGE
+              = radioMedium.INTERFERENCE_RANGE_2400
               * ((double) selectedRadio.getCurrentOutputPowerIndicator()
               / (double) selectedRadio.getOutputPowerIndicatorMax());
       double moteTransmissionRange
-              = radioMedium.TRANSMITTING_RANGE
+              = radioMedium.TRANSMITTING_RANGE_2400
               * ((double) selectedRadio.getCurrentOutputPowerIndicator()
               / (double) selectedRadio.getOutputPowerIndicatorMax());
 
@@ -307,9 +307,9 @@ public class UDGMVisualizerSkin implements VisualizerSkin {
       Point translatedTransmission
               = visualizer.transformPositionToPixel(moteTransmissionRange, moteTransmissionRange, 0.0);
       Point translatedInterferenceMax
-              = visualizer.transformPositionToPixel(radioMedium.INTERFERENCE_RANGE, radioMedium.INTERFERENCE_RANGE, 0.0);
+              = visualizer.transformPositionToPixel(radioMedium.INTERFERENCE_RANGE_2400, radioMedium.INTERFERENCE_RANGE_2400, 0.0);
       Point translatedTransmissionMax
-              = visualizer.transformPositionToPixel(radioMedium.TRANSMITTING_RANGE, radioMedium.TRANSMITTING_RANGE, 0.0);
+              = visualizer.transformPositionToPixel(radioMedium.TRANSMITTING_RANGE_2400, radioMedium.TRANSMITTING_RANGE_2400, 0.0);
 
       translatedInterference.x = Math.abs(translatedInterference.x - translatedZero.x);
       translatedInterference.y = Math.abs(translatedInterference.y - translatedZero.y);
