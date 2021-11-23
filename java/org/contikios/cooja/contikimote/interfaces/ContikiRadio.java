@@ -333,7 +333,13 @@ public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledA
     /* New transmission */
     int size = myMoteMemory.getIntValueOf("simOutSize");
     if (!isTransmitting && size > 0) {
-      packetFromMote = new COOJARadioPacket(myMoteMemory.getByteArray("simOutDataBuffer", size + 2));
+      byte[] packetByteArray = new byte[size + 2];
+      if(myMoteMemory.getByteValueOf("simCorruptFrames") == 1) {
+        mote.getSimulation().getRandomGenerator().nextBytes(packetByteArray);
+      } else {
+        packetByteArray = myMoteMemory.getByteArray("simOutDataBuffer", size + 2);
+      }
+      packetFromMote = new COOJARadioPacket(packetByteArray);
 
       if (packetFromMote.getPacketData() == null || packetFromMote.getPacketData().length == 0) {
         logger.warn("Skipping zero sized Contiki packet (no buffer)");
