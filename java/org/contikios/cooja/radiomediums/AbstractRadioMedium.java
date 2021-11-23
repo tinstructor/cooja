@@ -391,6 +391,18 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 						logger.fatal("No radio packet to forward");
 						return;
 					}
+
+					/* TODO when radio (i.e., the source of the packet) has "simCorruptFrames"
+					 *   set to 1, the packets it sends must be handled as if they did not have
+					 * 	 a valid SFD, meaning they are simply corrupted packets or signals
+					 *   originating from a competing technology */
+					try {
+						if(radio.sendsCorruptFrames()) {
+							packet = null;
+						}
+					} catch (UnsupportedOperationException exception) {
+						logger.warn("The radio does not support checking if transmitted frames should be corrupt!");
+					}
 					
 					for (Radio dstRadio : connection.getAllDestinations()) {
 

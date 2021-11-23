@@ -168,6 +168,16 @@ public abstract class Radio extends MoteInterface {
    * @return Maximum output power indicator
    */
   public abstract int getOutputPowerIndicatorMax();
+
+  /**
+   * Indicates if this radio interface sends frames as if they had
+   * an invalid SFD.
+   * @return True if transmitted frames should behave as if corrupt
+   * @throws UnsupportedOperationException
+   */
+  public boolean sendsCorruptFrames() throws  UnsupportedOperationException {
+    throw new UnsupportedOperationException();
+  }
   
   /** 
    * Returns the current LQI-value. This might differ from platform to platform 

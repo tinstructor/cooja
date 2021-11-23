@@ -179,13 +179,18 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
         /* New transmission */
         int size = myMoteMemory.getIntValueOf("simOutSizeTwofaced");
         if (!isTransmitting && size > 0) {
-            byte[] packetByteArray = new byte[size + 2];
-            if(myMoteMemory.getByteValueOf("simCorruptFrames") == 1) {
-                mote.getSimulation().getRandomGenerator().nextBytes(packetByteArray);
-            } else {
-                packetByteArray = myMoteMemory.getByteArray("simOutDataBufferTwofaced", size + 2);
-            }
-            packetFromMote = new COOJARadioPacket(packetByteArray);
+            /* TODO check if the following is appropriate because Cooja
+            *   has no concept of Start of Frame Delimiters (SFDs) and
+            *   all motes within range will behave as if every frame
+            *   (corrupted or not) has a valid SFD for 802.15.4 */
+//            byte[] packetByteArray = new byte[size + 2];
+//            if(myMoteMemory.getByteValueOf("simCorruptFrames") == 1) {
+//                mote.getSimulation().getRandomGenerator().nextBytes(packetByteArray);
+//            } else {
+//                packetByteArray = myMoteMemory.getByteArray("simOutDataBufferTwofaced", size + 2);
+//            }
+//            packetFromMote = new COOJARadioPacket(packetByteArray);
+            packetFromMote = new COOJARadioPacket(myMoteMemory.getByteArray("simOutDataBufferTwofaced", size + 2));
 
             if (packetFromMote.getPacketData() == null || packetFromMote.getPacketData().length == 0) {
                 logger.warn("Skipping zero sized Contiki packet (no buffer)");
@@ -359,6 +364,11 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
     @Override
     public Mote getMote() {
         return mote;
+    }
+
+    @Override
+    public boolean sendsCorruptFrames() throws UnsupportedOperationException {
+        return myMoteMemory.getByteValueOf("simCorruptFrames") == 1;
     }
 
     @Override
