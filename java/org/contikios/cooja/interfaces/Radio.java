@@ -92,17 +92,19 @@ public abstract class Radio extends MoteInterface {
    * Signal that a new reception just begun. This method should normally be
    * called from the radio medium.
    *
-   * @see #signalReceptionEnd()
+   * @see #signalReceptionEnd(Radio)
+   * @param sender The source Radio interface of the signal
    */
-  public abstract void signalReceptionStart();
+  public abstract void signalReceptionStart(Radio sender);
 
   /**
    * Signal that the current reception was ended. This method should normally be
    * called from the radio medium on both destination and interfered radios.
    *
-   * @see #signalReceptionStart()
+   * @see #signalReceptionStart(Radio sender)
+   * @param sender The source Radio interface of the signal
    */
-  public abstract void signalReceptionEnd();
+  public abstract void signalReceptionEnd(Radio sender);
 
   /**
    * Returns last event at this radio. This method should be used to learn the
@@ -147,10 +149,10 @@ public abstract class Radio extends MoteInterface {
    * will be dropped. This method can be used to simulate radio interference
    * such as high background noise or radio packet collisions.
    *
-   * When the radio is no longer interfered, the {@link #signalReceptionEnd()}
+   * When the radio is no longer interfered, the {@link #signalReceptionEnd(Radio)}
    * method must be called.
    *
-   * @see #signalReceptionEnd()
+   * @see #signalReceptionEnd(Radio)
    */
   public abstract void interfereAnyReception();
 
@@ -173,10 +175,19 @@ public abstract class Radio extends MoteInterface {
    * Indicates if this radio interface sends frames as if they had
    * an invalid SFD.
    * @return True if transmitted frames should behave as if corrupt
-   * @throws UnsupportedOperationException
    */
-  public boolean sendsCorruptFrames() throws  UnsupportedOperationException {
-    throw new UnsupportedOperationException();
+  public boolean sendsCorruptFrames() {
+    return false;
+  }
+
+  /**
+   * Returns True if this radio is currently overhearing a frame with
+   * an invalid SFD and / or from a different technology.
+   *
+   * @return True if radio hears frame with invalid SFD
+   */
+  public boolean isReceivingCorrupt() {
+    return false;
   }
   
   /** 
@@ -263,7 +274,7 @@ public abstract class Radio extends MoteInterface {
       public void update(Observable obs, Object obj) {
         if (isTransmitting()) {
           statusLabel.setText("Transmitting");
-        } else if (isReceiving()) {
+        } else if (isReceiving() || isReceivingCorrupt()) {
           statusLabel.setText("Receiving");
         } else {
           statusLabel.setText("Listening");

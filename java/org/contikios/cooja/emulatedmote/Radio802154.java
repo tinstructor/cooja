@@ -202,7 +202,7 @@ public abstract class Radio802154 extends Radio implements CustomDataRadio {
 
     /* need to add a few more methods later??? */
     @Override
-    public void signalReceptionStart() {
+    public void signalReceptionStart(Radio sender) {
         isReceiving = true;
 
         //      cc2420.setCCA(true);
@@ -217,7 +217,7 @@ public abstract class Radio802154 extends Radio implements CustomDataRadio {
     }
 
     @Override
-    public void signalReceptionEnd() {
+    public void signalReceptionEnd(Radio sender) {
         /* Deliver packet data */
         isReceiving = false;
         //      hasFailedReception = false;

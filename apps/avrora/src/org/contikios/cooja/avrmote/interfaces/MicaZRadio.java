@@ -42,6 +42,7 @@ import avrora.sim.FiniteStateMachine.Probe;
 import avrora.sim.platform.MicaZ;
 import avrora.sim.radio.CC2420Radio;
 import avrora.sim.radio.Medium;
+import org.contikios.cooja.interfaces.Radio;
 
 /**
  * CC2420 to COOJA wrapper.
@@ -118,10 +119,10 @@ public class MicaZRadio extends Radio802154 {
       return fsm.getCurrentState() >= 3;
   }
 
-  public void signalReceptionStart() {
+  public void signalReceptionStart(Radio sender) {
 //    cc2420.setCCA(true);
 //    hasFailedReception = mode == CC2420.MODE_TXRX_OFF;
-      super.signalReceptionStart();
+      super.signalReceptionStart(sender);
   }
 
   public double getCurrentOutputPower() {

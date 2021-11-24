@@ -69,6 +69,8 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
 
     private boolean isTransmitting = false;
 
+    private boolean isReceivingCorrupt = false;
+
     private boolean isInterfered = false;
 
     private long transmissionEndTime = -1;
@@ -238,38 +240,60 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
     }
 
     @Override
-    public void signalReceptionStart() {
+    public void signalReceptionStart(Radio sender) {
         packetToMote = null;
+        /*
+         * Drop the incoming transmission if this radio is currently: being interfered
+         * (as determined by the radio medium), already receiving a different transmission,
+         * or currently transmitting a signal itself. We don't check for isReceivingCorrupt()
+         * here because if an incoming corrupt message did not cause the medium to set this
+         * radio as interfered, then it can't cause the new transmission to be dropped.
+         * Note that it seems redundant to check both isInterfered() and isReceiving(), but
+         * you must remember that not all mediums have an equal transmitting and interference
+         * range.
+         */
         if (isInterfered() || isReceiving() || isTransmitting()) {
             interfereAnyReception();
             return;
         }
 
-        myMoteMemory.setByteValueOf("simReceivingTwofaced", (byte) 1);
-        mote.requestImmediateWakeup();
+        if (sender.sendsCorruptFrames()) {
+            isReceivingCorrupt = true;
+        } else {
+            myMoteMemory.setByteValueOf("simReceivingTwofaced", (byte) 1);
+            mote.requestImmediateWakeup();
+        }
 
         lastEventTime = mote.getSimulation().getSimulationTime();
         lastEvent = RadioEvent.RECEPTION_STARTED;
 
-        myMoteMemory.setInt64ValueOf("simLastPacketTimestampTwofaced", lastEventTime);
+        if (!sender.sendsCorruptFrames()) {
+            myMoteMemory.setInt64ValueOf("simLastPacketTimestampTwofaced", lastEventTime);
+        }
 
         this.setChanged();
         this.notifyObservers();
     }
 
     @Override
-    public void signalReceptionEnd() {
+    public void signalReceptionEnd(Radio sender) {
         if (isInterfered || packetToMote == null) {
             isInterfered = false;
             packetToMote = null;
-            myMoteMemory.setIntValueOf("simInSizeTwofaced", 0);
-        } else {
+            if (!sender.sendsCorruptFrames()) {
+                myMoteMemory.setIntValueOf("simInSizeTwofaced", 0);
+            }
+        } else if (!sender.sendsCorruptFrames()){
             myMoteMemory.setIntValueOf("simInSizeTwofaced", packetToMote.getPacketData().length - 2);
             myMoteMemory.setByteArray("simInDataBufferTwofaced", packetToMote.getPacketData());
         }
 
-        myMoteMemory.setByteValueOf("simReceivingTwofaced", (byte) 0);
-        mote.requestImmediateWakeup();
+        if (sender.sendsCorruptFrames()) {
+            isReceivingCorrupt = false;
+        } else {
+            myMoteMemory.setByteValueOf("simReceivingTwofaced", (byte) 0);
+            mote.requestImmediateWakeup();
+        }
         lastEventTime = mote.getSimulation().getSimulationTime();
         lastEvent = RadioEvent.RECEPTION_FINISHED;
         this.setChanged();
@@ -356,8 +380,13 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
     }
 
     @Override
-    public boolean sendsCorruptFrames() throws UnsupportedOperationException {
+    public boolean sendsCorruptFrames() {
         return myMoteMemory.getByteValueOf("simCorruptFrames") == 1;
+    }
+
+    @Override
+    public boolean isReceivingCorrupt() {
+        return isReceivingCorrupt;
     }
 
     @Override

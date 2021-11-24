@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.WeakHashMap;
 
 import org.apache.log4j.Logger;
 
@@ -251,6 +250,7 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 				break;
 				case TRANSMISSION_STARTED: {
 					/* Create new radio connection */
+					/* TODO determine if we should check for isReceivingCorrupt() too */
 					if (radio.isReceiving()) {
 						/*
 						 * Radio starts transmitting when it should be
@@ -263,19 +263,28 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 							}
 						}
 					}
-					
+
+					/*
+					 * Create new connections from radio and for all destinations within range,
+					 * determine (based on rules of medium used) if the destination should receive
+					 * the transmission coming from radio or be interfered by it.
+					 */
 					RadioConnection newConnection = createConnections(radio);
 					activeConnections.add(newConnection);
-					
+
+					/*
+					 * For every destination in the newly created connection, signal the start of
+					 * a new reception.
+					 */
 					for (Radio r : newConnection.getAllDestinations()) {
 						if (newConnection.getDestinationDelay(r) == 0) {
-							r.signalReceptionStart();
+							r.signalReceptionStart(radio);
 						} else {
 							/* EXPERIMENTAL: Simulating propagation delay */
 							final Radio delayedRadio = r;
 							TimeEvent delayedEvent = new TimeEvent(0) {
 								public void execute(long t) {
-									delayedRadio.signalReceptionStart();
+									delayedRadio.signalReceptionStart(radio);
 								}
 							};
 							simulation.scheduleEvent(delayedEvent, simulation.getSimulationTime() + newConnection.getDestinationDelay(r));
@@ -304,14 +313,14 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 					COUNTER_TX++;
 					for (Radio dstRadio : connection.getAllDestinations()) {
 						if (connection.getDestinationDelay(dstRadio) == 0) {
-							dstRadio.signalReceptionEnd();
+							dstRadio.signalReceptionEnd(radio);
 						} else {
 							
 							/* EXPERIMENTAL: Simulating propagation delay */
 							final Radio delayedRadio = dstRadio;
 							TimeEvent delayedEvent = new TimeEvent(0) {
 								public void execute(long t) {
-									delayedRadio.signalReceptionEnd();
+									delayedRadio.signalReceptionEnd(radio);
 								}
 							};
 							simulation.scheduleEvent(delayedEvent,
@@ -323,7 +332,7 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 					for (Radio intRadio : connection.getInterferedNonDestinations()) {
 
 					  if (intRadio.isInterfered()) {
-					    intRadio.signalReceptionEnd();
+					    intRadio.signalReceptionEnd(radio);
 					  }
 					}
 					
@@ -393,17 +402,12 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 					}
 
 					/*
-					 * When radio (i.e., the source of the packet) has "simCorruptFrames"
-					 * set to 1, the packets it sends must be handled as if they did not have
-					 * a valid SFD, meaning they are simply corrupted packets or signals
-					 * originating from a competing technology
+					 * If a radio sends corrupt frames but the receiver does not check for this and simply thinks
+					 * that it is receiving a valid frame (i.e., it thinks it heard a valid SFD), we must at least
+					 * make sure that the packet is empty.
 					 */
-					try {
-						if(radio.sendsCorruptFrames()) {
-							packet = null;
-						}
-					} catch (UnsupportedOperationException exception) {
-						logger.warn("The radio does not support checking if transmitted frames should be corrupt!");
+					if(radio.sendsCorruptFrames()) {
+						packet = null;
 					}
 					
 					for (Radio dstRadio : connection.getAllDestinations()) {

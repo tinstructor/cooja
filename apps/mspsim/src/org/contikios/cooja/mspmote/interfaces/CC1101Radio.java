@@ -300,7 +300,7 @@ public class CC1101Radio extends Radio implements CustomDataRadio {
 		return cc1101.getActiveFrequency();
 	}
 
-	public void signalReceptionStart() {
+	public void signalReceptionStart(Radio sender) {
 		isReceiving = true;
 
 		lastEvent = RadioEvent.RECEPTION_STARTED;
@@ -309,7 +309,7 @@ public class CC1101Radio extends Radio implements CustomDataRadio {
 		notifyObservers();
 	}
 
-	public void signalReceptionEnd() {
+	public void signalReceptionEnd(Radio sender) {
 		/* Deliver packet data */
 		isReceiving = false;
 		isInterfered = false;

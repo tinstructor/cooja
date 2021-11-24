@@ -289,7 +289,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     return radio.getActiveFrequency();
   }
 
-  public void signalReceptionStart() {
+  public void signalReceptionStart(Radio sender) {
     isReceiving = true;
 
     lastEvent = RadioEvent.RECEPTION_STARTED;
@@ -298,7 +298,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     notifyObservers();
   }
 
-  public void signalReceptionEnd() {
+  public void signalReceptionEnd(Radio sender) {
     /* Deliver packet data */
     isReceiving = false;
     isInterfered = false;

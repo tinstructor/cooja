@@ -39,7 +39,6 @@ import org.jdom.Element;
 import org.contikios.cooja.COOJARadioPacket;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.RadioPacket;
-import org.contikios.cooja.mote.memory.SectionMoteMemory;
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.contikimote.ContikiMote;
 import org.contikios.cooja.contikimote.ContikiMoteInterface;
@@ -107,6 +106,8 @@ public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledA
   private boolean radioOn = true;
 
   private boolean isTransmitting = false;
+
+  private boolean isReceivingCorrupt = false;
 
   private boolean isInterfered = false;
 
@@ -178,37 +179,59 @@ public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledA
     return myMoteMemory.getIntValueOf("simRadioChannel");
   }
 
-  public void signalReceptionStart() {
+  public void signalReceptionStart(Radio sender) {
     packetToMote = null;
+    /*
+     * Drop the incoming transmission if this radio is currently: being interfered
+     * (as determined by the radio medium), already receiving a different transmission,
+     * or currently transmitting a signal itself. We don't check for isReceivingCorrupt()
+     * here because if an incoming corrupt message did not cause the medium to set this
+     * radio as interfered, then it can't cause the new transmission to be dropped.
+     * Note that it seems redundant to check both isInterfered() and isReceiving(), but
+     * you must remember that not all mediums have an equal transmitting and interference
+     * range.
+     */
     if (isInterfered() || isReceiving() || isTransmitting()) {
       interfereAnyReception();
       return;
     }
 
-    myMoteMemory.setByteValueOf("simReceiving", (byte) 1);
-    mote.requestImmediateWakeup();
+    if (sender.sendsCorruptFrames()) {
+      isReceivingCorrupt = true;
+    } else {
+      myMoteMemory.setByteValueOf("simReceiving", (byte) 1);
+      mote.requestImmediateWakeup();
+    }
 
     lastEventTime = mote.getSimulation().getSimulationTime();
     lastEvent = RadioEvent.RECEPTION_STARTED;
 
-    myMoteMemory.setInt64ValueOf("simLastPacketTimestamp", lastEventTime);
+    if (!sender.sendsCorruptFrames()) {
+      myMoteMemory.setInt64ValueOf("simLastPacketTimestamp", lastEventTime);
+    }
 
     this.setChanged();
     this.notifyObservers();
   }
 
-  public void signalReceptionEnd() {
+  public void signalReceptionEnd(Radio sender) {
     if (isInterfered || packetToMote == null) {
       isInterfered = false;
       packetToMote = null;
-      myMoteMemory.setIntValueOf("simInSize", 0);
-    } else {
+      if (!sender.sendsCorruptFrames()) {
+        myMoteMemory.setIntValueOf("simInSize", 0);
+      }
+    } else if(!sender.sendsCorruptFrames()) {
       myMoteMemory.setIntValueOf("simInSize", packetToMote.getPacketData().length - 2);
       myMoteMemory.setByteArray("simInDataBuffer", packetToMote.getPacketData());
     }
 
-    myMoteMemory.setByteValueOf("simReceiving", (byte) 0);
-    mote.requestImmediateWakeup();
+    if (sender.sendsCorruptFrames()) {
+      isReceivingCorrupt = false;
+    } else {
+      myMoteMemory.setByteValueOf("simReceiving", (byte) 0);
+      mote.requestImmediateWakeup();
+    }
     lastEventTime = mote.getSimulation().getSimulationTime();
     lastEvent = RadioEvent.RECEPTION_FINISHED;
     this.setChanged();
@@ -269,8 +292,13 @@ public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledA
   }
 
   @Override
-  public boolean sendsCorruptFrames() throws UnsupportedOperationException {
+  public boolean sendsCorruptFrames() {
     return myMoteMemory.getByteValueOf("simCorruptFrames") == 1;
+  }
+
+  @Override
+  public boolean isReceivingCorrupt() {
+    return isReceivingCorrupt;
   }
 
   public int getLQI(){

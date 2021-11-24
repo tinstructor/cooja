@@ -108,7 +108,7 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
   }
 
   /* General radio support */
-  public void signalReceptionStart() {
+  public void signalReceptionStart(Radio sender) {
     packetToMote = null;
     if (isInterfered() || isReceiving() || isTransmitting()) {
       interfereAnyReception();
@@ -122,7 +122,7 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
     this.notifyObservers();
   }
 
-  public void signalReceptionEnd() {
+  public void signalReceptionEnd(Radio sender) {
     //System.out.println("SignalReceptionEnded for node: " + mote.getID() + " intf:" + interfered);
     if (isInterfered() || packetToMote == null) {
       interfered--;

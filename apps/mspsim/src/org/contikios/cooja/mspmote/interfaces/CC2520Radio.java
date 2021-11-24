@@ -15,7 +15,6 @@ import org.contikios.cooja.interfaces.Position;
 import org.contikios.cooja.interfaces.Radio;
 import org.contikios.cooja.mspmote.MspMote;
 import org.contikios.cooja.mspmote.MspMoteTimeEvent;
-import org.contikios.cooja.mspmote.interfaces.CC2420RadioPacketConverter;
 import se.sics.mspsim.chip.CC2520;
 import se.sics.mspsim.chip.ChannelListener;
 import se.sics.mspsim.chip.RFListener;
@@ -239,7 +238,7 @@ public class CC2520Radio extends Radio implements CustomDataRadio {
     return radio.getActiveFrequency();
   }
 
-  public void signalReceptionStart() {
+  public void signalReceptionStart(Radio sender) {
     isReceiving = true;
 
     lastEvent = RadioEvent.RECEPTION_STARTED;
@@ -248,7 +247,7 @@ public class CC2520Radio extends Radio implements CustomDataRadio {
     notifyObservers();
   }
 
-  public void signalReceptionEnd() {
+  public void signalReceptionEnd(Radio sender) {
     /* Deliver packet data */
     isReceiving = false;
     isInterfered = false;

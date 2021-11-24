@@ -261,7 +261,7 @@ public class TR1001Radio extends Radio implements USARTListener, CustomDataRadio
     return -1;
   }
 
-  public void signalReceptionStart() {
+  public void signalReceptionStart(Radio sender) {
     lastEvent = RadioEvent.RECEPTION_STARTED;
     isReceiving = true;
     isInterfered = false;
@@ -269,7 +269,7 @@ public class TR1001Radio extends Radio implements USARTListener, CustomDataRadio
     this.notifyObservers();
   }
 
-  public void signalReceptionEnd() {
+  public void signalReceptionEnd(Radio sender) {
     isInterfered = false;
     isReceiving = false;
     lastEvent = RadioEvent.RECEPTION_FINISHED;

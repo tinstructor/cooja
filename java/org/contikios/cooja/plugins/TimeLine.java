@@ -1148,7 +1148,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
             } else if (moteRadio.isInterfered()) {
               ev = new RadioRXTXEvent(
                   simulation.getSimulationTime(), RXTXRadioEvent.INTERFERED);
-            } else if (moteRadio.isReceiving()) {
+            } else if (moteRadio.isReceiving() || moteRadio.isReceivingCorrupt()) {
               ev = new RadioRXTXEvent(
                   simulation.getSimulationTime(), RXTXRadioEvent.RECEIVING);
             } else {

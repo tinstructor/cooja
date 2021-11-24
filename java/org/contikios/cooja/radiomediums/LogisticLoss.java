@@ -350,7 +350,7 @@ public class LogisticLoss extends AbstractRadioMedium {
                 } else {
                     boolean receiveNewOk = random.nextDouble() < getRxSuccessProbability(sender, recv);
 
-                    if (recv.isReceiving()) {
+                    if (recv.isReceiving() || recv.isReceivingCorrupt()) {
                         /*
                          * Compare new and old and decide whether to interfere.
                          * XXX: this is a simplified check. Rather than looking at all N potential senders,
