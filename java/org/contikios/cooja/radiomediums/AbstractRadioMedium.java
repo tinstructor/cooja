@@ -392,10 +392,12 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 						return;
 					}
 
-					/* TODO when radio (i.e., the source of the packet) has "simCorruptFrames"
-					 *   set to 1, the packets it sends must be handled as if they did not have
-					 * 	 a valid SFD, meaning they are simply corrupted packets or signals
-					 *   originating from a competing technology */
+					/*
+					 * When radio (i.e., the source of the packet) has "simCorruptFrames"
+					 * set to 1, the packets it sends must be handled as if they did not have
+					 * a valid SFD, meaning they are simply corrupted packets or signals
+					 * originating from a competing technology
+					 */
 					try {
 						if(radio.sendsCorruptFrames()) {
 							packet = null;

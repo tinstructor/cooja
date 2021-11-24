@@ -338,17 +338,6 @@ public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledA
     /* New transmission */
     int size = myMoteMemory.getIntValueOf("simOutSize");
     if (!isTransmitting && size > 0) {
-      /* TODO check if the following is appropriate because Cooja
-       *   has no concept of Start of Frame Delimiters (SFDs) and
-       *   all motes within range will behave as if every frame
-       *   (corrupted or not) has a valid SFD for 802.15.4 */
-//      byte[] packetByteArray = new byte[size + 2];
-//      if(myMoteMemory.getByteValueOf("simCorruptFrames") == 1) {
-//        mote.getSimulation().getRandomGenerator().nextBytes(packetByteArray);
-//      } else {
-//        packetByteArray = myMoteMemory.getByteArray("simOutDataBuffer", size + 2);
-//      }
-//      packetFromMote = new COOJARadioPacket(packetByteArray);
       packetFromMote = new COOJARadioPacket(myMoteMemory.getByteArray("simOutDataBuffer", size + 2));
 
       if (packetFromMote.getPacketData() == null || packetFromMote.getPacketData().length == 0) {
