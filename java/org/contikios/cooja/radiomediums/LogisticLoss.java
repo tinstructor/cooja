@@ -458,7 +458,9 @@ public class LogisticLoss extends AbstractRadioMedium {
             }
         }
 
-        return DEFAULT_TX_POWER_DBM - path_loss_dbm + getAWGN(source.getClass());
+        /* getAWGN() may cause an exception to be thrown when reloading a simulation */
+        /* The solution is to simply not call it when the simulation is not running! */
+        return DEFAULT_TX_POWER_DBM - path_loss_dbm + (sim.isRunning() ? getAWGN(source.getClass()) : 0);
     }
 
     private void updateTimeVariationComponent() {
