@@ -121,12 +121,16 @@ public class SimControl extends VisPlugin implements HasQuickHelp {
     speedMenu.add(limitMenuItem2);
     JRadioButtonMenuItem limitMenuItem3 = new JRadioButtonMenuItem(
             new ChangeMaxSpeedLimitAction("100%", 1.0));
-        speedlimitButtonGroup.add(limitMenuItem3);
-        speedMenu.add(limitMenuItem3);
-        JRadioButtonMenuItem limitMenuItem200 = new JRadioButtonMenuItem(
-                new ChangeMaxSpeedLimitAction("200%", 2.0));
-            speedlimitButtonGroup.add(limitMenuItem200);
-            speedMenu.add(limitMenuItem200);
+    speedlimitButtonGroup.add(limitMenuItem3);
+    speedMenu.add(limitMenuItem3);
+    JRadioButtonMenuItem limitMenuItem200 = new JRadioButtonMenuItem(
+            new ChangeMaxSpeedLimitAction("200%", 2.0));
+    speedlimitButtonGroup.add(limitMenuItem200);
+    speedMenu.add(limitMenuItem200);
+    JRadioButtonMenuItem limitMenuItem400 = new JRadioButtonMenuItem(
+            new ChangeMaxSpeedLimitAction("400%", 4.0));
+    speedlimitButtonGroup.add(limitMenuItem400);
+    speedMenu.add(limitMenuItem400);
     JRadioButtonMenuItem limitMenuItem4 = new JRadioButtonMenuItem(
         new ChangeMaxSpeedLimitAction("1000%", 10.0));
     speedlimitButtonGroup.add(limitMenuItem4);
@@ -139,9 +143,11 @@ public class SimControl extends VisPlugin implements HasQuickHelp {
     } else if (simulation.getSpeedLimit().doubleValue() == 0.10) {
       limitMenuItem2.setSelected(true);
     } else if (simulation.getSpeedLimit().doubleValue() == 1.0) {
-        limitMenuItem3.setSelected(true);
+      limitMenuItem3.setSelected(true);
     } else if (simulation.getSpeedLimit().doubleValue() == 2.0) {
-        limitMenuItem200.setSelected(true);
+      limitMenuItem200.setSelected(true);
+    } else if (simulation.getSpeedLimit().doubleValue() == 4.0) {
+      limitMenuItem400.setSelected(true);
     } else if (simulation.getSpeedLimit().doubleValue() == 10) {
       limitMenuItem4.setSelected(true);
     }
