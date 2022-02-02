@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018-2019, University of Bristol
+ * Copyright (c) 2021-2022, Ghent University
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,40 +56,44 @@ import org.contikios.cooja.plugins.skins.LogisticLossVisualizerSkin;
  * The LogisticLoss radio medium aims to be more realistic as the UDGM radio medium
  * while remaining as easily usable.
  *
- * It takes its name from the fact that the logistic function (shaped as a sigmoid) 
+ * It takes its name from the fact that the logistic function (shaped as a sigmoid)
  * is used to model the packet reception probability based on RSSI.
- * 
+ *
  * Features:
  * - Models a non-linear relationship between signal level packet reception probability
  * - Models the signal level as a function of distance following a standard formula
  *   from the RF propagation theory
- * - Adds a random level of noise (AWGN) to the signal level of each packet
+ * - Adds a random level of noise (AWGN) to the signal level of each packet (shadowing)
  * - Multiple Configurable parameters
  * - Visualization similar to UDGM visualization
  *
- * This Cooja plugin uses the logistic function to model the PRR-RSSI relationship:
+ * This Cooja plugin uses a logistic function to model the PRR-RSSI relationship:
  *
  *   PRR(rssi) =  1.0 / (1 + exp(-(rssi - rssi_50%))),
- * 
+ *
  * where:
  * - `rssi` is the transmit power minus the path loss.
  * - `rssi_50%` is the signal level at which 50% packets are received;
- * 
- * To model the path loss PL_{dBm}(d) this plugin uses the log-distance path loss model:
+ *
+ * To model the path loss PL_{dBm}(d) this plugin uses the log-distance path loss model
+ * with log-normal shadowing (see Rappaport, T.S. Wireless Communications, Principles and Practice)
  *
  *  PL_{dBm}(d) = PL_0 + PL_t + 10 * \alpha * \log_10 (d / d_0) + NormalDistribution(0, \sigma),
  *
  * where:
- * - `d_0` is the transmission range in meters;
- * - `PL_0` is the loss at `d_0` (i.e. the Rx sensitivity, by default equal
- *    to `-100` dBm as on the TI CC2650 System-on-Chip for IEEE 802.15.4 packets)
- * - `PL_t` is the time-varying component of the path loss (by default, zero)
+ * - `d_0` a close-in reference distance in the transmitter's far-field region;
+ * - `PL_0` is the path loss at `d_0` (to be calculated with the free-space path
+ *    loss model, which itself is derived from the Friis transmission formula);
+ * - `PL_t` is the time-varying component of the path loss (by default, zero);
  * - `\alpha` is the path loss exponent;
- * - `\sigma` is the standard deviation of the Additive White Gaussian Noise.
- * 
+ * - `\sigma` is the standard deviation of the Additive White Gaussian Noise;
+ * - `NormalDistribution(0, \sigma)` is a Gaussian-distributed random variable
+ *    with zero-mean and standard deviation `\sigma`;
+ *
  * The default value of `\alpha` (the path loss exponent) is 3.0 and the default
  * value of `\sigma` is 3.0 as well, both of which approximately correspond to
- * "indoors, 2.4 GHz frequency" according to RF propagation theory.
+ * "indoors, 2.4 GHz frequency" according to RF propagation theory. For 868 MHz
+ * `\alpha` is also set to 3.0 while `\sigma` is set to 5.0 by default.
  *
  * If the time-varying behavior is enabled, the value of `PL_t` is changing over time.
  * The change is within bounds `[TVPL_{min}, TVPL_{max}]`. The evolution is done in discrete steps.
@@ -101,6 +106,7 @@ import org.contikios.cooja.plugins.skins.LogisticLossVisualizerSkin;
  *
  * @see UDGM
  * @author Atis Elsts
+ * @author Robbe Elsas
  */
 @ClassDescription("LogisticLoss Medium")
 public class LogisticLoss extends AbstractRadioMedium {
@@ -116,7 +122,7 @@ public class LogisticLoss extends AbstractRadioMedium {
 
     /*
      * This is the point where the second-order derivative of the logistic loss function becomes negative.
-     *  It is also the point where 50% of packets with this signal strength are received.
+     * It is also the point where 50% of packets with this signal strength are received.
      */
     public double RSSI_INFLECTION_POINT_DBM = -92.0;
 
@@ -130,7 +136,7 @@ public class LogisticLoss extends AbstractRadioMedium {
     /* The same but for a secondary 868 MHz channel */
     public double AWGN_SIGMA_868 = 5.0;
 
-    /* 
+    /*
      * This is required to implement the Capture Effect.
      * The co-channel rejection threshold of 802.15.4 radios typically is -3 dB.
      */
@@ -142,22 +148,40 @@ public class LogisticLoss extends AbstractRadioMedium {
      */
     public final double DEFAULT_TX_POWER_DBM = 0.0;
 
+    /* Gain of the antennas used, in dBi. */
+    public final double ANTENNA_GAIN_DBI = 0.0;
+
+    /* Close-in reference distance in the far-field of the transmitter */
+    public double REFERENCE_DISTANCE = 1.0;
+
     /*
-     * Gain of the antennas used, in dBi.
+     * The path loss at a close-in reference distance in the far-field region of the transmitter.
+     * It is common practive to calculate it from the free-space path loss equation:
+     *
+     * PL_0 = 20 * \log_10 (4 * PI * f * d_0 / c) - AG_tx - AG_rx
+     *
+     * where:
+     * - `d_0` is the close-in reference distance in m;
+     * - `PL_0` is the loss at `d_0` in dBm;
+     * - `AG_tx` is the transmitter antenna gain in dBi;
+     * - `AG_rx` is the receiver antenna gain in dBi;
+     * - `f` is the operating frequency in Hz;
+     * - `c` is the speed of light = 300 000 000 m/s.
      */
-    public final double ANTENNA_GAIN = 0.0;
+    public double PATH_LOSS_REF_DIST_2400 = 20 * Math.log10(4 * Math.PI * 2.4 * REFERENCE_DISTANCE / 0.3) - 2 * ANTENNA_GAIN_DBI;
+    public double PATH_LOSS_REF_DIST_868 = 20 * Math.log10(4 * Math.PI * 0.868 * REFERENCE_DISTANCE / 0.3) - 2 * ANTENNA_GAIN_DBI;
 
     /*
      * At this distance (in meters), the RSSI is equal to the RX_SENSITIVITY_DBM.
-     * The range is calculated based on the assumption that PL_0 can be found using
-     * the modified Friis equation (i.e., the version incorporating the path loss
-     * exponent). More specifically, given:
+     * More specifically, given:
      *
-     * PL_0 = PL_tx - rssi = 20 * \log_10 (4 * PI * f / c) - AG_tx - AG_rx + 10 * \alpha * \log_10 (d_0)
+     * |PL_max| = PL_tx - rssi = 20 * \log_10 (4 * PI * f * d_0 / c) - AG_tx - AG_rx + 10 * \alpha * \log_10 (d_max / d_0)
      *
      * where:
-     * - `d_0` is the transmission range in meters;
+     * - `d_0` is the close-in reference distance in meters;
      * - `PL_0` is the loss at `d_0` in dBm;
+     * - `d_max` is the transmission range in meters;
+     * - `PL_max` is the loss at `d_max` in dBm;
      * - `PL_tx` is the transmit power in dBm;
      * - `\alpha` is the path loss exponent;
      * - `AG_tx` is the transmitter antenna gain in dBi;
@@ -165,24 +189,24 @@ public class LogisticLoss extends AbstractRadioMedium {
      * - `f` is the operating frequency in Hz;
      * - `c` is the speed of light = 300 000 000 m/s.
      *
-     * Then, if we isolate for d_0, we get:
+     * Then, if we isolate for d_max, we get:
      *
-     * d_0 = 10 ^ ((PL_tx - rssi + AG_tx + AG_rx - 20 * \log_10 (4 * PI * f / c)) / (\alpha * 10))
+     * d_max = d_ref * 10 ^ ((PL_tx - rssi + AG_tx + AG_rx - 20 * \log_10 (4 * PI * f * d_ref / c)) / (\alpha * 10))
      *
      * For example, assuming the rx sensitivity (i.e., the rx power below which the PRR
      * is approximately 0%) equals -100 dBm, assuming the rssi is a good approximation
      * of the actual rx power, and given f = 2.4 GHz, AG_tx = AG_rx = 0 dBi, \alpha = 3,
-     * PL_tx = 0 dBm we get:
+     * PL_tx = 0 dBm, and d_ref = 1.0 m, we get:
      *
-     * d_0 = 10 ^ ((100 dBm - 20 * \log_10 (4 * PI * 2.4 GHz / 0.3 Gm/s)) / (3 * 10))
-     *     = 99.648 m
+     * d_max = 1.0 m * 10 ^ ((100 dBm - 20 * \log_10 (4 * PI * 2.4 GHz * 1.0 m / 0.3 Gm/s)) / (3 * 10))
+     *       = 99.648 m
      */
-    public double TRANSMITTING_RANGE_2400 = Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN
-            - 20.0 * Math.log10(4.0 * Math.PI * 2.4 / 0.3)) / (10.0 * PATH_LOSS_EXPONENT_2400));
+    public double TRANSMITTING_RANGE_2400 = REFERENCE_DISTANCE * Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN_DBI
+            - 20.0 * Math.log10(4.0 * Math.PI * 2.4 * REFERENCE_DISTANCE / 0.3)) / (10.0 * PATH_LOSS_EXPONENT_2400));
     public double INTERFERENCE_RANGE_2400 = TRANSMITTING_RANGE_2400;
     /* The same but for a secondary 868 MHz channel */
-    public double TRANSMITTING_RANGE_868 = Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN
-            - 20.0 * Math.log10(4.0 * Math.PI * 0.868 / 0.3)) / (10.0 * PATH_LOSS_EXPONENT_868));
+    public double TRANSMITTING_RANGE_868 = REFERENCE_DISTANCE * Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN_DBI
+            - 20.0 * Math.log10(4.0 * Math.PI * 0.868 * REFERENCE_DISTANCE / 0.3)) / (10.0 * PATH_LOSS_EXPONENT_868));
     public double INTERFERENCE_RANGE_868 = TRANSMITTING_RANGE_868;
 
     /* Enable the time-varying component? */
@@ -236,7 +260,7 @@ public class LogisticLoss extends AbstractRadioMedium {
                             if (distance < (source.getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)) {
                                 /* Add potential destination */
                                 addEdge(
-                                        new DirectedGraphMedium.Edge(source, 
+                                        new DirectedGraphMedium.Edge(source,
                                                 new DGRMDestinationRadio(dest)));
 
                                 if (ENABLE_TIME_VARIATION) {
@@ -287,7 +311,7 @@ public class LogisticLoss extends AbstractRadioMedium {
 
         Visualizer.unregisterVisualizerSkin(LogisticLossVisualizerSkin.class);
     }
-  
+
     public RadioConnection createConnections(Radio sender) {
         RadioConnection newConnection = new RadioConnection(sender);
 
@@ -320,7 +344,7 @@ public class LogisticLoss extends AbstractRadioMedium {
                 continue;
             }
 
-            /* Fail if radios are on different (but configured) channels */ 
+            /* Fail if radios are on different (but configured) channels */
             if (sender.getChannel() >= 0 &&
                     recv.getChannel() >= 0 &&
                     sender.getChannel() != recv.getChannel()) {
@@ -410,7 +434,7 @@ public class LogisticLoss extends AbstractRadioMedium {
 
         return newConnection;
     }
-  
+
     public double getSuccessProbability(Radio source, Radio dest) {
         return getTxSuccessProbability(source) * getRxSuccessProbability(source, dest);
     }
@@ -442,9 +466,9 @@ public class LogisticLoss extends AbstractRadioMedium {
         /* Using the log-distance formula */
         double path_loss_dbm;
         if(source.getClass() == TwofacedRadio.class) {
-            path_loss_dbm = -RX_SENSITIVITY_DBM + 10 * PATH_LOSS_EXPONENT_868 * Math.log10(d / TRANSMITTING_RANGE_868);
+            path_loss_dbm = PATH_LOSS_REF_DIST_868 + 10 * PATH_LOSS_EXPONENT_868 * Math.log10(d / REFERENCE_DISTANCE);
         } else {
-            path_loss_dbm = -RX_SENSITIVITY_DBM + 10 * PATH_LOSS_EXPONENT_2400 * Math.log10(d / TRANSMITTING_RANGE_2400);
+            path_loss_dbm = PATH_LOSS_REF_DIST_2400 + 10 * PATH_LOSS_EXPONENT_2400 * Math.log10(d / REFERENCE_DISTANCE);
         }
 
         /* Add the time-varying component if enabled */
@@ -485,7 +509,7 @@ public class LogisticLoss extends AbstractRadioMedium {
         if(ENABLE_TIME_VARIATION) {
             updateTimeVariationComponent();
         }
-    
+
         /* Reset signal strengths */
         for (Radio radio : getRegisteredRadios()) {
             radio.setCurrentSignalStrength(getBaseRssi(radio));
@@ -561,9 +585,19 @@ public class LogisticLoss extends AbstractRadioMedium {
         element.setText("" + SUCCESS_RATIO_TX);
         config.add(element);
 
-        /* Rx sensitivity */
-        element = new Element("rx_sensitivity");
-        element.setText("" + RX_SENSITIVITY_DBM);
+        /* Close-in reference distance */
+        element = new Element("reference_distance");
+        element.setText("" + REFERENCE_DISTANCE);
+        config.add(element);
+
+        /* Path loss at close-in reference distance for 2.4 GHz channel */
+        element = new Element("path_loss_ref_dist_2400");
+        element.setText("" + PATH_LOSS_REF_DIST_2400);
+        config.add(element);
+
+        /* Path loss at close-in reference distance for 868 MHz channel */
+        element = new Element("path_loss_ref_dist_868");
+        element.setText("" + PATH_LOSS_EXPONENT_868);
         config.add(element);
 
         /* RSSI inflection point */
@@ -626,8 +660,16 @@ public class LogisticLoss extends AbstractRadioMedium {
                 SUCCESS_RATIO_TX = Double.parseDouble(element.getText());
             }
 
-            if (element.getName().equals("rx_sensitivity")) {
-                RX_SENSITIVITY_DBM = Double.parseDouble(element.getText());
+            if (element.getName().equals("reference_distance")) {
+                REFERENCE_DISTANCE = Double.parseDouble(element.getText());
+            }
+
+            if (element.getName().equals("path_loss_ref_dist_2400")) {
+                PATH_LOSS_REF_DIST_2400 = Double.parseDouble(element.getText());
+            }
+
+            if (element.getName().equals("path_loss_ref_dist_868")) {
+                PATH_LOSS_REF_DIST_868 = Double.parseDouble(element.getText());
             }
 
             if (element.getName().equals("rssi_inflection_point")) {
