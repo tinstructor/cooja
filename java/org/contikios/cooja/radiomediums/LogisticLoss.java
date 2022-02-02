@@ -597,7 +597,7 @@ public class LogisticLoss extends AbstractRadioMedium {
 
         /* Path loss at close-in reference distance for 868 MHz channel */
         element = new Element("path_loss_ref_dist_868");
-        element.setText("" + PATH_LOSS_EXPONENT_868);
+        element.setText("" + PATH_LOSS_REF_DIST_868);
         config.add(element);
 
         /* RSSI inflection point */
