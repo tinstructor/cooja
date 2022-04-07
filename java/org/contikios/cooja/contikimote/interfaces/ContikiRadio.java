@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2008, Swedish Institute of Computer Science.
+ * Copyright (c) 2021, Ghent University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -86,6 +87,7 @@ import org.contikios.cooja.util.CCITT_CRC;
  * @see UDGM
  *
  * @author Fredrik Osterlind
+ * @author Robbe Elsas
  */
 public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledAfterActiveTicks {
   private ContikiMote mote;

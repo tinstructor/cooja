@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2009, Swedish Institute of Computer Science.
+ * Copyright (c) 2021, Ghent University.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,6 +78,7 @@ import org.contikios.cooja.plugins.skins.UDGMVisualizerSkin;
  * @see DirectedGraphMedium
  * @see UDGMVisualizerSkin
  * @author Fredrik Osterlind
+ * @author Robbe Elsas
  */
 @ClassDescription("Unit Disk Graph Medium (UDGM): Distance Loss")
 public class UDGM extends AbstractRadioMedium {
