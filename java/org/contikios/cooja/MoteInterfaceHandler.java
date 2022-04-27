@@ -33,7 +33,8 @@ package org.contikios.cooja;
 
 import java.util.*;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.contikios.cooja.contikimote.interfaces.TwofacedRadio;
 import org.contikios.cooja.interfaces.*;
 
@@ -50,7 +51,7 @@ import org.contikios.cooja.interfaces.*;
  * @author Robbe Elsas
  */
 public class MoteInterfaceHandler {
-  private static Logger logger = Logger.getLogger(MoteInterfaceHandler.class);
+  private static final Logger logger = LogManager.getLogger(MoteInterfaceHandler.class);
 
   private ArrayList<MoteInterface> moteInterfaces = new ArrayList<MoteInterface>();
 

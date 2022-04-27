@@ -30,7 +30,8 @@
 
 package org.contikios.cooja.avrmote.interfaces;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
@@ -51,7 +52,7 @@ import org.contikios.cooja.interfaces.Radio;
  */
 @ClassDescription("CC2420")
 public class MicaZRadio extends Radio802154 {
-  private static Logger logger = Logger.getLogger(MicaZRadio.class);
+  private static final Logger logger = LogManager.getLogger(MicaZRadio.class);
 
   private MicaZ micaz;
   private CC2420Radio cc2420;

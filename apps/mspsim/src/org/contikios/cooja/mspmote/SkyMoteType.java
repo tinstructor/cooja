@@ -41,7 +41,8 @@ import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.contikios.cooja.AbstractionLevelDescription;
 import org.contikios.cooja.ClassDescription;
@@ -71,7 +72,7 @@ import org.contikios.cooja.mspmote.interfaces.SkyTemperature;
 @ClassDescription("Sky mote")
 @AbstractionLevelDescription("Emulated level")
 public class SkyMoteType extends MspMoteType {
-  private static Logger logger = Logger.getLogger(SkyMoteType.class);
+  private static final Logger logger = LogManager.getLogger(SkyMoteType.class);
 
   protected MspMote createMote(Simulation simulation) {
     return new SkyMote(this, simulation);
@@ -157,11 +158,6 @@ public class SkyMoteType extends MspMoteType {
               true
           );
         } catch (Exception e) {
-          MoteTypeCreationException newException =
-            new MoteTypeCreationException("Mote type creation failed: " + e.getMessage());
-          newException = (MoteTypeCreationException) newException.initCause(e);
-          newException.setCompilationOutput(compilationOutput);
-
           /* Print last 10 compilation errors to console */
           MessageContainer[] messages = compilationOutput.getMessages();
           for (int i=messages.length-10; i < messages.length; i++) {
@@ -171,8 +167,8 @@ public class SkyMoteType extends MspMoteType {
             logger.fatal(">> " + messages[i]);
           }
 
-          logger.fatal("Compilation error: " + e.getMessage());
-          throw newException;
+          logger.fatal("Compilation error: " + compilationOutput);
+          return false;
         }
       }
     }

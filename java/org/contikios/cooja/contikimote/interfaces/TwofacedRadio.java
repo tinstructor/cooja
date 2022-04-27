@@ -31,7 +31,8 @@
 
 package org.contikios.cooja.contikimote.interfaces;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 import org.contikios.cooja.*;
 import org.contikios.cooja.contikimote.ContikiMote;
 import org.contikios.cooja.contikimote.ContikiMoteInterface;
@@ -57,7 +58,7 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
 
     private VarMemory myMoteMemory;
 
-    private static Logger logger = Logger.getLogger(ContikiRadio.class);
+    private static final Logger logger = LogManager.getLogger(TwofacedRadio.class);
 
     private double RADIO_TRANSMISSION_RATE_kbps;
 

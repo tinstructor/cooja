@@ -41,7 +41,8 @@ import java.net.URL;
 
 import javax.swing.*;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.contikios.cooja.*;
 import org.contikios.cooja.dialogs.*;
@@ -51,7 +52,7 @@ import org.contikios.cooja.dialogs.*;
  */
 public abstract class AbstractMspMoteType extends MspMoteType {
 
-    protected final Logger logger = Logger.getLogger(getClass());
+    protected final Logger logger = LogManager.getLogger(getClass());
 
     public abstract String getMoteType();
 
@@ -141,18 +142,14 @@ public abstract class AbstractMspMoteType extends MspMoteType {
                             true
                             );
                 } catch (Exception e) {
-                    MoteTypeCreationException newException =
-                            new MoteTypeCreationException("Mote type creation failed: " + e.getMessage(), e);
-                    newException.setCompilationOutput(compilationOutput);
-
                     /* Print last 10 compilation errors to console */
                     MessageContainer[] messages = compilationOutput.getMessages();
                     for (int i = Math.max(messages.length - 10, 0); i < messages.length; i++) {
                         logger.fatal(">> " + messages[i]);
                     }
 
-                    logger.fatal("Compilation error: " + e.getMessage());
-                    throw newException;
+                    logger.fatal("Compilation error: " + compilationOutput);
+                    return false;
                 }
             }
         }

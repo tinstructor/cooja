@@ -42,7 +42,8 @@ import java.util.Set;
 import javax.swing.Box;
 import javax.swing.JInternalFrame;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
@@ -70,7 +71,7 @@ import org.contikios.cooja.radiomediums.LogisticLoss;
 @SupportedArguments(radioMediums = {LogisticLoss.class})
 public class LogisticLossVisualizerSkin implements VisualizerSkin {
 
-  private static final Logger logger = Logger.getLogger(LogisticLossVisualizerSkin.class);
+  private static final Logger logger = LogManager.getLogger(LogisticLossVisualizerSkin.class);
 
   private static final Color COLOR_TX = new Color(0, 255, 0, 100);
   private static final Color COLOR_INT = new Color(50, 50, 50, 100);
