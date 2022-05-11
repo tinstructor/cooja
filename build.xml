@@ -1,6 +1,12 @@
 <?xml version="1.0"?>
 
 <project name="COOJA Simulator" default="run" basedir=".">
+  <fail message="Ant 1.10+ required">
+    <condition>
+      <not><antversion atleast="1.10" /></not>
+    </condition>
+  </fail>
+
   <property name="java" location="java"/>
   <property name="build" location="build"/>
   <property name="javadoc" location="javadoc"/>
@@ -10,6 +16,20 @@
   <property name="args" value="" />
 
   <property name="log4j.version" value="2.17.2" />
+
+  <path id="cooja.nogui.classpath">
+    <pathelement path="${build}"/>
+    <pathelement location="lib/jdom.jar"/>
+    <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
+    <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
+    <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
+    <pathelement location="lib/syntaxpane-1.2.0.jar"/>
+  </path>
+
+  <path id="cooja.classpath">
+    <path refid="cooja.nogui.classpath"/>
+    <pathelement location="lib/swingx-all-1.6.4.jar"/>
+  </path>
 
   <target name="help">
     <echo>
@@ -48,15 +68,7 @@ The COOJA Simulator
         <arg file="${CSC}"/>
         <arg file="exported.jar"/>
         <env key="LD_LIBRARY_PATH" value="."/>
-        <classpath>
-          <pathelement path="${build}"/>
-          <pathelement location="lib/jdom.jar"/>
-          <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-          <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-          <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-          <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-          <pathelement location="lib/swingx-all-1.6.4.jar"/>
-        </classpath>
+        <classpath refid="cooja.classpath"/>
     </java>
   </target>
 
@@ -65,31 +77,16 @@ The COOJA Simulator
     <mkdir dir="${javadoc}/"/>
     <javadoc destdir="${javadoc}">
       <fileset dir="${java}/" includes="**/*.java"/>
-      <classpath>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-        <pathelement location="lib/swingx-all-1.6.4.jar"/>
-      </classpath>
+      <classpath refid="cooja.classpath"/>
     </javadoc>
   </target>
 
   <target name="compile" depends="init">
     <mkdir dir="${build}"/>
-    <javac srcdir="${java}" destdir="${build}" debug="on"
+    <javac srcdir="${java}" destdir="${build}" debug="on" release="11"
            includeantruntime="false"
            encoding="utf-8">
-      <classpath>
-        <pathelement path="."/>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-        <pathelement location="lib/swingx-all-1.6.4.jar"/>
-      </classpath>
+      <classpath refid="cooja.classpath"/>
     </javac>
   </target>
 
@@ -115,33 +112,7 @@ The COOJA Simulator
       <sysproperty key="user.language" value="en"/>
       <arg line="${args}"/>
       <env key="LD_LIBRARY_PATH" value="."/>
-      <classpath>
-        <pathelement path="${build}"/>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-        <pathelement location="lib/swingx-all-1.6.4.jar"/>
-      </classpath>
-    </java>
-  </target>
-
-  <target name="run64" depends="init, compile, jar, copy configs">
-    <java fork="yes" dir="${build}" classname="org.contikios.cooja.Cooja" maxmemory="512m">
-      <sysproperty key="user.language" value="en"/>
-      <jvmarg value="-d64 -XX:+ShowMessageBoxOnError"/>
-      <arg line="${args}"/>
-      <env key="LD_LIBRARY_PATH" value="."/>
-      <classpath>
-        <pathelement path="${build}"/>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-        <pathelement location="lib/swingx-all-1.6.4.jar"/>
-      </classpath>
+      <classpath refid="cooja.classpath"/>
     </java>
   </target>
 
@@ -150,15 +121,7 @@ The COOJA Simulator
       <sysproperty key="user.language" value="en"/>
       <jvmarg value="-XX:+ShowMessageBoxOnError"/>
       <env key="LD_LIBRARY_PATH" value="."/>
-      <classpath>
-        <pathelement path="${build}"/>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-        <pathelement location="lib/swingx-all-1.6.4.jar"/>
-      </classpath>
+      <classpath refid="cooja.classpath"/>
     </java>
   </target>
 
@@ -167,15 +130,7 @@ The COOJA Simulator
       <arg line="${args}"/>
       <env key="LD_LIBRARY_PATH" value="."/>
       <jvmarg line="-agentlib:yjpagent"/>
-      <classpath>
-        <pathelement path="${build}"/>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-        <pathelement location="lib/swingx-all-1.6.4.jar"/>
-      </classpath>
+      <classpath refid="cooja.classpath"/>
     </java>
   </target>
 
@@ -183,14 +138,8 @@ The COOJA Simulator
     <java fork="yes" dir="${build}" classname="org.contikios.cooja.Cooja" maxmemory="1536m">
       <arg line="${args}"/>
       <env key="LD_LIBRARY_PATH" value="."/>
+      <classpath refid="cooja.classpath"/>
       <classpath>
-        <pathelement path="${build}"/>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-        <pathelement location="lib/swingx-all-1.6.4.jar"/>
         <pathelement location="mspsim/lib/jfreechart-1.0.11.jar"/>
         <pathelement location="mspsim/lib/jcommon-1.0.14.jar"/>
       </classpath>
@@ -201,15 +150,7 @@ The COOJA Simulator
     <java fork="yes" dir="${build}" classname="org.contikios.cooja.Cooja" maxmemory="1536m">
       <arg line="${args}"/>
       <env key="LD_LIBRARY_PATH" value="."/>
-      <classpath>
-        <pathelement path="${build}"/>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-        <pathelement location="lib/swingx-all-1.6.4.jar"/>
-      </classpath>
+      <classpath refid="cooja.classpath"/>
     </java>
   </target>
 
@@ -225,32 +166,26 @@ The COOJA Simulator
     <java fork="yes" dir="${build}" classname="org.contikios.cooja.Cooja" maxmemory="512m">
       <arg line="-nogui=${args}"/>
       <env key="LD_LIBRARY_PATH" value="."/>
-      <classpath>
-        <pathelement path="${build}"/>
-        <pathelement location="lib/jdom.jar"/>
-        <pathelement location="lib/log4j-core-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-api-${log4j.version}.jar"/>
-        <pathelement location="lib/log4j-1.2-api-${log4j.version}.jar" />
-        <pathelement location="lib/syntaxpane-1.2.0.jar"/>
-      </classpath>
+      <classpath refid="cooja.nogui.classpath"/>
     </java>
   </target>
 
-  <target name="run_applet" depends="init, compile, jar, copy configs">
-    <exec executable="appletviewer" dir="${build}">
-      <arg value="-J-Djava.security.policy=cooja.policy"/>
-      <arg value="cooja.html"/>
-      <env key="LD_LIBRARY_PATH" value="."/>
-      <env key="CLASSPATH" path="${build}"/>
-    </exec>
-  </target>
+  <pathconvert property="manifest.classpath" pathsep=" ">
+    <path refid="cooja.classpath"/>
+    <mapper>
+      <chainedmapper>
+        <flattenmapper/>
+        <globmapper from="*.jar" to="lib/*.jar"/>
+      </chainedmapper>
+    </mapper>
+  </pathconvert>
 
   <target name="jar_cooja" depends="init, compile, copy configs">
     <mkdir dir="${dist}"/>
     <jar destfile="${dist}/cooja.jar" basedir="${build}">
       <manifest>
         <attribute name="Main-Class" value="org.contikios.cooja.Cooja"/>
-        <attribute name="Class-Path" value=". lib/log4j-core-${log4j.version}.jar lib/log4j-api-${log4j.version}.jar lib/log4j-1.2-api-${log4j.version}.jar lib/jdom.jar lib/syntaxpane-1.2.0.jar lib/swingx-all-1.6.4.jar"/>
+        <attribute name="Class-Path" value=". ${manifest.classpath}"/>
       </manifest>
     </jar>
     <mkdir dir="${dist}/lib"/>

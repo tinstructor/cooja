@@ -563,7 +563,7 @@ public class ContikiMoteType implements MoteType {
         return -1;
       }
 
-      return Long.parseLong(retString.trim(), 16);
+      return Long.parseUnsignedLong(retString.trim(), 16);
     }
 
     public MemoryInterface parse(long offset) {
@@ -670,7 +670,7 @@ public class ContikiMoteType implements MoteType {
       String retString = getFirstMatchGroup(mapFileData, regExp, 1);
 
       if (retString != null) {
-        return Long.parseLong(retString.trim(), 16);
+        return Long.parseUnsignedLong(retString.trim(), 16);
       } else {
         return -1;
       }
@@ -767,7 +767,7 @@ public class ContikiMoteType implements MoteType {
         if (matcher.find()) {
           /* Line matched variable address */
           String symbol = matcher.group("symbol");
-          long varAddr = Integer.parseInt(matcher.group("address"), 16) + offset;
+          long varAddr = Long.parseUnsignedLong(matcher.group("address"), 16) + offset;
           int varSize;
 
           if (matcher.group(2) != null) {

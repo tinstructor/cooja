@@ -101,6 +101,7 @@ public class UDGM extends AbstractRadioMedium {
     super(simulation);
     random = simulation.getRandomGenerator();
     dgrm = new DirectedGraphMedium() {
+      @Override
       protected void analyzeEdges() {
         /* Create edges according to distances.
          * XXX May be slow for mobile networks */
@@ -139,16 +140,19 @@ public class UDGM extends AbstractRadioMedium {
     /* Register as position observer.
      * If any positions change, re-analyze potential receivers. */
     final Observer positionObserver = new Observer() {
+      @Override
       public void update(Observable o, Object arg) {
         dgrm.requestEdgeAnalysis();
       }
     };
     /* Re-analyze potential receivers if radios are added/removed. */
     simulation.getEventCentral().addMoteCountListener(new MoteCountListener() {
+      @Override
       public void moteWasAdded(Mote mote) {
         mote.getInterfaces().getPosition().addObserver(positionObserver);
         dgrm.requestEdgeAnalysis();
       }
+      @Override
       public void moteWasRemoved(Mote mote) {
         mote.getInterfaces().getPosition().deleteObserver(positionObserver);
         dgrm.requestEdgeAnalysis();
@@ -163,6 +167,7 @@ public class UDGM extends AbstractRadioMedium {
     Visualizer.registerVisualizerSkin(UDGMVisualizerSkin.class);
   }
 
+  @Override
   public void removed() {
   	super.removed();
   	
@@ -179,6 +184,7 @@ public class UDGM extends AbstractRadioMedium {
     dgrm.requestEdgeAnalysis();
   }
 
+  @Override
   public RadioConnection createConnections(Radio sender) {
     RadioConnection newConnection = new RadioConnection(sender);
 
@@ -307,6 +313,7 @@ public class UDGM extends AbstractRadioMedium {
     return 1.0 - ratio*(1.0-SUCCESS_RATIO_RX);
   }
 
+  @Override
   public void updateSignalStrengths() {
     /* Override: uses distance as signal strength factor */
     
@@ -376,6 +383,7 @@ public class UDGM extends AbstractRadioMedium {
     }
   }
 
+  @Override
   public Collection<Element> getConfigXML() {
     Collection<Element> config = super.getConfigXML();
     Element element;
@@ -413,6 +421,7 @@ public class UDGM extends AbstractRadioMedium {
     return config;
   }
 
+  @Override
   public boolean setConfigXML(Collection<Element> configXML, boolean visAvailable) {
     super.setConfigXML(configXML, visAvailable);
     for (Element element : configXML) {

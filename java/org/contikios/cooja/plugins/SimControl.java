@@ -201,8 +201,10 @@ public class SimControl extends VisPlugin implements HasQuickHelp {
 
     /* Observe current simulation */
     simulation.addObserver(simObserver = new Observer() {
+      @Override
       public void update(Observable obs, Object obj) {
         SwingUtilities.invokeLater(new Runnable() {
+          @Override
           public void run() {
             updateValues();
           }
@@ -229,6 +231,7 @@ public class SimControl extends VisPlugin implements HasQuickHelp {
       super(name);
       this.maxSpeed = maxSpeed;
     }
+    @Override
     public void actionPerformed(ActionEvent e) {
       simulation.setSpeedLimit(maxSpeed);
     }
@@ -278,6 +281,7 @@ public class SimControl extends VisPlugin implements HasQuickHelp {
     }
   }
 
+  @Override
   public void closePlugin() {
     /* Remove simulation observer */
     if (simObserver != null) {
@@ -289,6 +293,7 @@ public class SimControl extends VisPlugin implements HasQuickHelp {
   }
 
   private Timer updateLabelTimer = new Timer(LABEL_UPDATE_INTERVAL, new ActionListener() {
+    @Override
     public void actionPerformed(ActionEvent e) {
       simulationTime.setText(getTimeString());
 
@@ -311,28 +316,33 @@ public class SimControl extends VisPlugin implements HasQuickHelp {
   });
 
   private Action startAction = new AbstractAction("Start") {
+    @Override
     public void actionPerformed(ActionEvent e) {
       simulation.startSimulation();
       stopButton.requestFocus();
     }
   };
   private Action stopAction = new AbstractAction("Pause") {
+    @Override
     public void actionPerformed(ActionEvent e) {
       simulation.stopSimulation();
       startButton.requestFocus();
     }
   };
   private Action stepAction = new AbstractAction("Step") {
+    @Override
     public void actionPerformed(ActionEvent e) {
       simulation.stepMillisecondSimulation();
     }
   };
   private Action reloadAction = new AbstractAction("Reload") {
+    @Override
     public void actionPerformed(ActionEvent e) {
       simulation.getCooja().reloadCurrentSimulation(simulation.isRunning());
     }
   };
 
+  @Override
   public String getQuickHelp() {
     return "<b>Control Panel</b>" +
         "<p>The control panel controls the simulation. " +

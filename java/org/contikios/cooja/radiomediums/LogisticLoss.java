@@ -234,6 +234,7 @@ public class LogisticLoss extends AbstractRadioMedium {
         random = simulation.getRandomGenerator();
         sim = simulation;
         dgrm = new DirectedGraphMedium() {
+                @Override
                 protected void analyzeEdges() {
                     /* Create edges according to distances.
                      * XXX May be slow for mobile networks */
@@ -284,16 +285,19 @@ public class LogisticLoss extends AbstractRadioMedium {
         /* Register as position observer.
          * If any positions change, re-analyze potential receivers. */
         final Observer positionObserver = new Observer() {
+                @Override
                 public void update(Observable o, Object arg) {
                     dgrm.requestEdgeAnalysis();
                 }
             };
         /* Re-analyze potential receivers if radios are added/removed. */
         simulation.getEventCentral().addMoteCountListener(new MoteCountListener() {
+                @Override
                 public void moteWasAdded(Mote mote) {
                     mote.getInterfaces().getPosition().addObserver(positionObserver);
                     dgrm.requestEdgeAnalysis();
                 }
+                @Override
                 public void moteWasRemoved(Mote mote) {
                     mote.getInterfaces().getPosition().deleteObserver(positionObserver);
                     dgrm.requestEdgeAnalysis();
@@ -308,12 +312,14 @@ public class LogisticLoss extends AbstractRadioMedium {
         Visualizer.registerVisualizerSkin(LogisticLossVisualizerSkin.class);
     }
 
+    @Override
     public void removed() {
         super.removed();
 
         Visualizer.unregisterVisualizerSkin(LogisticLossVisualizerSkin.class);
     }
 
+    @Override
     public RadioConnection createConnections(Radio sender) {
         RadioConnection newConnection = new RadioConnection(sender);
 
@@ -505,6 +511,7 @@ public class LogisticLoss extends AbstractRadioMedium {
         }
     }
 
+    @Override
     public void updateSignalStrengths() {
         /* Override: uses distance as signal strength factor */
 
@@ -568,6 +575,7 @@ public class LogisticLoss extends AbstractRadioMedium {
         }
     }
 
+    @Override
     public Collection<Element> getConfigXML() {
         Collection<Element> config = super.getConfigXML();
         Element element;
@@ -645,6 +653,7 @@ public class LogisticLoss extends AbstractRadioMedium {
         return config;
     }
 
+    @Override
     public boolean setConfigXML(Collection<Element> configXML, boolean visAvailable) {
         super.setConfigXML(configXML, visAvailable);
         for (Element element : configXML) {

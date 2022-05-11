@@ -248,6 +248,7 @@ public abstract class Radio extends MoteInterface {
   public abstract Mote getMote();
 
 
+  @Override
   public JPanel getInterfaceVisualizer() {
     JPanel panel = new JPanel(new BorderLayout());
     Box box = Box.createVerticalBox();
@@ -265,6 +266,7 @@ public abstract class Radio extends MoteInterface {
     box.add(channelLabel);
 
     updateButton.addActionListener(new ActionListener() {
+      @Override
       public void actionPerformed(ActionEvent e) {
         ssLabel.setText("Signal strength (not auto-updated): "
             + String.format("%1.1f", getCurrentSignalStrength()) + " dBm");
@@ -272,6 +274,7 @@ public abstract class Radio extends MoteInterface {
     });
 
     final Observer observer = new Observer() {
+      @Override
       public void update(Observable obs, Object obj) {
         if (isTransmitting()) {
           statusLabel.setText("Transmitting");
@@ -300,6 +303,7 @@ public abstract class Radio extends MoteInterface {
     return panel;
   }
 
+  @Override
   public void releaseInterfaceVisualizer(JPanel panel) {
     Observer observer = (Observer) panel.getClientProperty("intf_obs");
     if (observer == null) {
