@@ -719,7 +719,7 @@ public class LogisticLoss extends AbstractRadioMedium {
     }
 
     // Invariant: x <= y
-    private class Index {
+    private static class Index {
         private int x;
         private int y;
 
