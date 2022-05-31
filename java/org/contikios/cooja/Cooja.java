@@ -56,7 +56,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -2445,7 +2444,7 @@ public class Cooja extends Observable {
             shouldRetry = false;
             cooja.doRemoveSimulation(false);
             PROGRESS_WARNINGS.clear();
-            Simulation newSim = loadSimulationConfig(root, true, new Long(randomSeed));
+            Simulation newSim = loadSimulationConfig(root, true, randomSeed);
             cooja.setSimulation(newSim, false);
 
             if (autoStart) {
@@ -3031,7 +3030,7 @@ public class Cooja extends Observable {
     for (COOJAProject project: projects) {
     	File projectDir = project.dir;
       try {
-        urls.add((new File(projectDir, "java")).toURI().toURL());
+        urls.add(new File(projectDir, "java").toURI().toURL());
 
         // Read configuration to check if any JAR files should be loaded
         ProjectConfig projectConfig = new ProjectConfig(false);
@@ -4098,9 +4097,7 @@ public class Cooja extends Observable {
   }
 
   public File createPortablePath(File file, boolean allowConfigRelativePaths) {
-    File portable = null;
-
-    portable = createContikiRelativePath(file);
+    File portable = createContikiRelativePath(file);
     if (portable != null) {
       /*logger.info("Generated Contiki relative path '" + file.getPath() + "' to '" + portable.getPath() + "'");*/
       return portable;
@@ -4132,8 +4129,7 @@ public class Cooja extends Observable {
       return file;
     }
 
-    File absolute = null;
-    absolute = restoreContikiRelativePath(file);
+    File absolute = restoreContikiRelativePath(file);
     if (absolute != null) {
       /*logger.info("Restored Contiki relative path '" + file.getPath() + "' to '" + absolute.getPath() + "'");*/
       return absolute;
@@ -4154,7 +4150,7 @@ public class Cooja extends Observable {
 	  {"[COOJA_DIR]","PATH_COOJA",""},
 	  {"[APPS_DIR]","PATH_APPS","apps"}
   };
-  
+
   private File createContikiRelativePath(File file) {
     try {
     	int elem = PATH_IDENTIFIER.length;
@@ -4676,7 +4672,7 @@ public class Cooja extends Observable {
       boolean show = ((JCheckBoxMenuItem) e.getSource()).isSelected();
       quickHelpTextPane.setVisible(show);
       quickHelpScroll.setVisible(show);
-      setExternalToolsSetting("SHOW_QUICKHELP", new Boolean(show).toString());
+      setExternalToolsSetting("SHOW_QUICKHELP", Boolean.toString(show));
       ((JPanel)frame.getContentPane()).revalidate();
       updateDesktopSize(getDesktopPane());
     }
