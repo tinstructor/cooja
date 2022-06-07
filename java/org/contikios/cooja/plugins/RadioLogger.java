@@ -216,9 +216,9 @@ public class RadioLogger extends VisPlugin {
         RadioConnectionLog conn = connections.get(row);
         if (col == COLUMN_NO) {
           if (!showDuplicates && conn.hides > 0) {
-            return (String) "" + (row + 1) + "+" + conn.hides;
+            return "" + (row + 1) + "+" + conn.hides;
           }
-          return (String) "" + (row + 1);
+          return "" + (row + 1);
         } else if (col == COLUMN_TIME) {
           if (formatTimeString) {
             return LogListener.getFormattedTime(conn.startTime);
@@ -465,9 +465,7 @@ public class RadioLogger extends VisPlugin {
           group.add(rbMenuItem);
           analyzerMenu.add(rbMenuItem);
           logger.debug("Loaded radio logger analyzers: " + suite.getDescription());
-        } catch (InstantiationException e1) {
-          logger.warn("Failed to load analyzer suite '" + suiteName + "': " + e1.getMessage());
-        } catch (IllegalAccessException e1) {
+        } catch (InstantiationException | IllegalAccessException e1) {
           logger.warn("Failed to load analyzer suite '" + suiteName + "': " + e1.getMessage());
         }
       }
@@ -724,8 +722,7 @@ public class RadioLogger extends VisPlugin {
       boolean analyze = true;
       while (analyze) {
         analyze = false;
-        for (int i = 0; i < analyzers.size(); i++) {
-          PacketAnalyzer analyzer = analyzers.get(i);
+        for (PacketAnalyzer analyzer : analyzers) {
           if (analyzer.matchPacket(packet)) {
             int res = analyzer.analyzePacket(packet, brief, verbose);
             if (packet.hasMoreData() && brief.length() > 0) {
@@ -758,7 +755,7 @@ public class RadioLogger extends VisPlugin {
 
     if (packet instanceof ConvertedRadioPacket && packet.getPacketData().length > 0) {
       byte[] original = ((ConvertedRadioPacket) packet).getOriginalPacketData();
-      byte[] converted = ((ConvertedRadioPacket) packet).getPacketData();
+      byte[] converted = packet.getPacketData();
       conn.tooltip = "<html><font face=\"Monospaced\">"
               + "<b>Packet data (" + original.length + " bytes)</b><br>"
               + "<pre>" + StringUtils.hexDump(original) + "</pre>"
@@ -990,8 +987,8 @@ public class RadioLogger extends VisPlugin {
       Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
       StringBuilder sb = new StringBuilder();
-      for (int i = 0; i < connections.size(); i++) {
-        sb.append(connections.get(i).toString() + "\n");
+      for (RadioConnectionLog connection : connections) {
+        sb.append(connection.toString() + "\n");
       }
 
       StringSelection stringSelection = new StringSelection(sb.toString());
@@ -1032,8 +1029,8 @@ public class RadioLogger extends VisPlugin {
 
       try {
         PrintWriter outStream = new PrintWriter(Files.newBufferedWriter(saveFile.toPath(), UTF_8));
-        for (int i = 0; i < connections.size(); i++) {
-          outStream.print(connections.get(i).toString() + "\n");
+        for (RadioConnectionLog connection : connections) {
+          outStream.print(connection.toString() + "\n");
         }
         outStream.close();
       } catch (Exception ex) {

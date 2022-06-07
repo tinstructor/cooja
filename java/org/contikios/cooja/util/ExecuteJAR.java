@@ -33,15 +33,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
-import java.security.AccessControlException;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.log4j.BasicConfigurator;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.apache.log4j.xml.DOMConfigurator;
 import org.jdom.Attribute;
 import org.jdom.Document;
 import org.jdom.Element;
@@ -67,16 +64,6 @@ public class ExecuteJAR {
   public final static String PROJECT_DEFAULT_CONFIG_FILENAME = "cooja_default.config";
 
   public static void main(String[] args) {
-    try {
-      if ((new File(Cooja.LOG_CONFIG_FILE)).exists()) {
-        DOMConfigurator.configure(Cooja.LOG_CONFIG_FILE);
-      } else {
-        DOMConfigurator.configure(Cooja.class.getResource("/" + Cooja.LOG_CONFIG_FILE));
-      }
-    } catch (AccessControlException e) {
-      BasicConfigurator.configure();
-    }
-
     if (args.length > 0) {
       /* Generate executable JAR */
       if (args.length != 2) {
@@ -103,7 +90,7 @@ public class ExecuteJAR {
     Cooja.externalToolsUserSettingsFile = new File(
         System.getProperty("user.home"), 
         Cooja.EXTERNAL_TOOLS_USER_SETTINGS_FILENAME);
-    Simulation s = Cooja.quickStartSimulationConfig(config, false, null);
+    Simulation s = Cooja.quickStartSimulationConfig(config, false, null, ".");
     if (s == null) {
       throw new RuntimeException(
           "Error when creating simulation"
@@ -188,7 +175,7 @@ public class ExecuteJAR {
 
     logger.info("Starting simulation");
     Cooja.setLookAndFeel();
-    Simulation sim = Cooja.quickStartSimulationConfig(new File(executeDir, SIMCONFIG_FILENAME), false, null);
+    Simulation sim = Cooja.quickStartSimulationConfig(new File(executeDir, SIMCONFIG_FILENAME), false, null, ".");
     if (sim != null){
         /* Set simulation speed to maximum and start simulation */
         sim.setSpeedLimit(null);
@@ -436,9 +423,8 @@ public class ExecuteJAR {
       );
     } catch (Exception e) {
       logger.warn("Building executable JAR error: " + e.getMessage());
-      MessageContainer[] err = errors.getMessages();
-      for (int i=0; i < err.length; i++) {
-        logger.fatal(">> " + err[i]);
+      for (MessageContainer msgs : errors.getMessages()) {
+        logger.fatal(">> " + msgs);
       }
       
       /* Forward exception */
@@ -486,7 +472,7 @@ public class ExecuteJAR {
           throw new RuntimeException("Error when copying file: " + file);
         }
         logger.info("Simconfig: Copied file: " + file.getAbsolutePath() + " -> " + ("[CONFIG_DIR]/" + newFilename));
-        ((Element)c).setText("[CONFIG_DIR]/" + newFilename);
+        c.setText("[CONFIG_DIR]/" + newFilename);
       } else if (a != null && a.getValue().equals("discard")) {
         /* Remove config element */
         e.removeChild(c.getName());

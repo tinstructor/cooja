@@ -39,6 +39,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -280,19 +282,6 @@ public class ContikiMoteType implements MoteType {
       archiveFile.delete();
       mapFile.delete();
 
-      /* Generate Contiki main source */
-      /*try {
-       CompileContiki.generateSourceFile(
-       libSource,
-       javaClassName,
-       getSensors(),
-       getCoreInterfaces()
-       );
-       } catch (Exception e) {
-       throw (MoteTypeCreationException) new MoteTypeCreationException(
-       "Error when generating Contiki main source").initCause(e);
-       }*/
-
       /* Prepare compiler environment */
       String[][] env;
       try {
@@ -364,8 +353,17 @@ public class ContikiMoteType implements MoteType {
       }
     }
 
-    /* Load compiled library */
-    doInit();
+    Path tmpDir;
+    try {
+      tmpDir = Files.createTempDirectory("cooja");
+    } catch (IOException e) {
+      logger.warn("Failed to create temp directory:" + e);
+      return false;
+    }
+    tmpDir.toFile().deleteOnExit();
+
+    // Create, compile, and load the Java wrapper that loads the C library.
+    doInit(tmpDir);
     return true;
   }
 
@@ -384,9 +382,10 @@ public class ContikiMoteType implements MoteType {
    * It furthermore parses library Contiki memory addresses and creates the
    * initial memory.
    *
+   * @param tempDir Directory for temporary files
    * @throws MoteTypeCreationException
    */
-  private void doInit() throws MoteTypeCreationException {
+  private void doInit(Path tempDir) throws MoteTypeCreationException {
 
     if (myCoreComm != null) {
       throw new MoteTypeCreationException(
@@ -404,7 +403,7 @@ public class ContikiMoteType implements MoteType {
 
     // Allocate core communicator class
     logger.debug("Creating core communicator between Java class " + javaClassName + " and Contiki library '" + getContikiFirmwareFile().getPath() + "'");
-    myCoreComm = CoreComm.createCoreComm(this.javaClassName, getContikiFirmwareFile());
+    myCoreComm = CoreComm.createCoreComm(tempDir, this.javaClassName, getContikiFirmwareFile());
 
     /* Parse addresses using map file
      * or output of command specified in external tools settings (e.g. nm -a )
@@ -490,10 +489,8 @@ public class ContikiMoteType implements MoteType {
       try {
         long referenceVar = varMem.getVariable("referenceVar").addr;
         myCoreComm.setReferenceAddress(referenceVar);
-      } catch (UnknownVariableException e) {
-        throw new MoteTypeCreationException("Error setting reference variable: " + e.getMessage(), e);
       } catch (RuntimeException e) {
-          throw new MoteTypeCreationException("Error setting reference variable: " + e.getMessage(), e);
+        throw new MoteTypeCreationException("Error setting reference variable: " + e.getMessage(), e);
       }
 
       getCoreMemory(tmp);
@@ -641,8 +638,8 @@ public class ContikiMoteType implements MoteType {
       for (String line : getData()) {
         Matcher matcher = pattern.matcher(line);
         if (matcher.find()) {
-          if (Long.decode(matcher.group(1)).longValue() >= getStartAddr() &&
-              Long.decode(matcher.group(1)).longValue() <= getStartAddr() + getSize()) {
+          if (Long.decode(matcher.group(1)) >= getStartAddr() &&
+              Long.decode(matcher.group(1)) <= getStartAddr() + getSize()) {
             String varName = matcher.group(2);
             varNames.put(varName, new Symbol(
                     Symbol.Type.VARIABLE,
@@ -967,26 +964,24 @@ public class ContikiMoteType implements MoteType {
                                 libraryFile.getName().replace(File.separatorChar, '/'));
 
       /* Execute command, read response */
-      String line;
-      Process p = Runtime.getRuntime().exec(
-              command.split(" "),
-              null,
-              libraryFile.getParentFile()
-      );
+      ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", command);
+      pb.directory(libraryFile.getParentFile());
+      Process p = pb.start();
       BufferedReader input = new BufferedReader(
               new InputStreamReader(p.getInputStream(), UTF_8)
       );
       p.getErrorStream().close();
+      String line;
       while ((line = input.readLine()) != null) {
         output.add(line);
       }
       input.close();
 
-      if (output == null || output.isEmpty()) {
+      if (p.waitFor() != 0 || output.isEmpty()) {
         return null;
       }
       return output.toArray(new String[0]);
-    } catch (IOException err) {
+    } catch (InterruptedException | IOException err) {
       logger.fatal("Command error: " + err.getMessage(), err);
       return null;
     }

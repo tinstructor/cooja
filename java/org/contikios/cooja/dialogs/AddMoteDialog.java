@@ -127,10 +127,7 @@ public class AddMoteDialog extends JDialog {
 
     myDialog.setLocationRelativeTo(parentContainer);
     myDialog.checkSettings();
-
-    if (myDialog != null) {
-      myDialog.setVisible(true);
-    }
+    myDialog.setVisible(true);
     return myDialog.newMotes;
   }
 
@@ -490,8 +487,8 @@ public class AddMoteDialog extends JDialog {
             return;
           }
 
-          for (int i = 0; i < newMotes.size(); i++) {
-            Position newPosition = newMotes.get(i).getInterfaces().getPosition();
+          for (Mote newMote : newMotes) {
+            Position newPosition = newMote.getInterfaces().getPosition();
             if (newPosition != null) {
               double[] newPositionArray = positioner.getNextPosition();
               if (newPositionArray.length >= 3) {

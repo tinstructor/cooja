@@ -104,13 +104,13 @@ public class CompileContiki {
   /**
    * Perform variable expansion and execute a Contiki compilation command.
    *
-   * @param command Command
+   * @param commandIn Command
    * @param env (Optional) Environment. May be null.
    * @param outputFile Expected output. May be null.
    * @param directory Directory in which to execute command
    * @param onSuccess Action called if compilation succeeds
    * @param onFailure Action called if compilation fails
-   * @param messageDialog Is written both std and err process output
+   * @param compilationOutput Is written both std and err process output
    * @param synchronous If true, method blocks until process completes
    * @return Sub-process if called asynchronously
    * @throws Exception If process returns error, or outputFile does not exist
@@ -143,7 +143,6 @@ public class CompileContiki {
       for (String c: command) {
       	cmd += c + " ";
       }
-      logger.info("> " + cmd);
       messageDialog.addMessage("", MessageList.NORMAL);
       messageDialog.addMessage("> " + cmd, MessageList.NORMAL);
     }
@@ -288,136 +287,6 @@ public class CompileContiki {
     }
 
     return compileProcess;
-  }
-
-  /**
-   * Generate JNI enabled Contiki main source file.
-   * Used by Contiki Mote Type.
-   *
-   * @param sourceFile Source file to generate
-   * @param javaClass JNI Java class
-   * @param sensors Contiki sensors
-   * @param coreInterfaces Core interfaces
-   * @throws Exception At error
-   *
-   * @see ContikiMoteType
-   */
-  public static void generateSourceFile(
-      File sourceFile,
-      String javaClass,
-      String[] sensors,
-      String[] coreInterfaces
-  ) throws Exception {
-
-    if (sourceFile == null) {
-      throw new Exception("No output source file defined");
-    }
-    if (javaClass == null) {
-      throw new Exception("No Java class defined");
-    }
-    if (sensors == null) {
-      throw new Exception("No Contiki sensors defined");
-    }
-    if (coreInterfaces == null) {
-      throw new Exception("No Contiki dependencies defined");
-    }
-
-    /* SENSORS */
-    String sensorString = "";
-    String externSensorDefs = "";
-    for (String sensor : sensors) {
-      if (!sensorString.equals("")) {
-        sensorString += ", ";
-      }
-      sensorString += "&" + sensor;
-      externSensorDefs += "extern const struct sensors_sensor " + sensor
-      + ";\n";
-    }
-
-    if (!sensorString.equals("")) {
-      sensorString = "SENSORS(" + sensorString + ");";
-    } else {
-      sensorString = "SENSORS(NULL);";
-    }
-
-    /* CORE INTERFACES */
-    String interfaceString = "";
-    String externInterfaceDefs = "";
-    for (String coreInterface : coreInterfaces) {
-      if (!interfaceString.equals("")) {
-        interfaceString += ", ";
-      }
-      interfaceString += "&" + coreInterface;
-      externInterfaceDefs += "SIM_INTERFACE_NAME(" + coreInterface + ");\n";
-    }
-
-    if (!interfaceString.equals("")) {
-      interfaceString = "SIM_INTERFACES(" + interfaceString + ");";
-    } else {
-      interfaceString = "SIM_INTERFACES(NULL);";
-    }
-
-    /* If directory does not exist, try creating it */
-    if (!sourceFile.getParentFile().exists()) {
-      logger.info("Creating source file directory: " + sourceFile.getParentFile().getAbsolutePath());
-      sourceFile.getParentFile().mkdir();
-    }
-
-    /* GENERATE SOURCE FILE */
-    BufferedReader templateReader = null;
-    BufferedWriter sourceFileWriter = null;
-    try {
-      Reader reader;
-      String mainTemplate = Cooja.getExternalToolsSetting("CONTIKI_MAIN_TEMPLATE_FILENAME");
-      if ((new File(mainTemplate)).exists()) {
-        reader = Files.newBufferedReader(Paths.get(mainTemplate), UTF_8);
-      } else {
-        /* Try JAR, or fail */
-        InputStream input = CompileContiki.class.getResourceAsStream('/' + mainTemplate);
-        if (input == null) {
-          throw new FileNotFoundException(mainTemplate + " not found");
-        }
-        reader = new InputStreamReader(input, UTF_8);
-      }
-
-      templateReader = new BufferedReader(reader);
-      sourceFileWriter = new BufferedWriter(new OutputStreamWriter(
-          new FileOutputStream(sourceFile), UTF_8));
-
-      // Replace special fields in template
-      String line;
-      while ((line = templateReader.readLine()) != null) {
-        line = line.replaceFirst("\\[SENSOR_DEFINITIONS\\]", externSensorDefs);
-        line = line.replaceFirst("\\[SENSOR_ARRAY\\]", sensorString);
-
-        line = line.replaceFirst("\\[INTERFACE_DEFINITIONS\\]", externInterfaceDefs);
-        line = line.replaceFirst("\\[INTERFACE_ARRAY\\]", interfaceString);
-
-        line = line.replaceFirst("\\[CLASS_NAME\\]", javaClass);
-        sourceFileWriter.write(line + "\n");
-      }
-      sourceFileWriter.close();
-      templateReader.close();
-    } catch (Exception e) {
-      try {
-        if (templateReader != null) {
-          templateReader.close();
-        }
-        if (sourceFileWriter != null) {
-          sourceFileWriter.close();
-        }
-      } catch (Exception e2) {
-      }
-
-      // Forward exception
-      throw e;
-    }
-
-    if (!sourceFile.exists()) {
-      throw new Exception("Output source file does not exist: " + sourceFile.getAbsolutePath());
-    }
-
-    logger.info("Generated Contiki main source: " + sourceFile.getName());
   }
 
   /**
