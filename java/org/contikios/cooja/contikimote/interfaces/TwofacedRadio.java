@@ -54,9 +54,9 @@ import java.util.Collection;
  */
 @ClassDescription("Twofaced Radio Interface")
 public class TwofacedRadio extends Radio implements ContikiMoteInterface, PolledAfterActiveTicks {
-    private ContikiMote mote;
+    private final ContikiMote mote;
 
-    private VarMemory myMoteMemory;
+    private final VarMemory myMoteMemory;
 
     private static final Logger logger = LogManager.getLogger(TwofacedRadio.class);
 
@@ -102,13 +102,13 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
 
     @Override
     public Collection<Element> getConfigXML() {
-        ArrayList<Element> config = new ArrayList<Element>();
+        ArrayList<Element> config = new ArrayList<>();
 
         Element element;
 
         /* Radio bitrate */
         element = new Element("bitrate");
-        element.setText("" + RADIO_TRANSMISSION_RATE_kbps);
+        element.setText(String.valueOf(RADIO_TRANSMISSION_RATE_kbps));
         config.add(element);
 
         return config;
