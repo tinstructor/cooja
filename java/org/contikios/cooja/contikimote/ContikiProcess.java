@@ -30,11 +30,11 @@
 
 package org.contikios.cooja.contikimote;
 
-import java.io.*;
+import java.io.File;
 
 public class ContikiProcess {
-  private File sourceFile;
-  private String processName;
+  private final File sourceFile;
+  private final String processName;
 
   public ContikiProcess(File sourceFile, String processName) {
     this.sourceFile = sourceFile;

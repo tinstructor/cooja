@@ -31,10 +31,11 @@ package org.contikios.cooja.plugins;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
-import java.util.Vector;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -47,8 +48,6 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
@@ -76,15 +75,11 @@ import org.contikios.cooja.interfaces.Radio;
 @ClassDescription("Breakpoints")
 @PluginType(PluginType.SIM_PLUGIN)
 public class EventListener extends VisPlugin {
-  private static final long serialVersionUID = 1L;
+  private final Simulation mySimulation;
 
-  private static final Logger logger = LogManager.getLogger(EventListener.class);
+  private final ArrayList<EventObserver> allObservers = new ArrayList<>();
 
-  private Simulation mySimulation;
-
-  private Vector<EventObserver> allObservers = new Vector<EventObserver>();
-
-  private EventListener myPlugin;
+  private final EventListener myPlugin;
 
   private JLabel messageLabel = null;
 
@@ -118,7 +113,7 @@ public class EventListener extends VisPlugin {
     public Observable getObservable() {
       return myObservation;
     }
-  };
+  }
 
   protected class InterfaceEventObserver extends EventObserver {
     private Mote myMote = null;
@@ -150,7 +145,7 @@ public class EventListener extends VisPlugin {
     }
   }
 
-  protected class GeneralEventObserver extends EventObserver {
+  protected static class GeneralEventObserver extends EventObserver {
     public GeneralEventObserver(EventListener parent, Observable objectToObserve) {
       super(parent, objectToObserve);
     }
@@ -174,8 +169,8 @@ public class EventListener extends VisPlugin {
     myPlugin = this;
 
     /* Create selectable interfaces list (only supports Contiki mote types) */
-    Vector<Class<? extends MoteInterface>> allInterfaces = new Vector<Class<? extends MoteInterface>>();
-    Vector<Class<? extends MoteInterface>> allInterfacesDups = new Vector<Class<? extends MoteInterface>>();
+    var allInterfaces = new ArrayList<Class<? extends MoteInterface>>();
+    var allInterfacesDups = new ArrayList<Class<? extends MoteInterface>>();
 
     // Add standard interfaces
     allInterfacesDups.add(Button.class);
@@ -187,10 +182,7 @@ public class EventListener extends VisPlugin {
 
     for (MoteType moteType : simulationToControl.getMoteTypes()) {
       if (moteType instanceof ContikiMoteType) {
-        Class<? extends MoteInterface>[] arr = moteType.getMoteInterfaceClasses();
-        for (Class<? extends MoteInterface> intf : arr) {
-          allInterfacesDups.add(intf);
-        }
+        allInterfacesDups.addAll(Arrays.asList(moteType.getMoteInterfaceClasses()));
       }
     }
     for (Class<? extends MoteInterface> moteTypeClass : allInterfacesDups) {
@@ -276,7 +268,7 @@ public class EventListener extends VisPlugin {
     });
   }
 
-  private ActionListener interfaceCheckBoxListener = new ActionListener() {
+  private final ActionListener interfaceCheckBoxListener = new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent e) {
       Class<? extends MoteInterface> interfaceClass = (Class<? extends MoteInterface>) ((JCheckBox) e
@@ -307,7 +299,7 @@ public class EventListener extends VisPlugin {
     }
   };
 
-  private ActionListener generalCheckBoxListener = new ActionListener() {
+  private final ActionListener generalCheckBoxListener = new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent e) {
       Observable observable = (Observable) ((JCheckBox) e.getSource())
@@ -339,16 +331,14 @@ public class EventListener extends VisPlugin {
 
   @Override
   public Collection<Element> getConfigXML() {
-    Vector<Element> config = new Vector<Element>();
-
-    Element element;
+    var config = new ArrayList<Element>();
 
     /* Save general observers */
     for (Component comp: generalPanel.getComponents()) {
       if (comp instanceof JCheckBox) {
         JCheckBox checkBox = (JCheckBox) comp;
         if (checkBox.isSelected()) {
-          element = new Element("general");
+          var element = new Element("general");
           element.setText(checkBox.getText());
           config.add(element);
         }
@@ -360,7 +350,7 @@ public class EventListener extends VisPlugin {
       if (comp instanceof JCheckBox) {
         JCheckBox checkBox = (JCheckBox) comp;
         if (checkBox.isSelected()) {
-          element = new Element("interface");
+          var element = new Element("interface");
           element.setText(checkBox.getText());
           config.add(element);
         }

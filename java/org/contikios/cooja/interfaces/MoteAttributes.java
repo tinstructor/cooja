@@ -82,14 +82,14 @@ public class MoteAttributes extends MoteInterface {
   private static final Logger logger = LogManager.getLogger(MoteAttributes.class);
   private Mote mote = null;
 
-  private HashMap<String, Object> attributes = new HashMap<String, Object>();
+  private final HashMap<String, Object> attributes = new HashMap<>();
 
   private Observer logObserver = new Observer() {
     @Override
     public void update(Observable o, Object arg) {
       String msg = ((Log) o).getLastLogMessage();
       handleNewLog(msg);
-    };
+    }
   };
   
   public MoteAttributes(Mote mote) {
@@ -143,7 +143,7 @@ public class MoteAttributes extends MoteInterface {
   }
 
   private void setAttributes(String att) {
-    if (att.indexOf(",") >= 0) {
+    if (att.contains(",")) {
       /* Handle each attribute separately */
       for (String s : att.split(",")) {
         setAttributes(s);

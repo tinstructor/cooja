@@ -67,25 +67,25 @@ public abstract class Positioner {
    *          Highest Z value of positions generated using returned positioner
    * @return Postioner instance
    */
-  public static final Positioner generateInterface(
+  public static Positioner generateInterface(
       Class<? extends Positioner> positionerClass, int totalNumberOfMotes,
       double startX, double endX,
       double startY, double endY,
       double startZ, double endZ) {
     try {
       Constructor<? extends Positioner> constr =
-        positionerClass.getConstructor(new Class[] {
+        positionerClass.getConstructor(
           int.class,
           double.class, double.class,
           double.class, double.class,
           double.class, double.class
-        });
-      return constr.newInstance(new Object[] {
+        );
+      return constr.newInstance(
           totalNumberOfMotes,
           startX, endX,
           startY, endY,
           startZ, endZ
-      });
+      );
     } catch (Exception e) {
 
       if (e instanceof InvocationTargetException) {

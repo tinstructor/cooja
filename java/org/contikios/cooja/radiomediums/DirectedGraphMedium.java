@@ -66,11 +66,11 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
   private Simulation simulation;
   private Random random;
 
-  private ArrayList<Edge> edges = new ArrayList<Edge>();
+  private final ArrayList<Edge> edges = new ArrayList<>();
   private boolean edgesDirty = true;
 
   /* Used for optimizing lookup time */
-  private Hashtable<Radio,DGRMDestinationRadio[]> edgesTable = new Hashtable<Radio,DGRMDestinationRadio[]>();
+  private Hashtable<Radio,DGRMDestinationRadio[]> edgesTable = new Hashtable<>();
 
   public DirectedGraphMedium() {
     /* Do not initialize radio medium: use only for hash table */
@@ -199,13 +199,13 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
    */
   protected void analyzeEdges() {
     Hashtable<Radio,ArrayList<DGRMDestinationRadio>> listTable =
-      new Hashtable<Radio,ArrayList<DGRMDestinationRadio>>();
+            new Hashtable<>();
 
     /* Fill edge hash table with all edges */
     for (Edge edge: getEdges()) {
       ArrayList<DGRMDestinationRadio> destRadios;
       if (!listTable.containsKey(edge.source)) {
-        destRadios = new ArrayList<DGRMDestinationRadio>();
+        destRadios = new ArrayList<>();
       } else {
         destRadios = listTable.get(edge.source);
       }
@@ -215,7 +215,7 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
     }
 
     /* Convert to arrays */
-    Hashtable<Radio,DGRMDestinationRadio[]> arrTable =  new Hashtable<Radio,DGRMDestinationRadio[]>();
+    Hashtable<Radio,DGRMDestinationRadio[]> arrTable = new Hashtable<>();
     Enumeration<Radio> sources = listTable.keys();
     while (sources.hasMoreElements()) {
       Radio source = sources.nextElement();
@@ -314,7 +314,7 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
          for (RadioConnection conn : getActiveConnections()) {
            for (Radio dstRadio : conn.getDestinations()) {
              if (dstRadio == dest.radio) {
-               conn.addInterfered(dest.radio);;
+               conn.addInterfered(dest.radio);
                break;
              }
            }
@@ -395,8 +395,7 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
                 Integer.parseInt(edgeElement.getText())).getInterfaces().getRadio();
           } else if (oldConfig && edgeElement.getName().equals("ratio")) {
             /* Old config: parse link ratio */
-            double ratio = Double.parseDouble(edgeElement.getText());
-            dest.ratio = ratio;
+            dest.ratio = Double.parseDouble(edgeElement.getText());
           } else if (edgeElement.getName().equals("dest")) {
             if (oldConfig) {
               /* Old config: create simple destination link */
@@ -428,8 +427,7 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
 				List<Element> children = edgeElement.getChildren();
 				dest.setConfigXML(children, simulation);
               } catch (Exception e) {
-                throw (RuntimeException) 
-                new RuntimeException("Unknown class: " + destClassName).initCause(e);
+                throw new RuntimeException("Unknown class: " + destClassName, e);
               }
             }
           }
@@ -456,11 +454,11 @@ public class DirectedGraphMedium extends AbstractRadioMedium {
     }
 
     private Collection<Element> getConfigXML() {
-      ArrayList<Element> config = new ArrayList<Element>();
+      ArrayList<Element> config = new ArrayList<>();
       Element element;
 
       element = new Element("source");
-      element.setText("" + source.getMote().getID());
+      element.setText(String.valueOf(source.getMote().getID()));
       config.add(element);
 
       element = new Element("dest");

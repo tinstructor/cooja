@@ -38,6 +38,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Observable;
@@ -65,11 +66,11 @@ public abstract class SerialUI extends Log implements SerialPort {
 
   private byte lastSerialData = 0; /* SerialPort */
   private String lastLogMessage = ""; /* Log */
-  private StringBuilder newMessage = new StringBuilder(); /* Log */
+  private final StringBuilder newMessage = new StringBuilder(); /* Log */
 
   /* Command history */
   private final static int HISTORY_SIZE = 15;
-  private ArrayList<String> history = new ArrayList<String>();
+  private final ArrayList<String> history = new ArrayList<>();
   private int historyPos = -1;
 
   /* Log */
@@ -82,7 +83,7 @@ public abstract class SerialUI extends Log implements SerialPort {
   private abstract static class SerialDataObservable extends Observable {
     public abstract void notifyNewData();
   }
-  private SerialDataObservable serialDataObservable = new SerialDataObservable() {
+  private final SerialDataObservable serialDataObservable = new SerialDataObservable() {
     @Override
     public void notifyNewData() {
       if (this.countObservers() == 0) {
@@ -108,7 +109,7 @@ public abstract class SerialUI extends Log implements SerialPort {
     if (data == '\n') {
       /* Notify observers of new log */
       lastLogMessage = newMessage.toString();
-      lastLogMessage = lastLogMessage.replaceAll("[^\\p{Print}\\p{Blank}]", "");
+      lastLogMessage = lastLogMessage.replaceAll("[^\\p{Print}[ \\t]]", "");
       newMessage.setLength(0);
       this.setChanged();
       this.notifyObservers(getMote());
@@ -117,7 +118,7 @@ public abstract class SerialUI extends Log implements SerialPort {
       if (newMessage.length() > MAX_LENGTH) {
         /*logger.warn("Dropping too large log message (>" + MAX_LENGTH + " bytes).");*/
         lastLogMessage = "# [1024 bytes, no line ending]: " + newMessage.substring(0, 20) + "...";
-        lastLogMessage = lastLogMessage.replaceAll("[^\\p{Print}\\p{Blank}]", "");
+        lastLogMessage = lastLogMessage.replaceAll("[^\\p{Print}[ \\t]]", "");
         newMessage.setLength(0);
         this.setChanged();
         this.notifyObservers(getMote());
@@ -164,12 +165,7 @@ public abstract class SerialUI extends Log implements SerialPort {
           appendToTextArea(logTextPane, "> " + command);
           commandField.setText("");
           if (getMote().getSimulation().isRunning()) {
-            getMote().getSimulation().invokeSimulationThread(new Runnable() {
-              @Override
-              public void run() {
-                writeString(command);
-              }
-            });
+            getMote().getSimulation().invokeSimulationThread(() -> writeString(command));
           } else {
             writeString(command);
           }
@@ -241,12 +237,7 @@ public abstract class SerialUI extends Log implements SerialPort {
       @Override
       public void update(Observable obs, Object obj) {
         final String logMessage = getLastLogMessage();
-        EventQueue.invokeLater(new Runnable() {
-          @Override
-          public void run() {
-            appendToTextArea(logTextPane, logMessage);
-          }
-        });
+        EventQueue.invokeLater(() -> appendToTextArea(logTextPane, logMessage));
       }
     });
     panel.putClientProperty("intf_obs", observer);
@@ -277,13 +268,13 @@ public abstract class SerialUI extends Log implements SerialPort {
       if (s == null) {
         continue;
       }
-      sb.append(s + HISTORY_SEPARATOR);
+      sb.append(s).append(HISTORY_SEPARATOR);
     }
     if (sb.length() == 0) {
       return null;
     }
 
-    ArrayList<Element> config = new ArrayList<Element>();
+    ArrayList<Element> config = new ArrayList<>();
     Element element = new Element("history");
     element.setText(sb.toString());
     config.add(element);
@@ -295,10 +286,7 @@ public abstract class SerialUI extends Log implements SerialPort {
   public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
     for (Element element : configXML) {
       if (element.getName().equals("history")) {
-        String[] history = element.getText().split(HISTORY_SEPARATOR);
-        for (String h: history) {
-          this.history.add(h);
-        }
+        this.history.addAll(Arrays.asList(element.getText().split(HISTORY_SEPARATOR)));
         historyPos = -1;
       }
     }

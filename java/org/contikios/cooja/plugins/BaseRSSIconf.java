@@ -68,7 +68,6 @@ import org.contikios.cooja.radiomediums.DirectedGraphMedium;
 @SupportedArguments(radioMediums = { AbstractRadioMedium.class })
 
 public class BaseRSSIconf extends VisPlugin {
-	private static final long serialVersionUID = 8955776548892545638L;
 	private static final Logger logger = LogManager.getLogger(BaseRSSIconf.class);
 
 	private final static int IDX_Mote = 0;
@@ -79,9 +78,8 @@ public class BaseRSSIconf extends VisPlugin {
 
 	private Cooja gui = null;
 	private AbstractRadioMedium radioMedium = null;
-	private Observer changeObserver;
-	private JTable motesTable = null;
-	private JComboBox<Number> combo = new JComboBox<Number>();
+	private final Observer changeObserver;
+	private final JComboBox<Number> combo = new JComboBox<>();
 	private Simulation sim = null;
 	
 	
@@ -106,9 +104,7 @@ public class BaseRSSIconf extends VisPlugin {
 		sim.addObserver(changeObserver);
 
 		/* Represent motes and RSSI by table */
-		motesTable = new JTable(model) {
-			private static final long serialVersionUID = -4680013510092815210L;
-
+		var motesTable = new JTable(model) {
 			@Override
 			public TableCellEditor getCellEditor(int row, int column) {
 				combo.removeAllItems();
@@ -130,8 +126,6 @@ public class BaseRSSIconf extends VisPlugin {
 
 		motesTable.getColumnModel().getColumn(IDX_Mote)
 				.setCellRenderer(new DefaultTableCellRenderer() { // TODO ????
-							private static final long serialVersionUID = 4470088575039698508L;
-
 							@Override
 							public void setValue(Object value) {
 								if (!(value instanceof Double)) {
@@ -143,8 +137,6 @@ public class BaseRSSIconf extends VisPlugin {
 						});
 		motesTable.getColumnModel().getColumn(IDX_BaseRSSI)
 				.setCellRenderer(new DefaultTableCellRenderer() {
-					private static final long serialVersionUID = -7170745293267593460L;
-
 					@Override
 					public void setValue(Object value) {
 						if (!(value instanceof Double)) {
@@ -172,8 +164,6 @@ public class BaseRSSIconf extends VisPlugin {
 
 
 	final AbstractTableModel model = new AbstractTableModel() {
-		private static final long serialVersionUID = 9101118401527171218L;
-
 		@Override
 		public String getColumnName(int column) {
 			if (column < 0 || column >= COLUMN_NAMES.length) {
@@ -252,7 +242,7 @@ public class BaseRSSIconf extends VisPlugin {
 		}
 
 		@Override
-		public Class<? extends Object> getColumnClass(int c) {
+		public Class<?> getColumnClass(int c) {
 			return getValueAt(0, c).getClass();
 		}
 	};

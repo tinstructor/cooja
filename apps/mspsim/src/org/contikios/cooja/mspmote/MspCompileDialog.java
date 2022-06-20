@@ -43,7 +43,6 @@ import org.contikios.cooja.Simulation;
 import org.contikios.cooja.dialogs.AbstractCompileDialog;
 
 public class MspCompileDialog extends AbstractCompileDialog {
-  private static final long serialVersionUID = -7273193946433145019L;
   private final String target;
 
   public static boolean showDialog(
@@ -102,7 +101,7 @@ public class MspCompileDialog extends AbstractCompileDialog {
   public String getDefaultCompileCommands(File source) {
     /* TODO Split into String[] */
     return
-    Cooja.getExternalToolsSetting("PATH_MAKE") + " " +
+    Cooja.getExternalToolsSetting("PATH_MAKE") + " -j$(CPUS) " +
     getExpectedFirmwareFile(source).getName() + " TARGET=" + target;
   }
 

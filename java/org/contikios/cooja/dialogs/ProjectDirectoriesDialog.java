@@ -95,16 +95,15 @@ import org.contikios.cooja.ProjectConfig;
  * @author Fredrik Osterlind
  */
 public class ProjectDirectoriesDialog extends JDialog {
-	private static final long serialVersionUID = 1896348946753376556L;
 	private static final Logger logger = LogManager.getLogger(ProjectDirectoriesDialog.class);
 
 	private Cooja gui;
 
 	private JTable table = null;
-	private JTextArea projectInfo = new JTextArea("Extension information:");
+	private final JTextArea projectInfo = new JTextArea("Extension information:");
 	private DirectoryTreePanel treePanel = null;
 
-	private ArrayList<COOJAProject> currentProjects = new ArrayList<COOJAProject>();
+	private final ArrayList<COOJAProject> currentProjects = new ArrayList<>();
 	private COOJAProject[] returnedProjects = null;
 
 	/**
@@ -131,7 +130,6 @@ public class ProjectDirectoriesDialog extends JDialog {
 						(Frame)parent, "Cooja extensions", ModalityType.APPLICATION_MODAL);
 
 		table = new JTable(new AbstractTableModel() {
-			private static final long serialVersionUID = 591599455927509191L;
 			@Override
 			public int getColumnCount() {
 				return 2;
@@ -175,7 +173,6 @@ public class ProjectDirectoriesDialog extends JDialog {
 		table.getColumnModel().getColumn(0).setPreferredWidth(30);
 		table.getColumnModel().getColumn(0).setMaxWidth(30);
 		table.getColumnModel().getColumn(1).setCellRenderer(new DefaultTableCellRenderer() {
-			private static final long serialVersionUID = 7224219223448831880L;
 			@Override
 			public Component getTableCellRendererComponent(JTable table,
 					Object value, boolean isSelected, boolean hasFocus, int row,
@@ -221,8 +218,7 @@ public class ProjectDirectoriesDialog extends JDialog {
 						ConfigViewer.showDialog(ProjectDirectoriesDialog.this, config);
 					} catch (Exception ex) {
 						logger.fatal("Error when merging config: " + ex.getMessage(), ex);
-						return;
-					}
+          }
 				}
 			});
 			buttonPane.add(button);
@@ -388,8 +384,6 @@ public class ProjectDirectoriesDialog extends JDialog {
 		}
 
 		JPanel topPanel = new JPanel(new BorderLayout());
-		/*		topPanel.add(BorderLayout.CENTER, new JLabel("A Cooja project depends on a cooja.config file, and extends Cooja with radio mediums, mote types, plugins etc."));
-				topPanel.setBackground(Color.WHITE);*/
 		getContentPane().add(BorderLayout.NORTH, topPanel);
 		getContentPane().add(BorderLayout.CENTER, mainPane);
 		getContentPane().add(BorderLayout.SOUTH, buttonPane);
@@ -508,12 +502,11 @@ public class ProjectDirectoriesDialog extends JDialog {
  * @author Fredrik Osterlind
  */
 class DirectoryTreePanel extends JPanel {
-	private static final long serialVersionUID = -6852893350326771136L;
 	private static final Logger logger = LogManager.getLogger(DirectoryTreePanel.class);
 
-	private ProjectDirectoriesDialog parent;
-	private JTree tree;
-	private DefaultMutableTreeNode treeRoot;
+	private final ProjectDirectoriesDialog parent;
+	private final JTree tree;
+	private final DefaultMutableTreeNode treeRoot;
 	public DirectoryTreePanel(ProjectDirectoriesDialog parent) {
 		super(new BorderLayout());
 		this.parent = parent;
@@ -525,10 +518,9 @@ class DirectoryTreePanel extends JPanel {
 		tree.setShowsRootHandles(true);
 		tree.expandRow(0);
 		tree.setCellRenderer(new DefaultTreeCellRenderer() {
-			private static final long serialVersionUID = 280434957859560569L;
-			private Icon unselectedIcon = new CheckboxIcon(null);
-			private Icon selectedIcon = new CheckboxIcon(new Color(0, 255, 0, 128));
-			private Icon errorIcon = new CheckboxIcon(new Color(255, 0, 0, 128));
+			private final Icon unselectedIcon = new CheckboxIcon(null);
+			private final Icon selectedIcon = new CheckboxIcon(new Color(0, 255, 0, 128));
+			private final Icon errorIcon = new CheckboxIcon(new Color(255, 0, 0, 128));
 			private Font boldFont = null;
 			private Font normalFont = null;
 			@Override
@@ -570,7 +562,7 @@ class DirectoryTreePanel extends JPanel {
 			}
 			class CheckboxIcon implements Icon {
 				Icon icon;
-				Color color;
+				final Color color;
 				public CheckboxIcon(Color color) {
 					this.icon = (Icon) UIManager.get("CheckBox.icon");
 					this.color = color;
@@ -785,9 +777,7 @@ class DirectoryTreePanel extends JPanel {
 		}
 	}
 	private class COOJAProjectTreeModel extends DefaultTreeModel {
-		private static final long serialVersionUID = -4673855124090194313L;
-
-		private DefaultMutableTreeNode computerNode;
+		private final DefaultMutableTreeNode computerNode;
 
 		public COOJAProjectTreeModel(DefaultMutableTreeNode computerNode) {
 			super(computerNode);
@@ -938,7 +928,6 @@ class DirectoryTreePanel extends JPanel {
  * @author Fredrik Osterlind
  */
 class ConfigViewer extends JDialog {
-	private static final long serialVersionUID = 6900340477602324582L;
 	public static void showDialog(Frame parentFrame, ProjectConfig config) {
 		ConfigViewer myDialog = new ConfigViewer(parentFrame, config);
 		myDialog.setAlwaysOnTop(true);
@@ -976,12 +965,7 @@ class ConfigViewer extends JDialog {
 		buttonPane.add(Box.createHorizontalGlue());
 
 		button = new JButton("Close");
-		button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				dispose();
-			}
-		});
+		button.addActionListener(e -> dispose());
 		buttonPane.add(button);
 
 		/* Config */

@@ -30,14 +30,24 @@
 
 package org.contikios.cooja.plugins;
 
-import java.awt.*;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.*;
-import javax.swing.*;
+import java.util.Observable;
+import java.util.Observer;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import javax.swing.Timer;
-
-import org.contikios.cooja.*;
+import org.contikios.cooja.ClassDescription;
+import org.contikios.cooja.Cooja;
+import org.contikios.cooja.PluginType;
+import org.contikios.cooja.RadioMedium;
+import org.contikios.cooja.Simulation;
+import org.contikios.cooja.VisPlugin;
 
 /**
  * SimInformation is a simple information window for simulations.
@@ -47,19 +57,19 @@ import org.contikios.cooja.*;
 @ClassDescription("Simulation Information")
 @PluginType(PluginType.SIM_PLUGIN)
 public class SimInformation extends VisPlugin {
-  private Simulation simulation;
+  private final Simulation simulation;
 
   private static final int LABEL_UPDATE_INTERVAL = 100;
 
   private final static int LABEL_WIDTH = 170;
   private final static int LABEL_HEIGHT = 15;
 
-  private JLabel labelStatus;
-  private JLabel labelSimTime;
-  private JLabel labelNrMotes;
-  private JLabel labelNrMoteTypes;
+  private final JLabel labelStatus;
+  private final JLabel labelSimTime;
+  private final JLabel labelNrMotes;
+  private final JLabel labelNrMoteTypes;
 
-  private Observer simObserver;
+  private final Observer simObserver;
 
   /**
    * Create a new simulation information window.
@@ -114,7 +124,7 @@ public class SimInformation extends VisPlugin {
     smallPane.add(Box.createHorizontalGlue());
 
     label = new JLabel();
-    label.setText(""  + simulation.getSimulationTimeMillis());
+    label.setText(String.valueOf(simulation.getSimulationTimeMillis()));
 
     labelSimTime = label;
     smallPane.add(label);
@@ -135,7 +145,7 @@ public class SimInformation extends VisPlugin {
     smallPane.add(Box.createHorizontalGlue());
 
     label = new JLabel();
-    label.setText(""  + simulation.getMotesCount());
+    label.setText(String.valueOf(simulation.getMotesCount()));
 
     labelNrMotes = label;
     smallPane.add(label);
@@ -157,7 +167,7 @@ public class SimInformation extends VisPlugin {
     smallPane.add(Box.createHorizontalGlue());
 
     label = new JLabel();
-    label.setText(""  + simulation.getMoteTypes().length);
+    label.setText(String.valueOf(simulation.getMoteTypes().length));
 
     labelNrMoteTypes = label;
     smallPane.add(label);
@@ -206,8 +216,8 @@ public class SimInformation extends VisPlugin {
         } else {
           labelStatus.setText("STOPPED");
         }
-        labelNrMotes.setText(""  + simulation.getMotesCount());
-        labelNrMoteTypes.setText(""  + simulation.getMoteTypes().length);
+        labelNrMotes.setText(String.valueOf(simulation.getMotesCount()));
+        labelNrMoteTypes.setText(String.valueOf(simulation.getMoteTypes().length));
       }
     });
 
@@ -235,10 +245,10 @@ public class SimInformation extends VisPlugin {
     updateLabelTimer.stop();
   }
 
-  private Timer updateLabelTimer = new Timer(LABEL_UPDATE_INTERVAL, new ActionListener() {
+  private final Timer updateLabelTimer = new Timer(LABEL_UPDATE_INTERVAL, new ActionListener() {
     @Override
     public void actionPerformed(ActionEvent e) {
-      labelSimTime.setText("" + simulation.getSimulationTimeMillis());
+      labelSimTime.setText(String.valueOf(simulation.getSimulationTimeMillis()));
 
       /* Automatically stop if simulation is no longer running */
       if (!simulation.isRunning()) {

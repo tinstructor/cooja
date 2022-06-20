@@ -165,10 +165,9 @@ public class MemoryLayout {
     /* get size of next element in structure */
     int nextsize = nextType.getSize();
     /* limit padding to word size */
-    nextsize = nextsize > WORD_SIZE ? WORD_SIZE : nextsize;
+    nextsize = Math.min(nextsize, WORD_SIZE);
     /* calc padding */
-    int pad = nextsize - currType.getSize();
-    return pad;
+    return nextsize - currType.getSize();
   }
 
   /**
@@ -178,10 +177,8 @@ public class MemoryLayout {
    */
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder();
-    return sb.append("MemoryLayout: ")
-            .append("Endianess: ").append(order)
-            .append(", WORD_SIZE: ").append(WORD_SIZE)
-            .toString();
+    return "MemoryLayout: " +
+            "Endianess: " + order +
+            ", WORD_SIZE: " + WORD_SIZE;
   }
 }

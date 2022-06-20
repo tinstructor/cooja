@@ -34,15 +34,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.awt.Container;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -73,7 +69,6 @@ import org.contikios.cooja.mote.memory.MemoryInterface;
 import org.contikios.cooja.mote.memory.MemoryInterface.Symbol;
 import org.contikios.cooja.mote.memory.MemoryLayout;
 import org.contikios.cooja.mote.memory.SectionMoteMemory;
-import org.contikios.cooja.mote.memory.UnknownVariableException;
 import org.contikios.cooja.mote.memory.VarMemory;
 import org.contikios.cooja.util.StringUtils;
 import org.jdom.Element;
@@ -103,8 +98,6 @@ public class ContikiMoteType implements MoteType {
 
   private static final Logger logger = LogManager.getLogger(ContikiMoteType.class);
 
-  public static final String ID_PREFIX = "mtype";
-
   /**
    * Library file suffix
    */
@@ -116,14 +109,9 @@ public class ContikiMoteType implements MoteType {
   final static public String mapSuffix = ".map";
 
   /**
-   * Make archive file suffix
-   */
-  final static public String dependSuffix = ".a";
-
-  /**
    * Temporary output directory
    */
-  final static public File tempOutputDirectory = new File(
+  private static final File tempOutputDirectory = new File(
       Cooja.getExternalToolsSetting("PATH_CONTIKI_NG_BUILD_DIR", "build/cooja"));
 
   /**
@@ -185,15 +173,6 @@ public class ContikiMoteType implements MoteType {
   private File fileFirmware = null;
   private String compileCommands = null;
 
-  /* For internal use only: using during Contiki compilation. */
-  private File contikiApp = null; /* Contiki application: hello-world.c */
-
-  public File libSource = null; /* JNI library: build/cooja/mtype1.c */
-
-  public File libFile = null; /* JNI library: build/cooja/mtype1.lib */
-
-  public File archiveFile = null; /* Contiki archive: build/cooja/mtype1.a */
-
   public File mapFile = null; /* Contiki map: build/cooja/mtype1.map */
 
   public String javaClassName = null; /* Loading Java class name: Lib1 */
@@ -201,8 +180,6 @@ public class ContikiMoteType implements MoteType {
   private String[] coreInterfaces = null;
 
   private ArrayList<Class<? extends MoteInterface>> moteInterfacesClasses = null;
-
-  private boolean hasSystemSymbols = false;
 
   private NetworkStack netStack = NetworkStack.DEFAULT;
 
@@ -256,46 +233,18 @@ public class ContikiMoteType implements MoteType {
         throw new MoteTypeCreationException("No Contiki application specified");
       }
 
-      /* Create variables used for compiling Contiki */
-      contikiApp = getContikiSourceFile();
-      libSource = new File(
-              contikiApp.getParentFile(),
-              output_dir + "/" + getIdentifier() + ".c");
-      libFile = new File(
-              contikiApp.getParentFile(),
-              output_dir + "/" + getIdentifier() + librarySuffix);
-      archiveFile = new File(
-              contikiApp.getParentFile(),
-              output_dir + "/" + getIdentifier() + dependSuffix);
+      /* Create variables used for compiling Contiki. */
+      // Contiki application: hello-world.c
+      File contikiApp = getContikiSourceFile();
       mapFile = new File(
               contikiApp.getParentFile(),
               output_dir + "/" + getIdentifier() + mapSuffix);
       javaClassName = CoreComm.getAvailableClassName();
 
-      if (javaClassName == null) {
-        throw new MoteTypeCreationException("Could not allocate a core communicator.");
-      }
-
-      /* Delete output files */
-      libSource.delete();
-      libFile.delete();
-      archiveFile.delete();
-      mapFile.delete();
-
       /* Prepare compiler environment */
       String[][] env;
       try {
-        env = CompileContiki.createCompilationEnvironment(
-                getIdentifier(),
-                contikiApp,
-                mapFile,
-                libFile,
-                archiveFile,
-                javaClassName);
-        CompileContiki.redefineCOOJASources(
-                this,
-                env
-        );
+        env = CompileContiki.createCompilationEnvironment(this, javaClassName);
       } catch (Exception e) {
         throw new MoteTypeCreationException("Error when creating environment: " + e.getMessage(), e);
       }
@@ -327,9 +276,8 @@ public class ContikiMoteType implements MoteType {
                   true
           );
         } catch (Exception e) {
-          MoteTypeCreationException newException
-                  = new MoteTypeCreationException("Mote type creation failed: " + e.getMessage());
-          newException = (MoteTypeCreationException) newException.initCause(e);
+          var newException
+                  = new MoteTypeCreationException("Mote type creation failed: " + e.getMessage(), e);
           newException.setCompilationOutput(compilationOutput);
 
           /* Print last 10 compilation errors to console */
@@ -363,15 +311,25 @@ public class ContikiMoteType implements MoteType {
     tmpDir.toFile().deleteOnExit();
 
     // Create, compile, and load the Java wrapper that loads the C library.
-    doInit(tmpDir);
+    doInit(tmpDir, visAvailable);
     return true;
   }
 
-  public static File getExpectedFirmwareFile(File source) {
+  /**
+   * Returns make target based on source file.
+   *
+   * @param source The source file
+   * @return Make target based on source file
+   */
+  public static File getMakeTargetName(File source) {
     File parentDir = source.getParentFile();
     String sourceNoExtension = source.getName().substring(0, source.getName().length() - 2);
-
     return new File(parentDir, sourceNoExtension + librarySuffix);
+  }
+
+  public static File getExpectedFirmwareFile(String moteId, File source) {
+    return new File(source.getParentFile(),
+            ContikiMoteType.tempOutputDirectory + "/" + moteId + ContikiMoteType.librarySuffix);
   }
 
   /**
@@ -383,9 +341,10 @@ public class ContikiMoteType implements MoteType {
    * initial memory.
    *
    * @param tempDir Directory for temporary files
-   * @throws MoteTypeCreationException
+   * @param withUI Specify if UI should be used for error output or not
+   * @throws MoteTypeCreationException if the mote type could not be created.
    */
-  private void doInit(Path tempDir) throws MoteTypeCreationException {
+  private void doInit(Path tempDir, boolean withUI) throws MoteTypeCreationException {
 
     if (myCoreComm != null) {
       throw new MoteTypeCreationException(
@@ -397,8 +356,8 @@ public class ContikiMoteType implements MoteType {
       throw new MoteTypeCreationException("Library file could not be found: " + getContikiFirmwareFile());
     }
 
-    if (this.javaClassName == null) {
-      throw new MoteTypeCreationException("Unknown Java class library: " + this.javaClassName);
+    if (javaClassName == null) {
+      throw new MoteTypeCreationException("Unknown Java class library");
     }
 
     // Allocate core communicator class
@@ -413,15 +372,11 @@ public class ContikiMoteType implements MoteType {
     SectionParser dataSecParser;
     SectionParser bssSecParser;
     SectionParser commonSecParser;
-    SectionParser readonlySecParser = null;
 
     HashMap<String, Symbol> variables = new HashMap<>();
     if (useCommand) {
       /* Parse command output */
-      String[] output = loadCommandData(getContikiFirmwareFile());
-      if (output == null) {
-        throw new MoteTypeCreationException("No parse command output loaded");
-      }
+      String[] output = loadCommandData(getContikiFirmwareFile(), withUI);
 
       dataSecParser = new CommandSectionParser(
               output,
@@ -438,13 +393,6 @@ public class ContikiMoteType implements MoteType {
               Cooja.getExternalToolsSetting("COMMAND_COMMON_START"),
               Cooja.getExternalToolsSetting("COMMAND_COMMON_END"),
               Cooja.getExternalToolsSetting("COMMAND_VAR_SEC_COMMON"));
-      /* XXX Currently Cooja tries to sync readonly memory */
-      readonlySecParser = null;/* new CommandSectionParser(
-              output,
-              Cooja.getExternalToolsSetting("COMMAND_READONLY_START"),
-              Cooja.getExternalToolsSetting("COMMAND_READONLY_END"),
-              Cooja.getExternalToolsSetting("COMMAND_VAR_SEC_READONLY"));*/
-
     } else {
       /* Parse map file */
       if (mapFile == null
@@ -469,8 +417,6 @@ public class ContikiMoteType implements MoteType {
               mapData,
               Cooja.getExternalToolsSetting("MAPFILE_COMMON_START"),
               Cooja.getExternalToolsSetting("MAPFILE_COMMON_SIZE"));
-      readonlySecParser = null;
-
     }
 
     /* We first need the value of Contiki's referenceVar, which tells us the
@@ -508,10 +454,6 @@ public class ContikiMoteType implements MoteType {
     initialMemory.addMemorySection("bss", bssSecParser.parse(offset));
 
     initialMemory.addMemorySection("common", commonSecParser.parse(offset));
-
-    if (readonlySecParser != null) {
-      initialMemory.addMemorySection("readonly", readonlySecParser.parse(offset));
-    }
 
     getCoreMemory(initialMemory);
   }
@@ -552,8 +494,8 @@ public class ContikiMoteType implements MoteType {
 
     abstract Map<String, Symbol> parseSymbols(long offset);
 
-    protected long parseFirstHexLong(String regexp, String[] data) {
-      String retString = getFirstMatchGroup(data, regexp, 1);
+    protected static long parseFirstHexLong(String regexp, String[] data) {
+      String retString = getFirstMatchGroup(data, regexp);
 
       if (retString == null || retString.equals("")) {
         return -1;
@@ -580,11 +522,11 @@ public class ContikiMoteType implements MoteType {
                                  getSize()));
 
       if (logger.isDebugEnabled()) {
-        for (String var : variables.keySet()) {
+        for (Map.Entry<String, Symbol> entry : variables.entrySet()) {
           logger.debug(String.format("Found Symbol: %s, 0x%x, %d",
-                                     var,
-                                     variables.get(var).addr,
-                                     variables.get(var).size));
+                  entry.getKey(),
+                  entry.getValue().addr,
+                  entry.getValue().size));
         }
       }
 
@@ -658,12 +600,12 @@ public class ContikiMoteType implements MoteType {
      * @param varName Name of variable
      * @return Relative memory address of variable or -1 if not found
      */
-    private long getMapFileVarAddress(String[] mapFileData, String varName) {
+    private static long getMapFileVarAddress(String[] mapFileData, String varName) {
 
       String regExp = Cooja.getExternalToolsSetting("MAPFILE_VAR_ADDRESS_1")
               + varName
               + Cooja.getExternalToolsSetting("MAPFILE_VAR_ADDRESS_2");
-      String retString = getFirstMatchGroup(mapFileData, regExp, 1);
+      String retString = getFirstMatchGroup(mapFileData, regExp);
 
       if (retString != null) {
         return Long.parseUnsignedLong(retString.trim(), 16);
@@ -672,7 +614,7 @@ public class ContikiMoteType implements MoteType {
       }
     }
 
-    private int getMapFileVarSize(String[] mapFileData, String varName) {
+    private static int getMapFileVarSize(String[] mapFileData, String varName) {
       Pattern pattern = Pattern.compile(
               Cooja.getExternalToolsSetting("MAPFILE_VAR_SIZE_1")
               + varName
@@ -753,7 +695,7 @@ public class ContikiMoteType implements MoteType {
     @Override
     public Map<String, Symbol> parseSymbols(long offset) {
       HashMap<String, Symbol> addresses = new HashMap<>();
-      /* Replace "<SECTION>" in regexp by section specific regex */
+      /* Replace "<SECTION>" in regex by section specific regex */
       Pattern pattern = Pattern.compile(
               Cooja.getExternalToolsSetting("COMMAND_VAR_NAME_ADDRESS_SIZE")
                       .replace("<SECTION>", Pattern.quote(sectionRegExp)));
@@ -801,7 +743,7 @@ public class ContikiMoteType implements MoteType {
   /**
    * Creates and returns a copy of this mote type's initial memory (just after
    * the init function has been run). When a new mote is created it should get
-   * it's memory from here.
+   * its memory from here.
    *
    * @return Initial memory of a mote type
    */
@@ -890,20 +832,6 @@ public class ContikiMoteType implements MoteType {
   }
 
   /**
-   * @param symbols Core library has system symbols information
-   */
-  public void setHasSystemSymbols(boolean symbols) {
-    hasSystemSymbols = symbols;
-  }
-
-  /**
-   * @return Whether core library has system symbols information
-   */
-  public boolean hasSystemSymbols() {
-    return hasSystemSymbols;
-  }
-
-  /**
    * @param netStack Contiki network stack
    */
   public void setNetworkStack(NetworkStack netStack) {
@@ -917,7 +845,7 @@ public class ContikiMoteType implements MoteType {
     return netStack;
   }
 
-  private static String getFirstMatchGroup(String[] lines, String regexp, int groupNr) {
+  private static String getFirstMatchGroup(String[] lines, String regexp) {
     if (regexp == null) {
       return null;
     }
@@ -925,13 +853,13 @@ public class ContikiMoteType implements MoteType {
     for (String line : lines) {
       Matcher matcher = pattern.matcher(line);
       if (matcher.find()) {
-        return matcher.group(groupNr);
+        return matcher.group(1);
       }
     }
     return null;
   }
 
-  public static String[] loadMapFile(File mapFile) {
+  private static String[] loadMapFile(File mapFile) {
     String contents = StringUtils.loadFromFile(mapFile);
     if (contents == null) {
       return null;
@@ -943,48 +871,79 @@ public class ContikiMoteType implements MoteType {
    * Executes configured command on given file and returns the result.
    *
    * @param libraryFile Contiki library
-   * @return Execution response, or null at failure
+   * @param withUI Specifies if UI should be used or not for error output
+   * @return Command execution output
+   * @throws org.contikios.cooja.MoteType.MoteTypeCreationException if any error occurred or command gave no output
    */
-  public static String[] loadCommandData(File libraryFile) {
+  private static String[] loadCommandData(File libraryFile, boolean withUI) throws MoteTypeCreationException {
     ArrayList<String> output = new ArrayList<>();
 
-    try {
-      String command = Cooja.getExternalToolsSetting("PARSE_COMMAND");
-      if (command == null) {
-        return null;
-      }
-
+    String command = Cooja.getExternalToolsSetting("PARSE_COMMAND");
+    if (command != null) {
       command = Cooja.resolvePathIdentifiers(command);
-      if (command == null) {
-        return null;
-      }
+    }
+    if (command == null) {
+      throw new MoteTypeCreationException("No parse command configured!");
+    }
 
-      /* Prepare command */
-      command = command.replace("$(LIBFILE)",
-                                libraryFile.getName().replace(File.separatorChar, '/'));
+    /* Prepare command */
+    command = command.replace("$(LIBFILE)",
+                              libraryFile.getName().replace(File.separatorChar, '/'));
 
+    final MessageList commandOutput = MessageContainer.createMessageList(withUI);
+    try {
       /* Execute command, read response */
       ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", command);
       pb.directory(libraryFile.getParentFile());
-      Process p = pb.start();
-      BufferedReader input = new BufferedReader(
-              new InputStreamReader(p.getInputStream(), UTF_8)
-      );
-      p.getErrorStream().close();
-      String line;
-      while ((line = input.readLine()) != null) {
-        output.add(line);
-      }
-      input.close();
+      final Process p = pb.start();
+      Thread readThread = new Thread(() -> {
+        try (BufferedReader errorInput = new BufferedReader(
+                new InputStreamReader(p.getErrorStream(), UTF_8))) {
+          String line;
+          while ((line = errorInput.readLine()) != null) {
+            commandOutput.addMessage(line, MessageList.ERROR);
+          }
+        } catch (IOException e) {
+          commandOutput.addMessage("Error reading from command stderr: "
+                                           + e.getMessage(), MessageList.ERROR);
+        }
+      });
+      readThread.setDaemon(true);
+      readThread.start();
 
-      if (p.waitFor() != 0 || output.isEmpty()) {
-        return null;
+      try (BufferedReader input = new BufferedReader(
+              new InputStreamReader(p.getInputStream(), UTF_8))) {
+        String line;
+        while ((line = input.readLine()) != null) {
+          output.add(line);
+        }
+      }
+
+      int ret = p.waitFor();
+
+      // wait for read thread to finish processing any error output
+      readThread.join();
+
+      if (ret != 0) {
+        // Command returned with error
+        throw createException("Command failed with error: " + ret, null, command, commandOutput);
+      }
+      if (output.isEmpty()) {
+        throw createException("No output from parse command!", null, command, commandOutput);
       }
       return output.toArray(new String[0]);
     } catch (InterruptedException | IOException err) {
-      logger.fatal("Command error: " + err.getMessage(), err);
-      return null;
+      throw createException("Command error: " + err.getMessage(), err, command, commandOutput);
     }
+  }
+
+  private static MoteTypeCreationException createException(String message, Throwable err,
+                                                           String command, MessageList outputList) {
+    outputList.addMessage("Failed to run command: " + command, MessageList.ERROR);
+
+    var e = new MoteTypeCreationException(message, err);
+    e.setCompilationOutput(outputList);
+    return e;
   }
 
   @Override
@@ -1000,35 +959,6 @@ public class ContikiMoteType implements MoteType {
   @Override
   public ProjectConfig getConfig() {
     return myConfig;
-  }
-
-  /**
-   * Sets mote type project configuration. This may differ from the general
-   * simulator project configuration.
-   *
-   * @param moteTypeConfig
-   * Project configuration
-   */
-  public void setConfig(ProjectConfig moteTypeConfig) {
-    myConfig = moteTypeConfig;
-  }
-
-  /**
-   * Returns all sensors of this mote type
-   *
-   * @return All sensors
-   */
-  public String[] getSensors() {
-    return sensors;
-  }
-
-  /**
-   * Returns all core interfaces of this mote type
-   *
-   * @return All core interfaces
-   */
-  public String[] getCoreInterfaces() {
-    return coreInterfaces;
   }
 
   /**
@@ -1058,36 +988,6 @@ public class ContikiMoteType implements MoteType {
   }
 
   /**
-   * Create a checksum of file. Used for checking if needed files are unchanged
-   * when loading a saved simulation.
-   *
-   * @param file
-   * File containg data to checksum
-   * @return Checksum
-   */
-  protected byte[] createChecksum(File file) {
-    int bytesRead = 1;
-    byte[] readBytes = new byte[128];
-    MessageDigest messageDigest;
-
-    try {
-      InputStream fileInputStream = new FileInputStream(file);
-      messageDigest = MessageDigest.getInstance("MD5");
-
-      while (bytesRead > 0) {
-        bytesRead = fileInputStream.read(readBytes);
-        if (bytesRead > 0) {
-          messageDigest.update(readBytes, 0, bytesRead);
-        }
-      }
-      fileInputStream.close();
-    } catch (NoSuchAlgorithmException | IOException e) {
-      return null;
-    }
-    return messageDigest.digest();
-  }
-
-  /**
    * Generates a unique Cooja mote type ID.
    *
    * @param existingTypes Already existing mote types, may be null
@@ -1096,18 +996,13 @@ public class ContikiMoteType implements MoteType {
    */
   public static String generateUniqueMoteTypeID(MoteType[] existingTypes, Collection reservedIdentifiers) {
     String testID = "";
-    boolean okID = false;
+    boolean available = false;
 
-    while (!okID) {
-      testID = ID_PREFIX + new Random().nextInt(1000);
-      okID = true;
+    while (!available) {
+      testID = "mtype" + new Random().nextInt(1000);
+      available = reservedIdentifiers == null || !reservedIdentifiers.contains(testID);
 
-      // Check if identifier is reserved
-      if (reservedIdentifiers != null && reservedIdentifiers.contains(testID)) {
-        okID = false;
-      }
-
-      if (!okID) {
+      if (!available) {
         continue;
       }
 
@@ -1115,24 +1010,12 @@ public class ContikiMoteType implements MoteType {
       if (existingTypes != null) {
         for (MoteType existingMoteType : existingTypes) {
           if (existingMoteType.getIdentifier().equals(testID)) {
-            okID = false;
+            available = false;
             break;
           }
         }
       }
-
-      if (!okID) {
-        continue;
-      }
-
-      // Check if identifier library has been loaded
-      /* XXX Currently only checks the build directory! */
-      File libraryFile = new File(
-              ContikiMoteType.tempOutputDirectory,
-              testID + ContikiMoteType.librarySuffix);
-      if (libraryFile.exists() || CoreComm.hasLibraryFileBeenLoaded(libraryFile)) {
-        okID = false;
-      }
+      // FIXME: add check that the library name is not already used.
     }
 
     return testID;
@@ -1182,7 +1065,7 @@ public class ContikiMoteType implements MoteType {
 
     /* Contiki core mote interfaces */
     sb.append("<tr><td valign=\"top\">Contiki's mote interface</td><td>");
-    for (String coreInterface : getCoreInterfaces()) {
+    for (var coreInterface : coreInterfaces) {
       sb.append(coreInterface).append("<br>");
     }
     sb.append("</td></tr>");
@@ -1220,10 +1103,6 @@ public class ContikiMoteType implements MoteType {
       config.add(element);
     }
 
-    element = new Element("symbols");
-    element.setText(Boolean.toString(hasSystemSymbols()));
-    config.add(element);
-
     if (getNetworkStack() != NetworkStack.DEFAULT) {
       element = new Element("netstack");
       element.setText(getNetworkStack().getConfig());
@@ -1241,7 +1120,7 @@ public class ContikiMoteType implements MoteType {
     File oldVersionSource = null;
     String output_dir = Cooja.getExternalToolsSetting("PATH_CONTIKI_NG_BUILD_DIR", "build/cooja");
 
-    moteInterfacesClasses = new ArrayList<Class<? extends MoteInterface>>();
+    moteInterfacesClasses = new ArrayList<>();
 
     for (Element element : configXML) {
       String name = element.getName();
@@ -1268,7 +1147,7 @@ public class ContikiMoteType implements MoteType {
           compileCommands = element.getText();
           break;
         case "symbols":
-          hasSystemSymbols = Boolean.parseBoolean(element.getText());
+          // Ignored, this information has never been used.
           break;
         case "commstack":
           logger.warn("The Cooja communication stack config was removed: " + element.getText());
@@ -1330,18 +1209,17 @@ public class ContikiMoteType implements MoteType {
       setContikiSourceFile(oldVersionSource);
       logger.info("Guessing Contiki source: " + oldVersionSource.getAbsolutePath());
 
-      setContikiFirmwareFile(getExpectedFirmwareFile(oldVersionSource));
+      setContikiFirmwareFile(getExpectedFirmwareFile(getIdentifier(), oldVersionSource));
       logger.info("Guessing Contiki firmware: " + getContikiFirmwareFile().getAbsolutePath());
 
       /* Guess compile commands */
       String compileCommands
-              = "make " + getExpectedFirmwareFile(oldVersionSource).getName() + " TARGET=cooja";
+              = "make -j$(CPUS) " + getMakeTargetName(oldVersionSource).getName() + " TARGET=cooja";
       logger.info("Guessing compile commands: " + compileCommands);
       setCompileCommands(compileCommands);
     }
 
-    boolean createdOK = configureAndInit(Cooja.getTopParentContainer(), simulation, visAvailable);
-    return createdOK;
+    return configureAndInit(Cooja.getTopParentContainer(), simulation, visAvailable);
   }
 
   public static String[] getRequiredCoreInterfaces(

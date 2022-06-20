@@ -92,7 +92,6 @@ import org.jdom.Element;
 @ClassDescription("Simulation script editor")
 @PluginType(PluginType.SIM_CONTROL_PLUGIN)
 public class ScriptRunner extends VisPlugin {
-  private static final long serialVersionUID = 7614358340336799109L;
   private static final Logger logger = LogManager.getLogger(ScriptRunner.class);
 
   static boolean headless;
@@ -111,14 +110,13 @@ public class ScriptRunner extends VisPlugin {
       "plugins.js", "Interact with surrounding Cooja plugins",
   };
 
-  private Simulation simulation;
+  private final Simulation simulation;
   private LogScriptEngine engine;
 
   private static BufferedWriter logWriter = null; /* For non-GUI tests */
 
-  private JEditorPane codeEditor;
-  private JTextArea logTextArea;
-  private JSplitPane centerPanel;
+  private final JEditorPane codeEditor;
+  private final JTextArea logTextArea;
 
   private JSyntaxLinkFile actionLinkFile = null;
   private File linkedFile = null;
@@ -199,18 +197,13 @@ public class ScriptRunner extends VisPlugin {
 
     final JMenuItem runTestMenuItem = new JMenuItem("Save simulation and run with script");
     runMenu.add(runTestMenuItem);
-    runTestMenuItem.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        exportAndRun();
-      }
-    });
+    runTestMenuItem.addActionListener(e -> exportAndRun());
 
     doLayout();
-    centerPanel = new JSplitPane(
-        JSplitPane.VERTICAL_SPLIT,
-        new JScrollPane(codeEditor),
-        new JScrollPane(logTextArea)
+    var centerPanel = new JSplitPane(
+            JSplitPane.VERTICAL_SPLIT,
+            new JScrollPane(codeEditor),
+            new JScrollPane(logTextArea)
     );
 
     MenuListener toggleMenuItems = new MenuListener() {
@@ -318,8 +311,7 @@ public class ScriptRunner extends VisPlugin {
     updateTitle();
   }
 
-  public void setScriptActive(boolean active)
-  throws Exception {
+  public void setScriptActive(boolean active) {
     if (active) {
       /* setScriptActive(true) */
 
@@ -639,7 +631,7 @@ public class ScriptRunner extends VisPlugin {
 
   @Override
   public Collection<Element> getConfigXML() {
-    ArrayList<Element> config = new ArrayList<Element>();
+    ArrayList<Element> config = new ArrayList<>();
     Element element;
 
     if (linkedFile != null) {
@@ -653,7 +645,7 @@ public class ScriptRunner extends VisPlugin {
     }
 
     element = new Element("active");
-    element.setText("" + isActive());
+    element.setText(String.valueOf(isActive()));
     config.add(element);
 
     return config;
@@ -710,8 +702,6 @@ public class ScriptRunner extends VisPlugin {
   }
 
   public static class JSyntaxLinkFile extends DefaultSyntaxAction {
-    private static final Logger logger = LogManager.getLogger(JSyntaxLinkFile.class);
-
     public JSyntaxLinkFile() {
       super("linkfile");
     }

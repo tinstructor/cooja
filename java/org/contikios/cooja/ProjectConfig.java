@@ -30,9 +30,14 @@
 
 package org.contikios.cooja;
 
-import java.io.*;
-import java.util.*;
-
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Enumeration;
+import java.util.Properties;
+import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -104,7 +109,7 @@ public class ProjectConfig {
       FileNotFoundException {
     // Create empty configuration
     myConfig = new Properties();
-    myProjectDirHistory = new Vector<File>();
+    myProjectDirHistory = new Vector<>();
 
 
     if (useDefault) {
@@ -341,8 +346,6 @@ public class ProjectConfig {
     String val = currentValues.getProperty(callingClass.getName() + "." + id);
 
     if (val == null) {
-      /*logger.warn("Could not find key named '" + callingClass.getName() + "."
-          + id + "'");*/
       return defaultValue;
     }
 

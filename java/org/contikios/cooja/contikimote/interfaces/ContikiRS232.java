@@ -35,7 +35,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.contikios.cooja.*;
+import org.contikios.cooja.ClassDescription;
+import org.contikios.cooja.Mote;
+import org.contikios.cooja.MoteTimeEvent;
+import org.contikios.cooja.TimeEvent;
 import org.contikios.cooja.contikimote.ContikiMote;
 import org.contikios.cooja.contikimote.ContikiMoteInterface;
 import org.contikios.cooja.dialogs.SerialUI;
@@ -144,7 +147,7 @@ public class ContikiRS232 extends SerialUI implements ContikiMoteInterface, Poll
   }
 
   private TimeEvent pendingBytesEvent = null;
-  private Vector<Byte> pendingBytes = new Vector<Byte>();
+  private final Vector<Byte> pendingBytes = new Vector<>();
   @Override
   public void writeArray(byte[] s) {
     for (byte b: s) {

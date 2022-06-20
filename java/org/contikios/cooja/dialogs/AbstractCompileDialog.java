@@ -95,32 +95,31 @@ import org.contikios.cooja.interfaces.Position;
  * @author Fredrik Osterlind
  */
 public abstract class AbstractCompileDialog extends JDialog {
-  private static final long serialVersionUID = 1L;
   private static final Logger logger = LogManager.getLogger(AbstractCompileDialog.class);
 
   protected final static Dimension LABEL_DIMENSION = new Dimension(170, 25);
 
   private static File lastFile = null;
 
-  public static enum DialogState {
+  public enum DialogState {
     NO_SELECTION,
     SELECTED_SOURCE, AWAITING_COMPILATION, IS_COMPILING, COMPILED_FIRMWARE,
     SELECTED_FIRMWARE,
   }
 
-  protected Simulation simulation;
-  protected Cooja gui;
-  protected MoteType moteType;
+  protected final Simulation simulation;
+  protected final Cooja gui;
+  protected final MoteType moteType;
 
-  protected JTabbedPane tabbedPane;
+  protected final JTabbedPane tabbedPane;
   protected Box moteIntfBox;
 
-  protected JTextField contikiField;
-  private JTextField descriptionField;
+  protected final JTextField contikiField;
+  private final JTextField descriptionField;
   private JTextArea commandsArea;
-  private JButton cleanButton;
-  private JButton compileButton;
-  private JButton createButton;
+  private final JButton cleanButton;
+  private final JButton compileButton;
+  private final JButton createButton;
 
   private Component currentCompilationOutput = null;
   private Process currentCompilationProcess = null;
@@ -272,7 +271,6 @@ public abstract class AbstractCompileDialog extends JDialog {
       }
     };
     Action compileAction = new AbstractAction("Compile") {
-    	private static final long serialVersionUID = 1L;
       @Override
       public void actionPerformed(ActionEvent e) {
     		if (!compileButton.isEnabled()) {
@@ -484,7 +482,7 @@ public abstract class AbstractCompileDialog extends JDialog {
     }
 
     /* Handle multiple compilation commands one by one */
-    final ArrayList<String> commands = new ArrayList<String>();
+    final ArrayList<String> commands = new ArrayList<>();
     String[] arr = getCompileCommands().split("\n");
     for (String cmd: arr) {
       if (cmd.trim().isEmpty()) {
@@ -522,7 +520,6 @@ public abstract class AbstractCompileDialog extends JDialog {
 
     /* Called when last command has finished (success only) */
     final Action compilationSuccessAction = new AbstractAction() {
-			private static final long serialVersionUID = -3815068126197234346L;
 			@Override
 			public void actionPerformed(ActionEvent e) {
         abortMenuItem.setEnabled(false);
@@ -539,7 +536,6 @@ public abstract class AbstractCompileDialog extends JDialog {
 
     /* Called immediately if any command fails */
     final Action compilationFailureAction = new AbstractAction() {
-			private static final long serialVersionUID = -800799353242963993L;
 			@Override
 			public void actionPerformed(ActionEvent e) {
         abortMenuItem.setEnabled(false);
@@ -549,7 +545,6 @@ public abstract class AbstractCompileDialog extends JDialog {
 
     /* Called once per command */
     final Action nextCommandAction = new AbstractAction() {
-			private static final long serialVersionUID = -4525372566302330762L;
 			@Override
 			public void actionPerformed(ActionEvent e) {
         Action nextSuccessAction;
@@ -641,7 +636,7 @@ public abstract class AbstractCompileDialog extends JDialog {
     	createButton.setEnabled(false);
     	commandsArea.setEnabled(true);
       setCompileCommands(getDefaultCompileCommands(sourceFile));
-      contikiFirmware = getExpectedFirmwareFile(sourceFile);
+      contikiFirmware = getExpectedFirmwareFile(moteType.getIdentifier(), sourceFile);
       contikiSource = sourceFile;
       setDialogState(DialogState.AWAITING_COMPILATION);
       break;
@@ -735,7 +730,7 @@ public abstract class AbstractCompileDialog extends JDialog {
     parent.addTab("Mote interfaces", null, panel, "Mote interfaces");
   }
 
-  private Action defaultAction = new AbstractAction("Use default") {
+  private final Action defaultAction = new AbstractAction("Use default") {
     @Override
     public void actionPerformed(ActionEvent e) {
       /* Unselect all */
@@ -760,7 +755,7 @@ public abstract class AbstractCompileDialog extends JDialog {
    * @return Currently selected mote interface classes
    */
   public Class<? extends MoteInterface>[] getSelectedMoteInterfaceClasses() {
-    ArrayList<Class<? extends MoteInterface>> selected = new ArrayList<Class<? extends MoteInterface>>();
+    ArrayList<Class<? extends MoteInterface>> selected = new ArrayList<>();
 
     for (Component c : moteIntfBox.getComponents()) {
       if (!(c instanceof JCheckBox)) {
@@ -871,6 +866,17 @@ public abstract class AbstractCompileDialog extends JDialog {
    * @return Expected Contiki firmware compiled from source
    */
   public abstract File getExpectedFirmwareFile(File source);
+
+  /**
+   * Returns the Contiki firmware name for moteId and source.
+   *
+   * @param moteId The ID of the mote
+   * @param source Contiki source
+   * @return Expected Contiki firmware compiled from source
+   */
+  public File getExpectedFirmwareFile(String moteId, File source) {
+    return getExpectedFirmwareFile(source);
+  }
 
   private void abortAnyCompilation() {
     if (currentCompilationProcess == null) {

@@ -41,7 +41,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import org.contikios.cooja.*;
+import org.contikios.cooja.ClassDescription;
+import org.contikios.cooja.MoteInterface;
+import org.contikios.cooja.Simulation;
 import org.jdom.Element;
 
 /**
@@ -157,7 +159,7 @@ public abstract class Clock extends MoteInterface {
  
   @Override
   public Collection<Element> getConfigXML() {
-    ArrayList<Element> config = new ArrayList<Element>();
+    ArrayList<Element> config = new ArrayList<>();
     Element element = new Element("deviation");
     element.setText(String.valueOf(getDeviation()));
     config.add(element);

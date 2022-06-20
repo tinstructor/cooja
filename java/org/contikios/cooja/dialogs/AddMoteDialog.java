@@ -46,7 +46,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.text.NumberFormat;
 import java.text.ParseException;
-import java.util.Vector;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -77,16 +77,14 @@ import org.contikios.cooja.interfaces.Position;
  * @author Fredrik Osterlind
  */
 public class AddMoteDialog extends JDialog {
-
-  private static final long serialVersionUID = 1L;
   private static final Logger logger = LogManager.getLogger(AddMoteDialog.class);
 
-  private AddMotesEventHandler myEventHandler = new AddMotesEventHandler();
+  private final AddMotesEventHandler myEventHandler = new AddMotesEventHandler();
 
   private final static int LABEL_WIDTH = 170;
   private final static int LABEL_HEIGHT = 15;
 
-  private Vector<Mote> newMotes = null;
+  private ArrayList<Mote> newMotes = null;
 
   private JButton addButton;
 
@@ -110,7 +108,7 @@ public class AddMoteDialog extends JDialog {
    *          Mote type
    * @return New motes or null if aborted
    */
-  public static Vector<Mote> showDialog(Container parentContainer,
+  public static ArrayList<Mote> showDialog(Container parentContainer,
       Simulation simulation, MoteType moteType) {
 
     AddMoteDialog myDialog = null;
@@ -209,8 +207,7 @@ public class AddMoteDialog extends JDialog {
     label = new JLabel("Positioning");
     label.setPreferredSize(new Dimension(LABEL_WIDTH, LABEL_HEIGHT));
 
-    Vector<Class<? extends Positioner>> positioners = simulation.getCooja()
-        .getRegisteredPositioners();
+    var positioners = simulation.getCooja().getRegisteredPositioners();
     String[] posDistributions = new String[positioners.size()];
     for (int i = 0; i < posDistributions.length; i++) {
       posDistributions[i] = Cooja.getDescriptionOf(positioners.get(i));
@@ -396,7 +393,7 @@ public class AddMoteDialog extends JDialog {
     return settingsOK;
   }
 
-  private boolean checkSettings(JFormattedTextField start,
+  private static boolean checkSettings(JFormattedTextField start,
 				JFormattedTextField end) {
     try {
       start.commitEdit();
@@ -432,12 +429,7 @@ public class AddMoteDialog extends JDialog {
     @Override
     public void focusGained(final FocusEvent e) {
       if (e.getSource() instanceof JFormattedTextField) {
-        SwingUtilities.invokeLater(new Runnable() {
-          @Override
-          public void run() {
-            ((JFormattedTextField) e.getSource()).selectAll();
-          }
-        });
+        SwingUtilities.invokeLater(() -> ((JFormattedTextField) e.getSource()).selectAll());
       }
     }
     @Override
@@ -457,7 +449,7 @@ public class AddMoteDialog extends JDialog {
 	  }
 
 	  // Create new motes
-          newMotes = new Vector<Mote>();
+          newMotes = new ArrayList<>();
           int motesToAdd = ((Number) numberOfMotesField.getValue()).intValue();
           while (newMotes.size() < motesToAdd) {
             Mote newMote = moteType.generateMote(simulation);

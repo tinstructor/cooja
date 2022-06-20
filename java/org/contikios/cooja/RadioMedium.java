@@ -32,7 +32,9 @@ package org.contikios.cooja;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Observable;
+import java.util.Observer;
 import org.jdom.Element;
 
 import org.contikios.cooja.interfaces.Radio;
@@ -154,14 +156,13 @@ public abstract class RadioMedium {
    *
    * @return Radio medium instance
    */
-  public static final RadioMedium generateRadioMedium(
+  public static RadioMedium generateRadioMedium(
       Class<? extends RadioMedium> radioMediumClass, Simulation simulation)
       throws NoSuchMethodException, InvocationTargetException,
       IllegalAccessException, InstantiationException {
 
     // Generating radio medium
-    Constructor constr = radioMediumClass
-        .getConstructor(new Class[] { Simulation.class });
+    Constructor constr = radioMediumClass.getConstructor(Simulation.class);
     return (RadioMedium) constr.newInstance(new Object[] { simulation });
   }
   

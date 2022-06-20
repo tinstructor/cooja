@@ -112,7 +112,6 @@ import org.jdom.Element;
 @ClassDescription("Buffer view")
 @PluginType(PluginType.SIM_PLUGIN)
 public class BufferListener extends VisPlugin {
-  private static final long serialVersionUID = 1L;
   private static final Logger logger = LogManager.getLogger(BufferListener.class);
 
   private final static int COLUMN_TIME = 0;
@@ -134,8 +133,8 @@ public class BufferListener extends VisPlugin {
 
   final static int MAX_BUFFER_SIZE = 16 * 1024;
 
-  private static ArrayList<Class<? extends Parser>> bufferParsers =
-    new ArrayList<Class<? extends Parser>>();
+  private static final ArrayList<Class<? extends Parser>> bufferParsers =
+          new ArrayList<>();
   static {
     registerBufferParser(ByteArrayParser.class);
     registerBufferParser(IntegerParser.class);
@@ -150,8 +149,8 @@ public class BufferListener extends VisPlugin {
 
   /* TODO Hide identical lines? */
 
-  private static ArrayList<Class<? extends Buffer>> bufferTypes =
-    new ArrayList<Class<? extends Buffer>>();
+  private static final ArrayList<Class<? extends Buffer>> bufferTypes =
+          new ArrayList<>();
   static {
     registerBufferType(PacketbufBuffer.class);
     registerBufferType(PacketbufPointerBuffer.class);
@@ -185,36 +184,36 @@ public class BufferListener extends VisPlugin {
   private boolean hasHours = false;
 
   private final JTable logTable;
-  private TableRowSorter<TableModel> logFilter;
-  private ArrayQueue<BufferAccess> logs = new ArrayQueue<BufferAccess>();
+  private final TableRowSorter<TableModel> logFilter;
+  private final ArrayQueue<BufferAccess> logs = new ArrayQueue<>();
 
-  private Simulation simulation;
+  private final Simulation simulation;
 
   private JTextField filterTextField = null;
-  private JLabel filterLabel = new JLabel("Filter: ");
-  private Color filterTextFieldBackground;
+  private final JLabel filterLabel = new JLabel("Filter: ");
+  private final Color filterTextFieldBackground;
 
-  private AbstractTableModel model;
+  private final AbstractTableModel model;
 
-  private MoteCountListener logOutputListener;
+  private final MoteCountListener logOutputListener;
 
   private boolean backgroundColors = false;
-  private JCheckBoxMenuItem colorCheckbox;
+  private final JCheckBoxMenuItem colorCheckbox;
 
   private boolean inverseFilter = false;
-  private JCheckBoxMenuItem inverseFilterCheckbox;
+  private final JCheckBoxMenuItem inverseFilterCheckbox;
 
   private boolean hideReads = true;
-  private JCheckBoxMenuItem hideReadsCheckbox;
+  private final JCheckBoxMenuItem hideReadsCheckbox;
 
   private boolean withStackTrace = false;
-  private JCheckBoxMenuItem withStackTraceCheckbox;
+  private final JCheckBoxMenuItem withStackTraceCheckbox;
 
-  private JMenu bufferMenu = new JMenu("Buffer");
-  private JMenu parserMenu = new JMenu("Show as");
+  private final JMenu bufferMenu = new JMenu("Buffer");
+  private final JMenu parserMenu = new JMenu("Show as");
 
-  private ArrayList<Mote> motes = new ArrayList<Mote>();
-  private ArrayList<SegmentMemoryMonitor> memoryMonitors = new ArrayList<SegmentMemoryMonitor>();
+  private final ArrayList<Mote> motes = new ArrayList<>();
+  private final ArrayList<SegmentMemoryMonitor> memoryMonitors = new ArrayList<>();
 
   private TimeEvent hourTimeEvent = new TimeEvent() {
     @Override
@@ -226,8 +225,8 @@ public class BufferListener extends VisPlugin {
   };
 
   private static final int UPDATE_INTERVAL = 250;
-  private UpdateAggregator<BufferAccess> logUpdateAggregator = new UpdateAggregator<BufferAccess>(UPDATE_INTERVAL) {
-    private Runnable scroll = new Runnable() {
+  private final UpdateAggregator<BufferAccess> logUpdateAggregator = new UpdateAggregator<>(UPDATE_INTERVAL) {
+    private final Runnable scroll = new Runnable() {
       @Override
       public void run() {
         logTable.scrollRectToVisible(
@@ -281,7 +280,6 @@ public class BufferListener extends VisPlugin {
     }
 
     model = new AbstractTableModel() {
-      private static final long serialVersionUID = 3065150390849332924L;
       @Override
       public String getColumnName(int col) {
         if (col == COLUMN_TIME && formatTimeString) {
@@ -316,7 +314,6 @@ public class BufferListener extends VisPlugin {
     };
 
     logTable = new JTable(model) {
-      private static final long serialVersionUID = -930616018336483196L;
       @Override
       public String getToolTipText(MouseEvent e) {
         java.awt.Point p = e.getPoint();
@@ -354,7 +351,6 @@ public class BufferListener extends VisPlugin {
       }
     };
     DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
-      private static final long serialVersionUID = -340743275865216182L;
       private final Color[] BG_COLORS = new Color[] {
           new Color(200, 200, 200),
           new Color(200, 200, 255),
@@ -420,7 +416,7 @@ public class BufferListener extends VisPlugin {
         }
       }
     });
-    logFilter = new TableRowSorter<TableModel>(model);
+    logFilter = new TableRowSorter<>(model);
     for (int i = 0, n = model.getColumnCount(); i < n; i++) {
       logFilter.setSortable(i, false);
     }
@@ -672,7 +668,7 @@ public class BufferListener extends VisPlugin {
     return true;
   }
 
-  public enum MemoryMonitorType { SEGMENT, POINTER, CONSTPOINTER };
+  public enum MemoryMonitorType { SEGMENT, POINTER, CONSTPOINTER }
 
   static class PointerMemoryMonitor extends SegmentMemoryMonitor {
     private SegmentMemoryMonitor segmentMonitor = null;
@@ -785,7 +781,7 @@ public class BufferListener extends VisPlugin {
       oldData = newData;
     }
 
-    void addBufferAccess(BufferListener bl, Mote mote, byte[] oldData, byte[] newData, EventType type, long address) {
+    static void addBufferAccess(BufferListener bl, Mote mote, byte[] oldData, byte[] newData, EventType type, long address) {
       BufferAccess ba = new BufferAccess(
           mote,
           mote.getSimulation().getSimulationTime(),
@@ -841,7 +837,7 @@ public class BufferListener extends VisPlugin {
 
   @Override
   public Collection<Element> getConfigXML() {
-    ArrayList<Element> config = new ArrayList<Element>();
+    ArrayList<Element> config = new ArrayList<>();
     Element element;
 
     element = new Element("filter");
@@ -886,12 +882,7 @@ public class BufferListener extends VisPlugin {
       String name = element.getName();
       if ("filter".equals(name)) {
         final String str = element.getText();
-        EventQueue.invokeLater(new Runnable() {
-          @Override
-          public void run() {
-            setFilter(str);
-          }
-        });
+        EventQueue.invokeLater(() -> setFilter(str));
       } else if ("coloring".equals(name)) {
         backgroundColors = true;
         colorCheckbox.setSelected(true);
@@ -950,9 +941,9 @@ public class BufferListener extends VisPlugin {
       } else {
         regexp = null;
       }
-      RowFilter<Object, Object> wrapped = new RowFilter<Object, Object>() {
+      RowFilter<Object, Object> wrapped = new RowFilter<>() {
         @Override
-        public boolean include(RowFilter.Entry<? extends Object, ? extends Object> entry) {
+        public boolean include(RowFilter.Entry<?, ?> entry) {
           if (hideReads) {
             int row = (Integer) entry.getIdentifier();
             if (logs.get(row).type == SegmentMonitor.EventType.READ) {
@@ -1085,14 +1076,12 @@ public class BufferListener extends VisPlugin {
           return String.format("%02d:%02d.%03d", m,s,ms);
         }
       } else {
-        return "" + time / Simulation.MILLISECOND;
+        return String.valueOf(time / Simulation.MILLISECOND);
       }
     }
   }
 
-  private Action saveAction = new AbstractAction("Save to file") {
-    private static final long serialVersionUID = -4140706275748686944L;
-
+  private final Action saveAction = new AbstractAction("Save to file") {
     @Override
     public void actionPerformed(ActionEvent e) {
       JFileChooser fc = new JFileChooser();
@@ -1149,13 +1138,11 @@ public class BufferListener extends VisPlugin {
         outStream.close();
       } catch (Exception ex) {
         logger.fatal("Could not write to file: " + saveFile);
-        return;
       }
     }
   };
 
-  private Action bufferListenerAction = new AbstractAction("in Buffer Listener") {
-    private static final long serialVersionUID = -6358463434933029699L;
+  private final Action bufferListenerAction = new AbstractAction("in Buffer Listener") {
     @Override
     public void actionPerformed(ActionEvent e) {
       int view = logTable.getSelectedRow();
@@ -1178,8 +1165,7 @@ public class BufferListener extends VisPlugin {
     }
   };
 
-  private Action timeLineAction = new AbstractAction("in Timeline") {
-    private static final long serialVersionUID = -6358463434933029699L;
+  private final Action timeLineAction = new AbstractAction("in Timeline") {
     @Override
     public void actionPerformed(ActionEvent e) {
       int view = logTable.getSelectedRow();
@@ -1202,8 +1188,7 @@ public class BufferListener extends VisPlugin {
     }
   };
 
-  private Action radioLoggerAction = new AbstractAction("in Radio Logger") {
-    private static final long serialVersionUID = -3041714249257346688L;
+  private final Action radioLoggerAction = new AbstractAction("in Radio Logger") {
     @Override
     public void actionPerformed(ActionEvent e) {
       int view = logTable.getSelectedRow();
@@ -1226,8 +1211,7 @@ public class BufferListener extends VisPlugin {
     }
   };
 
-  private Action showInAllAction = new AbstractAction("All") {
-    private static final long serialVersionUID = -8433490108577001803L;
+  private final Action showInAllAction = new AbstractAction("All") {
     {
       putValue(ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0, true));
     }
@@ -1239,8 +1223,7 @@ public class BufferListener extends VisPlugin {
     }
   };
 
-  private Action clearAction = new AbstractAction("Clear") {
-    private static final long serialVersionUID = -2115620313183440224L;
+  private final Action clearAction = new AbstractAction("Clear") {
     @Override
     public void actionPerformed(ActionEvent e) {
       int size = logs.size();
@@ -1251,8 +1234,7 @@ public class BufferListener extends VisPlugin {
     }
   };
 
-  private Action copyAction = new AbstractAction("Selected") {
-    private static final long serialVersionUID = -8433490108577001803L;
+  private final Action copyAction = new AbstractAction("Selected") {
     @Override
     public void actionPerformed(ActionEvent e) {
       Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -1283,9 +1265,7 @@ public class BufferListener extends VisPlugin {
     }
   };
 
-  private Action copyAllAction = new AbstractAction("All") {
-    private static final long serialVersionUID = -5038884975254178373L;
-
+  private final Action copyAllAction = new AbstractAction("All") {
     @Override
     public void actionPerformed(ActionEvent e) {
       Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -1381,10 +1361,10 @@ public class BufferListener extends VisPlugin {
   }
 
   private static class BufferInput {
-    private JPanel mainPanel = new JPanel();
-    private JTextField textName = new JTextField();
-    private JTextField textSize = new JTextField();
-    private JTextField textOffset = new JTextField();
+    private final JPanel mainPanel = new JPanel();
+    private final JTextField textName = new JTextField();
+    private final JTextField textSize = new JTextField();
+    private final JTextField textOffset = new JTextField();
 
     public BufferInput(String name, String size, String offset) {
       mainPanel.setLayout(new GridLayout(3, 2, 5, 5));
@@ -1612,7 +1592,7 @@ public class BufferListener extends VisPlugin {
 
   @ClassDescription("Integer array")
   public static class IntegerParser extends StringParser {
-    private VarMemory varMem = new VarMemory(null);
+    private final VarMemory varMem = new VarMemory(null);
     @Override
     public String parseString(BufferAccess ba) {
       StringBuilder sb = new StringBuilder();
@@ -1633,7 +1613,7 @@ public class BufferListener extends VisPlugin {
         if (red) {
           sb.append("<font color=\"red\">");
         }
-        sb.append(val + " ");
+        sb.append(val).append(" ");
         if (red) {
           sb.append("</font>");
         }
@@ -1701,7 +1681,6 @@ public class BufferListener extends VisPlugin {
   }
 
   static class GrapicalParserPanel extends JPanel {
-    private static final long serialVersionUID = -8375160571675638467L;
     static final int XOFFSET = 0;
     static final int HEIGHT = 16;
     private GraphicalParser parser;
@@ -1726,8 +1705,9 @@ public class BufferListener extends VisPlugin {
 
       parser.paintComponent(g, this);
     }
-  };
-  private GrapicalParserPanel graphicalParserPanel = new GrapicalParserPanel();
+  }
+
+  private final GrapicalParserPanel graphicalParserPanel = new GrapicalParserPanel();
 
   @ClassDescription("Graphical: Height")
   public static class GraphicalHeight4BitsParser extends GraphicalParser {
@@ -1831,7 +1811,7 @@ public class BufferListener extends VisPlugin {
 
   @ClassDescription("*packetbufptr")
   public static class PacketbufPointerBuffer extends PointerBuffer {
-    VarMemory varMem =  new VarMemory(null);
+    final VarMemory varMem =  new VarMemory(null);
     @Override
     public long getPointerAddress(Mote mote) {
       if (!mote.getMemory().getSymbolMap().containsKey("packetbufptr")) {
@@ -1858,7 +1838,7 @@ public class BufferListener extends VisPlugin {
     public String variable;
     public int size;
     public long offset;
-    VarMemory varMem =  new VarMemory(null);
+    final VarMemory varMem =  new VarMemory(null);
     @Override
     public long getPointerAddress(Mote mote) {
       if (!mote.getMemory().getSymbolMap().containsKey(variable)) {
@@ -1894,8 +1874,8 @@ public class BufferListener extends VisPlugin {
     @Override
     public void writeConfig(Element element) {
       element.setAttribute("variable", variable);
-      element.setAttribute("size", "" + size);
-      element.setAttribute("offset", "" + offset);
+      element.setAttribute("size", String.valueOf(size));
+      element.setAttribute("offset", String.valueOf(offset));
     }
     @Override
     public void applyConfig(Element element) {
@@ -1943,8 +1923,8 @@ public class BufferListener extends VisPlugin {
       }
 
       Cooja.setExternalToolsSetting("BUFFER_LISTENER_VARNAME", variable);
-      Cooja.setExternalToolsSetting("BUFFER_LISTENER_VARSIZE", "" + size);
-      Cooja.setExternalToolsSetting("BUFFER_LISTENER_VAROFFSET", "" + offset);
+      Cooja.setExternalToolsSetting("BUFFER_LISTENER_VARSIZE", String.valueOf(size));
+      Cooja.setExternalToolsSetting("BUFFER_LISTENER_VAROFFSET", String.valueOf(offset));
       return true;
     }
   }
@@ -1981,8 +1961,8 @@ public class BufferListener extends VisPlugin {
     @Override
     public void writeConfig(Element element) {
       element.setAttribute("variable", variable);
-      element.setAttribute("size", "" + size);
-      element.setAttribute("offset", "" + offset);
+      element.setAttribute("size", String.valueOf(size));
+      element.setAttribute("offset", String.valueOf(offset));
     }
     @Override
     public void applyConfig(Element element) {
@@ -2029,8 +2009,8 @@ public class BufferListener extends VisPlugin {
         return false;
       }
       Cooja.setExternalToolsSetting("BUFFER_LISTENER_VARNAME", variable);
-      Cooja.setExternalToolsSetting("BUFFER_LISTENER_VARSIZE", "" + size);
-      Cooja.setExternalToolsSetting("BUFFER_LISTENER_VAROFFSET", "" + offset);
+      Cooja.setExternalToolsSetting("BUFFER_LISTENER_VARSIZE", String.valueOf(size));
+      Cooja.setExternalToolsSetting("BUFFER_LISTENER_VAROFFSET", String.valueOf(offset));
       return true;
     }
   }

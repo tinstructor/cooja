@@ -30,13 +30,17 @@
 
 package org.contikios.cooja.contikimote.interfaces;
 
-import java.util.*;
-import javax.swing.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Observable;
+import java.util.Observer;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.contikios.cooja.Mote;
 import org.jdom.Element;
 
-import org.contikios.cooja.*;
 import org.contikios.cooja.contikimote.ContikiMoteInterface;
 import org.contikios.cooja.interfaces.MoteID;
 import org.contikios.cooja.mote.memory.VarMemory;
@@ -67,7 +71,7 @@ public class ContikiMoteID extends MoteID implements ContikiMoteInterface {
 
   private int moteID = 0;
 
-  private Mote mote;
+  private final Mote mote;
   
   /**
    * Creates an interface to the mote ID at mote.
@@ -137,11 +141,10 @@ public class ContikiMoteID extends MoteID implements ContikiMoteInterface {
 
   @Override
   public Collection<Element> getConfigXML() {
-    Vector<Element> config = new Vector<Element>();
-    Element element;
+    var config = new ArrayList<Element>();
 
     // Infinite boolean
-    element = new Element("id");
+    var element = new Element("id");
     element.setText(Integer.toString(moteID));
     config.add(element);
 

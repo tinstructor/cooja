@@ -66,11 +66,11 @@ public class LogScriptEngine {
   private static final Logger logger = LogManager.getLogger(LogScriptEngine.class);
   private static final long DEFAULT_TIMEOUT = 20*60*1000*Simulation.MILLISECOND; /* 1200s = 20 minutes */
 
-  private ScriptEngine engine =
+  private final ScriptEngine engine =
     new ScriptEngineManager().getEngineByName("JavaScript");
 
   /* Log output listener */
-  private LogOutputListener logOutputListener = new LogOutputListener() {
+  private final LogOutputListener logOutputListener = new LogOutputListener() {
     @Override
     public void moteWasAdded(Mote mote) {
     }
@@ -95,11 +95,10 @@ public class LogScriptEngine {
   private Semaphore semaphoreSim = null;
   private Thread scriptThread = null; /* Script thread */
   private Observer scriptLogObserver = null;
-  private ScriptMote scriptMote;
 
   private boolean stopSimulation = false, quitCooja = false;
 
-  private Simulation simulation;
+  private final Simulation simulation;
 
   private boolean scriptActive = false;
 
@@ -173,27 +172,6 @@ public class LogScriptEngine {
     }
   }
 
-  /**
-   * Inject faked mote log output.
-   * Should only be used for debugging!
-   *
-   * @param msg Log message
-   * @param mote Mote
-   */
-  public void fakeMoteLogOutput(final String msg, final Mote mote) {
-    simulation.invokeSimulationThread(new Runnable() {
-      @Override
-      public void run() {
-        handleNewMoteOutput(
-            mote,
-            mote.getID(),
-            mote.getSimulation().getSimulationTime(),
-            msg
-        );
-      }
-    });
-  }
-
   public void setScriptLogObserver(Observer observer) {
     scriptLogObserver = observer;
   }
@@ -237,7 +215,6 @@ public class LogScriptEngine {
         scriptThread.join();
       } catch (InterruptedException e) {
         e.printStackTrace();
-      } finally {
       }
     }
     scriptThread = null;
@@ -349,13 +326,13 @@ public class LogScriptEngine {
     /* Create script output logger */
     engine.put("log", scriptLog);
 
-    Hashtable<Object, Object> hash = new Hashtable<Object, Object>();
+    Hashtable<Object, Object> hash = new Hashtable<>();
     engine.put("global", hash);
     engine.put("sim", simulation);
     engine.put("gui", simulation.getCooja());
     engine.put("msg", new String(""));
 
-    scriptMote = new ScriptMote();
+    var scriptMote = new ScriptMote();
     engine.put("node", scriptMote);
 
     Runnable activate = new Runnable() {
@@ -405,13 +382,13 @@ public class LogScriptEngine {
     }
   };
 
-  private Runnable stopSimulationRunnable = new Runnable() {
+  private final Runnable stopSimulationRunnable = new Runnable() {
     @Override
     public void run() {
       simulation.stopSimulation();
     }
   };
-  private Runnable quitRunnable = new Runnable() {
+  private final Runnable quitRunnable = new Runnable() {
     @Override
     public void run() {
       simulation.stopSimulation();
@@ -420,7 +397,7 @@ public class LogScriptEngine {
         public void run() {
           try { Thread.sleep(500); } catch (InterruptedException e) { }
           simulation.getCooja().doQuit(false, exitCode);
-        };
+        }
       }.start();
       new Thread() {
         @Override
@@ -428,12 +405,12 @@ public class LogScriptEngine {
           try { Thread.sleep(2000); } catch (InterruptedException e) { }
           logger.warn("Killing Cooja");
           System.exit(exitCode);
-        };
+        }
       }.start();
     }
   };
 
-  private ScriptLog scriptLog = new ScriptLog() {
+  private final ScriptLog scriptLog = new ScriptLog() {
     @Override
     public void log(String msg) {
       if (scriptLogObserver != null) {

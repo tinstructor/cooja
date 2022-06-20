@@ -36,9 +36,6 @@ import java.awt.Point;
 import java.util.Observable;
 import java.util.Observer;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.Simulation;
@@ -56,18 +53,16 @@ import org.contikios.cooja.plugins.VisualizerSkin;
  */
 @ClassDescription("Positions")
 public class PositionVisualizerSkin implements VisualizerSkin {
-  private static final Logger logger = LogManager.getLogger(PositionVisualizerSkin.class);
-
   private Simulation simulation = null;
   private Visualizer visualizer = null;
 
-  private Observer positionObserver = new Observer() {
+  private final Observer positionObserver = new Observer() {
     @Override
     public void update(Observable obs, Object obj) {
       visualizer.repaint();
     }
   };
-  private MoteCountListener simObserver = new MoteCountListener() {
+  private final MoteCountListener simObserver = new MoteCountListener() {
     @Override
     public void moteWasAdded(Mote mote) {
       Position p = mote.getInterfaces().getPosition();

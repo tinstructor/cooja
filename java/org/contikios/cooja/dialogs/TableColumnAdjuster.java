@@ -51,12 +51,12 @@ import javax.swing.table.TableModel;
 
 /**
  * This code was originally based on a Java tip from Rob Camick at
- * Java Tips Weblog, http://tips4java.wordpress.com.
+ * <a href="http://tips4java.wordpress.com">Java Tips Weblog</a>.
  */
 public class TableColumnAdjuster implements PropertyChangeListener, TableModelListener {
 
   private final JTable table;
-  private int spacing;
+  private final int spacing;
   private boolean isColumnHeaderIncluded;
   private boolean isColumnDataIncluded;
   private boolean isOnlyAdjustLarger;
@@ -69,7 +69,7 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
     this(table, 6);
   }
 
-  private boolean[] adjustColumns;
+  private final boolean[] adjustColumns;
 
   /*
    *  Specify the table and spacing
@@ -189,8 +189,7 @@ public class TableColumnAdjuster implements PropertyChangeListener, TableModelLi
     TableCellRenderer cellRenderer = table.getCellRenderer(row, column);
     Object value = table.getModel().getValueAt(row, column);
     Component c = cellRenderer.getTableCellRendererComponent(table, value, false, false, row, column);
-    int width = c.getPreferredSize().width + table.getIntercellSpacing().width;
-    return width;
+    return c.getPreferredSize().width + table.getIntercellSpacing().width;
   }
 
   /*

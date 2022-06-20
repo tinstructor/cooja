@@ -36,7 +36,6 @@ import java.util.Observer;
 
 import org.jdom.Element;
 
-import org.contikios.cooja.MoteType.MoteTypeCreationException;
 import org.contikios.cooja.interfaces.Log;
 import org.contikios.cooja.util.ArrayUtils;
 
@@ -50,7 +49,7 @@ import org.contikios.cooja.util.ArrayUtils;
  * @author Fredrik Osterlind
  */
 public class SimEventCentral {
-  private Simulation simulation;
+  private final Simulation simulation;
 
   public SimEventCentral(Simulation simulation) {
     this.simulation = simulation;
@@ -59,14 +58,14 @@ public class SimEventCentral {
     logOutputBufferSize = Integer.parseInt(Cooja.getExternalToolsSetting("BUFFERSIZE_LOGOUTPUT", "" + 40000));
 
     
-    moteObservations = new ArrayList<MoteObservation>();
+    moteObservations = new ArrayList<>();
 
     /* Mote count: notifications */
     moteCountListeners = new MoteCountListener[0];
 
     /* Log output: notifications and history */
     logOutputListeners = new LogOutputListener[0];
-    logOutputEvents = new ArrayDeque<LogOutputEvent>();
+    logOutputEvents = new ArrayDeque<>();
   }
   
 
@@ -93,7 +92,7 @@ public class SimEventCentral {
 
     @Override
     public String toString() {
-      return "" + ID;
+      return String.valueOf(ID);
     }
   }
   /** Help class for maintaining mote-specific observations */
@@ -118,7 +117,7 @@ public class SimEventCentral {
       observable.deleteObserver(observer);
     }
   }
-  private ArrayList<MoteObservation> moteObservations;
+  private final ArrayList<MoteObservation> moteObservations;
 
   
   /* ADDED/REMOVED MOTES */
@@ -127,10 +126,10 @@ public class SimEventCentral {
     public void moteWasRemoved(Mote mote);
   }
   private MoteCountListener[] moteCountListeners;
-  private Observer moteCountObserver = new Observer() {
+  private final Observer moteCountObserver = new Observer() {
     @Override
     public void update(Observable obs, Object obj) {
-      if (obj == null || !(obj instanceof Mote)) {
+      if (!(obj instanceof Mote)) {
         return;
       }
       Mote evMote = (Mote) obj;
@@ -200,7 +199,7 @@ public class SimEventCentral {
     public void newLogOutput(LogOutputEvent ev);
   }
   private LogOutputListener[] logOutputListeners;
-  private Observer logOutputObserver = new Observer() {
+  private final Observer logOutputObserver = new Observer() {
     @Override
     public void update(Observable obs, Object obj) {
       Mote mote = (Mote) obj;
@@ -344,20 +343,19 @@ public class SimEventCentral {
   
 
   public Collection<Element> getConfigXML() {
-    ArrayList<Element> config = new ArrayList<Element>();
+    ArrayList<Element> config = new ArrayList<>();
     Element element;
 
     /* Log output buffer size */
     element = new Element("logoutput");
-    element.setText("" + logOutputBufferSize);
+    element.setText(String.valueOf(logOutputBufferSize));
     config.add(element);
 
     return config;
   }
 
   public boolean setConfigXML(Simulation simulation,
-      Collection<Element> configXML, boolean visAvailable)
-      throws MoteTypeCreationException {
+      Collection<Element> configXML, boolean visAvailable) {
     for (Element element : configXML) {
       String name = element.getName();
       if (name.equals("logoutput")) {

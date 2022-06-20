@@ -53,7 +53,7 @@ public final class EventQueue {
     }
 
     @Override
-    public final int compareTo(Pair other) {
+    public int compareTo(Pair other) {
       if (time < other.time)
       {
         return -1;
@@ -81,7 +81,7 @@ public final class EventQueue {
     }
   }
 
-  private final PriorityQueue<Pair> queue = new PriorityQueue<Pair>();
+  private final PriorityQueue<Pair> queue = new PriorityQueue<>();
 
   /**
    * Should only be called from simulation thread!

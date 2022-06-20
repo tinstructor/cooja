@@ -33,17 +33,9 @@ package org.contikios.cooja.dialogs;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -51,7 +43,6 @@ import javax.swing.Action;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.contikios.cooja.Cooja;
-import org.contikios.cooja.MoteType;
 import org.contikios.cooja.MoteType.MoteTypeCreationException;
 import org.contikios.cooja.contikimote.ContikiMoteType;
 
@@ -90,7 +81,7 @@ public class CompileContiki {
   throws Exception {
     Pattern p = Pattern.compile("([^\\s\"']+|\"[^\"]*\"|'[^']*')");
     Matcher m = p.matcher(command);
-    ArrayList<String> commandList = new ArrayList<String>();
+    ArrayList<String> commandList = new ArrayList<>();
     while(m.find()) {
       String arg = m.group();
       if (arg.length() > 1 && (arg.charAt(0) == '"' || arg.charAt(0) == '\'')) {
@@ -246,7 +237,7 @@ public class CompileContiki {
           }
 
           messageDialog.addMessage("", MessageList.NORMAL);
-          messageDialog.addMessage("Compilation succeded", MessageList.NORMAL);
+          messageDialog.addMessage("Compilation succeeded", MessageList.NORMAL);
           if (onSuccess != null) {
             onSuccess.actionPerformed(null);
           }
@@ -268,22 +259,19 @@ public class CompileContiki {
           if (e instanceof InterruptedException) {
             msg = "Aborted by user";
           }
-          throw (MoteTypeCreationException) new MoteTypeCreationException(
-              "Compilation error: " + msg).initCause(e);
+          throw new MoteTypeCreationException("Compilation error: " + msg, e);
         }
 
         /* Detect error manually */
         if (syncException.hasCompilationOutput()) {
-          throw (MoteTypeCreationException) new MoteTypeCreationException(
-          "Bad return value").initCause(syncException);
+          throw new MoteTypeCreationException("Bad return value", syncException);
         }
       }
     } catch (IOException ex) {
       if (onFailure != null) {
         onFailure.actionPerformed(null);
       }
-      throw (MoteTypeCreationException) new MoteTypeCreationException(
-          "Compilation error: " + ex.getMessage()).initCause(ex);
+      throw new MoteTypeCreationException("Compilation error: " + ex.getMessage(), ex);
     }
 
     return compileProcess;
@@ -292,95 +280,59 @@ public class CompileContiki {
   /**
    * Generate compiler environment using external tools settings.
    * Used by Contiki Mote Type.
-   * 
-   * @param identifier Mote type identifier, "mtype123"
-   * @param contikiApp Contiki application source, "hello-world.c"
-   * @param mapFile Output map file, "mtype123.map"
-   * @param libFile Output JNI library, "mtype123.cooja"
-   * @param archiveFile Output archive, "mtype123.a"
+   *
+   * @param mote      Mote type
    * @param javaClass Java JNI library class, "Lib4"
    * @return Compilation environment
    * @throws Exception At errors
    */
   public static String[][] createCompilationEnvironment(
-      String identifier,
-      File contikiApp,
-      File mapFile,
-      File libFile,
-      File archiveFile,
+      ContikiMoteType mote,
       String javaClass)
   throws Exception {
 
-    if (identifier == null) {
-      throw new Exception("No identifier specified");
-    }
-    if (contikiApp == null) {
-      throw new Exception("No Contiki application specified");
-    }
-    if (mapFile == null) {
-      throw new Exception("No map file specified");
-    }
-    if (libFile == null) {
-      throw new Exception("No library output specified");
-    }
-    if (archiveFile == null) {
-      throw new Exception("No archive file specified");
+    if (mote == null) {
+      throw new Exception("No mote specified");
     }
     if (javaClass == null) {
       throw new Exception("No Java library class name specified");
     }
 
-    boolean includeSymbols = false; /* TODO */
-
+    String sources = "";
+    String dirs = "";
+    // Check whether Cooja projects include additional sources.
+    String[] coojaSources = mote.getConfig().getStringArrayValue(ContikiMoteType.class, "C_SOURCES");
+    if (coojaSources != null) {
+      for (String s : coojaSources) {
+        if (s.trim().isEmpty()) {
+          continue;
+        }
+        File p = mote.getConfig().getUserProjectDefining(ContikiMoteType.class, "C_SOURCES", s);
+        if (p == null) {
+          logger.warn("Project defining C_SOURCES$" + s + " not found");
+          continue;
+        }
+        sources += s + " ";
+        dirs += p.getPath() + " ";
+      }
+    }
     /* Fetch configuration from external tools */
-    String output_dir = Cooja.getExternalToolsSetting("PATH_CONTIKI_NG_BUILD_DIR", "build/cooja");
-    String link1 = Cooja.getExternalToolsSetting("LINK_COMMAND_1", "");
-    String link2 = Cooja.getExternalToolsSetting("LINK_COMMAND_2", "");
-    String ar1 = Cooja.getExternalToolsSetting("AR_COMMAND_1", "");
-    String ar2 = Cooja.getExternalToolsSetting("AR_COMMAND_2", "");
     String ccFlags = Cooja.getExternalToolsSetting("COMPILER_ARGS", "");
 
-    /* Replace MAPFILE variable */
-    link1 = link1.replace("$(MAPFILE)", output_dir + "/" + mapFile.getName());
-    link2 = link2.replace("$(MAPFILE)", output_dir + "/" + mapFile.getName());
-    ar1 = ar1.replace("$(MAPFILE)", output_dir + "/" + mapFile.getName());
-    ar2 = ar2.replace("$(MAPFILE)", output_dir + "/" + mapFile.getName());
-    ccFlags = ccFlags.replace("$(MAPFILE)", output_dir + "/" + mapFile.getName());
-
-    /* Replace LIBFILE variable */
-    link1 = link1.replace("$(LIBFILE)", output_dir + "/" + libFile.getName());
-    link2 = link2.replace("$(LIBFILE)", output_dir + "/" + libFile.getName());
-    ar1 = ar1.replace("$(LIBFILE)", output_dir + "/" + libFile.getName());
-    ar2 = ar2.replace("$(LIBFILE)", output_dir + "/" + libFile.getName());
-    ccFlags = ccFlags.replace("$(LIBFILE)", output_dir + "/" + libFile.getName());
-
-    /* Replace ARFILE variable */
-    link1 = link1.replace("$(ARFILE)", output_dir + "/" + archiveFile.getName());
-    link2 = link2.replace("$(ARFILE)", output_dir + "/" + archiveFile.getName());
-    ar1 = ar1.replace("$(ARFILE)", output_dir + "/" + archiveFile.getName());
-    ar2 = ar2.replace("$(ARFILE)", output_dir + "/" + archiveFile.getName());
-    ccFlags = ccFlags.replace("$(ARFILE)", output_dir + "/" + archiveFile.getName());
-
-    /* Strip away contiki application .c extension */
-    String contikiAppNoExtension = contikiApp.getName().substring(0, contikiApp.getName().length()-2);
-
     /* Create environment */
-    ArrayList<String[]> env = new ArrayList<String[]>();
-    env.add(new String[] { "LIBNAME", identifier });
+    ArrayList<String[]> env = new ArrayList<>();
+    env.add(new String[] { "LIBNAME", "$(BUILD_DIR_BOARD)/" + mote.getIdentifier() + ".cooja" });
+    // COOJA_VERSION is used to detect incompatibility with the Contiki-NG
+    // build system. The format is <YYYY><MM><DD><2 digit sequence number>.
+    env.add(new String[] { "COOJA_VERSION", "2022052601" });
     env.add(new String[] { "CLASSNAME", javaClass });
-    env.add(new String[] { "CONTIKI_APP", contikiAppNoExtension });
-    env.add(new String[] { "COOJA_SOURCEDIRS", "" });
-    env.add(new String[] { "COOJA_SOURCEFILES", "" });
+    env.add(new String[] { "COOJA_SOURCEDIRS", dirs.replace("\\", "/") });
+    env.add(new String[] { "COOJA_SOURCEFILES", sources });
     env.add(new String[] { "CC", Cooja.getExternalToolsSetting("PATH_C_COMPILER") });
     env.add(new String[] { "OBJCOPY", Cooja.getExternalToolsSetting("PATH_OBJCOPY") });
     env.add(new String[] { "EXTRA_CC_ARGS", ccFlags });
     env.add(new String[] { "LD", Cooja.getExternalToolsSetting("PATH_LINKER") });
-    env.add(new String[] { "LINK_COMMAND_1", link1 });
-    env.add(new String[] { "LINK_COMMAND_2", link2 });
     env.add(new String[] { "AR", Cooja.getExternalToolsSetting("PATH_AR") });
-    env.add(new String[] { "AR_COMMAND_1", ar1 });
-    env.add(new String[] { "AR_COMMAND_2", ar2 });
-    env.add(new String[] { "SYMBOLS", includeSymbols?"1":"" });
     env.add(new String[] { "PATH", System.getenv("PATH") });
     // Pass through environment variables for the Contiki-NG CI.
     String ci = System.getenv("CI");
@@ -393,54 +345,4 @@ public class CompileContiki {
     }
     return env.toArray(new String[0][0]);
   }
-
-	public static void redefineCOOJASources(MoteType moteType, String[][] env) {
-    if (moteType == null || env == null) {
-    	return;
-    }
-
-    /* Check whether cooja projects include additional sources */
-    String[] coojaSources = moteType.getConfig().getStringArrayValue(ContikiMoteType.class, "C_SOURCES");
-    if (coojaSources == null) {
-    	return;
-    }
-
-    String sources = "";
-    String dirs = "";
-    for (String s: coojaSources) {
-    	if (s.trim().isEmpty()) {
-    		continue;
-    	}
-    	File p = moteType.getConfig().getUserProjectDefining(ContikiMoteType.class, "C_SOURCES", s);
-    	if (p == null) {
-    		logger.warn("Project defining C_SOURCES$" + s + " not found");
-    		continue;
-    	}
-    	/* Redefine sources. TODO Move to createCompilationEnvironment. */
-    	sources += s + " ";
-    	dirs += p.getPath() + " ";
-    	
-    	/* XXX Cygwin specific directory style */
-    	if (dirs.contains("C:\\")) {
-    		dirs += p.getPath().replace("C:\\", "/cygdrive/c/") + " ";
-    	}
-    }
-
-    if (!sources.trim().isEmpty()) {
-    	for (int i=0; i < env.length; i++) {
-    		if (env[i][0].equals("COOJA_SOURCEFILES")) {
-    			env[i][1] = sources;
-    			break;
-    		}
-    	}
-    }
-    if (!dirs.trim().isEmpty()) {
-    	for (int i=0; i < env.length; i++) {
-    		if (env[i][0].equals("COOJA_SOURCEDIRS")) {
-    			env[i][1] = dirs.replace("\\", "/");
-    			break;
-    		}
-    	}
-    }
-	}
 }

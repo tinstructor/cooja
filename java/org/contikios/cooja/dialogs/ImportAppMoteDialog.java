@@ -65,18 +65,15 @@ import org.contikios.cooja.motes.ImportAppMoteType;
  * @author Niclas Finne
  */
 public class ImportAppMoteDialog extends JDialog {
-
-  private static final long serialVersionUID = 1323772528826214008L;
   protected final static Dimension LABEL_DIMENSION = new Dimension(170, 25);
 
   private static String lastPath;
   private static String lastFile;
 
-  private JTextField descriptionField;
-  private JTextField pathField;
-  private JTextField classField;
-  private JButton cancelButton;
-  private JButton createButton;
+  private final JTextField descriptionField;
+  private final JTextField pathField;
+  private final JTextField classField;
+  private final JButton cancelButton;
   private boolean hasSelected = false;
 
   public ImportAppMoteDialog(Container parent, final Simulation simulation, final ImportAppMoteType moteType) {
@@ -182,7 +179,7 @@ public class ImportAppMoteDialog extends JDialog {
     KeyStroke stroke = KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0);
     getRootPane().registerKeyboardAction(cancelAction, stroke, JComponent.WHEN_IN_FOCUSED_WINDOW);
 
-    createButton = new JButton("Create");
+    var createButton = new JButton("Create");
     createButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
@@ -272,11 +269,11 @@ public class ImportAppMoteDialog extends JDialog {
     return false;
   }
 
-  private Component createPanel(String title, JComponent field1) {
+  private static Component createPanel(String title, JComponent field1) {
     return createPanel(title, field1, null);
   }
 
-  private Component createPanel(String title, JComponent field1, JComponent field2) {
+  private static Component createPanel(String title, JComponent field1, JComponent field2) {
     Box panel = Box.createHorizontalBox();
     JLabel label = new JLabel(title);
     label.setPreferredSize(LABEL_DIMENSION);

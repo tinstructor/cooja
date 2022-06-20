@@ -76,12 +76,12 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 	public static final double SS_NOTHING = -100;
 	public static final double SS_STRONG = -10;
 	public static final double SS_WEAK = -95;
-	protected Map<Radio, Double> baseRssi = java.util.Collections.synchronizedMap(new HashMap<Radio, Double>());
-	protected Map<Radio, Double> sendRssi = java.util.Collections.synchronizedMap(new HashMap<Radio, Double>());
+	protected final Map<Radio, Double> baseRssi = java.util.Collections.synchronizedMap(new HashMap<>());
+	protected final Map<Radio, Double> sendRssi = java.util.Collections.synchronizedMap(new HashMap<>());
 	
-	private ArrayList<Radio> registeredRadios = new ArrayList<Radio>();
+	private final ArrayList<Radio> registeredRadios = new ArrayList<>();
 	
-	private ArrayList<RadioConnection> activeConnections = new ArrayList<RadioConnection>();
+	private final ArrayList<RadioConnection> activeConnections = new ArrayList<>();
 	
 	private RadioConnection lastConnection = null;
 	
@@ -97,8 +97,8 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 	 * @see #addRadioTransmissionObserver
 	 * @see #addRadioMediumObserver
 	 */
-	protected ScnObservable radioMediumObservable = new ScnObservable();
-	protected ScnObservable radioTransmissionObservable = new ScnObservable();
+	protected final ScnObservable radioMediumObservable = new ScnObservable();
+	protected final ScnObservable radioTransmissionObservable = new ScnObservable();
 	
 	/**
 	 * This constructor should always be called from implemented radio mediums.
@@ -220,7 +220,7 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 	 * This observer is responsible for detecting radio interface events, for example
 	 * new transmissions.
 	 */
-	private Observer radioEventsObserver = new Observer() {
+	private final Observer radioEventsObserver = new Observer() {
 		@Override
 		public void update(Observable obs, Object obj) {
 			if (!(obs instanceof Radio)) {
@@ -522,12 +522,7 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 	*/
 	public void setBaseRssi(Radio radio, double rssi) {
 		baseRssi.put(radio, rssi);
-		simulation.invokeSimulationThread(new Runnable() {				
-			@Override
-			public void run() {
-				updateSignalStrengths();
-			}
-		});
+		simulation.invokeSimulationThread(() -> updateSignalStrengths());
 	}
 
 	
@@ -610,18 +605,18 @@ public abstract class AbstractRadioMedium extends RadioMedium {
 	}
 	@Override
 	public Collection<Element> getConfigXML() {
-		Collection<Element> config = new ArrayList<Element>();
+		Collection<Element> config = new ArrayList<>();
 		for(Entry<Radio, Double> ent: baseRssi.entrySet()){
 			Element element = new Element("BaseRSSIConfig");
-			element.setAttribute("Mote", "" + ent.getKey().getMote().getID());
-			element.addContent("" + ent.getValue());
+			element.setAttribute("Mote", String.valueOf(ent.getKey().getMote().getID()));
+			element.addContent(String.valueOf(ent.getValue()));
 			config.add(element);
 		}
 
 		for(Entry<Radio, Double> ent: sendRssi.entrySet()){
 			Element element = new Element("SendRSSIConfig");
-			element.setAttribute("Mote", "" + ent.getKey().getMote().getID());
-			element.addContent("" + ent.getValue());
+			element.setAttribute("Mote", String.valueOf(ent.getKey().getMote().getID()));
+			element.addContent(String.valueOf(ent.getValue()));
 			config.add(element);
 		}
 

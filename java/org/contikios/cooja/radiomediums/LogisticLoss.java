@@ -141,13 +141,13 @@ public class LogisticLoss extends AbstractRadioMedium {
      * This is required to implement the Capture Effect.
      * The co-channel rejection threshold of 802.15.4 radios typically is -3 dB.
      */
-    private final double CO_CHANNEL_REJECTION = -3.0;
+    private static final double CO_CHANNEL_REJECTION = -3.0;
 
     /*
      * The transmission power.
      * TODO: figure out how to getCurrentOutputPowerIndicator() to dBm use that.
      */
-    public final double DEFAULT_TX_POWER_DBM = 0.0;
+    public static final double DEFAULT_TX_POWER_DBM = 0.0;
 
     /* Gain of the antennas used, in dBi. */
     public final double ANTENNA_GAIN_DBI = 0.0;
@@ -218,15 +218,15 @@ public class LogisticLoss extends AbstractRadioMedium {
     public double TIME_VARIATION_MAX_PL_DB = +10;
 
     /* How often to update the time-varying path loss value (in simulation time)? */
-    private final double TIME_VARIATION_STEP_SEC = 10.0;
+    private static final double TIME_VARIATION_STEP_SEC = 10.0;
 
     private long lastTimeVariationUpdatePeriod = 0;
 
-    private DirectedGraphMedium dgrm; /* Used only for efficient destination lookup */
+    private final DirectedGraphMedium dgrm; /* Used only for efficient destination lookup */
 
     private Random random = null;
 
-    private Hashtable<Index, TimeVaryingEdge> edgesTable = new Hashtable<Index, TimeVaryingEdge>();
+    private final Hashtable<Index, TimeVaryingEdge> edgesTable = new Hashtable<>();
 
     public LogisticLoss(Simulation simulation) {
         super(simulation);
@@ -591,61 +591,66 @@ public class LogisticLoss extends AbstractRadioMedium {
 
         /* Transmission success probability */
         element = new Element("success_ratio_tx");
-        element.setText("" + SUCCESS_RATIO_TX);
+        element.setText(String.valueOf(SUCCESS_RATIO_TX));
         config.add(element);
 
         /* Close-in reference distance */
         element = new Element("reference_distance");
-        element.setText("" + REFERENCE_DISTANCE);
+        element.setText(String.valueOf(REFERENCE_DISTANCE));
         config.add(element);
 
         /* Path loss at close-in reference distance for 2.4 GHz channel */
         element = new Element("path_loss_ref_dist_2400");
-        element.setText("" + PATH_LOSS_REF_DIST_2400);
+        element.setText(String.valueOf(PATH_LOSS_REF_DIST_2400));
         config.add(element);
 
         /* Path loss at close-in reference distance for 868 MHz channel */
         element = new Element("path_loss_ref_dist_868");
-        element.setText("" + PATH_LOSS_REF_DIST_868);
+        element.setText(String.valueOf(PATH_LOSS_REF_DIST_868));
+        config.add(element);
+
+        /* Rx sensitivity */
+        element = new Element("rx_sensitivity");
+        element.setText(String.valueOf(RX_SENSITIVITY_DBM));
         config.add(element);
 
         /* RSSI inflection point */
         element = new Element("rssi_inflection_point");
-        element.setText("" + RSSI_INFLECTION_POINT_DBM);
+        element.setText(String.valueOf(RSSI_INFLECTION_POINT_DBM));
         config.add(element);
 
         /* Path loss exponent for 2.4 Ghz channel */
         element = new Element("path_loss_exponent_2400");
-        element.setText("" + PATH_LOSS_EXPONENT_2400);
+        element.setText(String.valueOf(PATH_LOSS_EXPONENT_2400));
         config.add(element);
 
         /* Path loss exponent for 868 MHz channel */
         element = new Element("path_loss_exponent_868");
-        element.setText("" + PATH_LOSS_EXPONENT_868);
+        element.setText(String.valueOf(PATH_LOSS_EXPONENT_868));
         config.add(element);
 
         /* AWGN sigma for 2.4 Ghz channel */
         element = new Element("awgn_sigma_2400");
-        element.setText("" + AWGN_SIGMA_2400);
+        element.setText(String.valueOf(AWGN_SIGMA_2400));
         config.add(element);
 
         /* AWGN sigma for 868 MHz channel */
         element = new Element("awgn_sigma_868");
-        element.setText("" + AWGN_SIGMA_868);
+        element.setText(String.valueOf(AWGN_SIGMA_868));
         config.add(element);
 
         /* Time variation enabled? */
         element = new Element("enable_time_variation");
-        element.setText("" + ENABLE_TIME_VARIATION);
+        element.setText(String.valueOf(ENABLE_TIME_VARIATION));
         config.add(element);
 
         if(ENABLE_TIME_VARIATION) {
             /* Time-variable path loss bounds */
             element = new Element("time_variation_min_pl_db");
-            element.setText("" + TIME_VARIATION_MIN_PL_DB);
+            element.setText(String.valueOf(TIME_VARIATION_MIN_PL_DB));
             config.add(element);
             element = new Element("time_variation_max_pl_db");
-            element.setText("" + TIME_VARIATION_MAX_PL_DB);
+            element.setText(String.valueOf(TIME_VARIATION_MAX_PL_DB));
             config.add(element);
         }
 
@@ -680,6 +685,10 @@ public class LogisticLoss extends AbstractRadioMedium {
 
             if (element.getName().equals("path_loss_ref_dist_868")) {
                 PATH_LOSS_REF_DIST_868 = Double.parseDouble(element.getText());
+            }
+
+            if (element.getName().equals("rx_sensitivity")) {
+                RX_SENSITIVITY_DBM = Double.parseDouble(element.getText());
             }
 
             if (element.getName().equals("rssi_inflection_point")) {
@@ -719,8 +728,8 @@ public class LogisticLoss extends AbstractRadioMedium {
 
     // Invariant: x <= y
     private static class Index {
-        private int x;
-        private int y;
+        private final int x;
+        private final int y;
 
         public Index(int a, int b) {
             if(a <= b) {

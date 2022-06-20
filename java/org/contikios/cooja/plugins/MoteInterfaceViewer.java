@@ -36,8 +36,8 @@ import java.awt.EventQueue;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComboBox;
@@ -66,13 +66,11 @@ import org.contikios.cooja.VisPlugin;
 @ClassDescription("Mote Interface Viewer")
 @PluginType(PluginType.MOTE_PLUGIN)
 public class MoteInterfaceViewer extends VisPlugin implements HasQuickHelp, MotePlugin {
-  private static final long serialVersionUID = 1L;
-
-  private Mote mote;
+  private final Mote mote;
   private MoteInterface selectedMoteInterface = null;
   private JPanel currentInterfaceVisualizer = null;
   private JComboBox selectInterfaceComboBox = null;
-  private JScrollPane mainScrollPane;
+  private final JScrollPane mainScrollPane;
 
   /**
    * Create a new mote interface viewer.
@@ -188,12 +186,10 @@ public class MoteInterfaceViewer extends VisPlugin implements HasQuickHelp, Mote
 
   @Override
   public Collection<Element> getConfigXML() {
-    Vector<Element> config = new Vector<Element>();
-
-    Element element;
+    var config = new ArrayList<Element>();
 
     // Selected variable name
-    element = new Element("interface");
+    var element = new Element("interface");
     element.setText((String) selectInterfaceComboBox.getSelectedItem());
     config.add(element);
     Point pos = mainScrollPane.getViewport().getViewPosition();
@@ -212,12 +208,7 @@ public class MoteInterfaceViewer extends VisPlugin implements HasQuickHelp, Mote
       } else if (element.getName().equals("scrollpos")) {
         String[] scrollPos = element.getText().split(",");
         final Point pos = new Point(Integer.parseInt(scrollPos[0]), Integer.parseInt(scrollPos[1]));
-        EventQueue.invokeLater(new Runnable() {
-          @Override
-          public void run()  {
-            mainScrollPane.getViewport().setViewPosition(pos);
-          }
-        });
+        EventQueue.invokeLater(() -> mainScrollPane.getViewport().setViewPosition(pos));
       }
     }
     return true;

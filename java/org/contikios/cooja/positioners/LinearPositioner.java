@@ -29,7 +29,8 @@
  */
 
 package org.contikios.cooja.positioners;
-import org.contikios.cooja.*;
+import org.contikios.cooja.ClassDescription;
+import org.contikios.cooja.Positioner;
 
 /**
  * Generates positions linearly distributed in a given interval.
@@ -39,7 +40,9 @@ import org.contikios.cooja.*;
 @ClassDescription("Linear positioning")
 public class LinearPositioner extends Positioner {
 
-  private double startX, startY, startZ;
+  private final double startX;
+  private final double startY;
+  private final double startZ;
   private int addedInX, addedInY, addedInZ;
   private int numberInX, numberInY, numberInZ;
   private double xInterval, yInterval, zInterval;

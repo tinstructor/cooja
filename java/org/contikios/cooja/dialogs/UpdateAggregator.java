@@ -29,8 +29,6 @@
 package org.contikios.cooja.dialogs;
 
 import java.awt.EventQueue;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,10 +49,10 @@ import org.contikios.cooja.plugins.LogListener;
  */
 public abstract class UpdateAggregator<A> {
   private static final int DEFAULT_MAX_PENDING = 256;
-  private int maxPending;
+  private final int maxPending;
   
   private ArrayList<A> pending;
-  private Timer t;
+  private final Timer t;
 
   /**
    * @param interval Max interval (ms)
@@ -68,13 +66,8 @@ public abstract class UpdateAggregator<A> {
    */
   public UpdateAggregator(int interval, int maxEvents) {
     this.maxPending = maxEvents;
-    pending = new ArrayList<A>();
-    t = new Timer(interval, new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        consume.run();
-      }
-    });
+    pending = new ArrayList<>();
+    t = new Timer(interval, e -> consume.run());
     t.setInitialDelay(0);
     t.setCoalesce(true);
     t.setRepeats(true);
@@ -83,12 +76,12 @@ public abstract class UpdateAggregator<A> {
   /**
    * Consumer: called from event queue
    */
-  private Runnable consume = new Runnable() {
+  private final Runnable consume = new Runnable() {
     @Override
     public void run() {
       if (pending.isEmpty()) {
         return;
-      };
+      }
 
       List<A> q = getPending();
       if (q != null) {
@@ -110,7 +103,7 @@ public abstract class UpdateAggregator<A> {
   private synchronized List<A> getPending() {
     /* Queue pending packets */
     ArrayList<A> tmp = pending;
-    pending = new ArrayList<A>();
+    pending = new ArrayList<>();
     return tmp;
   }
 

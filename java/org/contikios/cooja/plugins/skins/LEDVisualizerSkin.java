@@ -36,9 +36,6 @@ import java.awt.Point;
 import java.util.Observable;
 import java.util.Observer;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.Simulation;
@@ -57,18 +54,16 @@ import org.contikios.cooja.plugins.VisualizerSkin;
  */
 @ClassDescription("LEDs")
 public class LEDVisualizerSkin implements VisualizerSkin {
-  private static final Logger logger = LogManager.getLogger(LEDVisualizerSkin.class);
-
   private Simulation simulation = null;
   private Visualizer visualizer = null;
 
-  private Observer ledObserver = new Observer() {
+  private final Observer ledObserver = new Observer() {
     @Override
     public void update(Observable obs, Object obj) {
       visualizer.repaint();
     }
   };
-  private MoteCountListener newMotesListener = new MoteCountListener() {
+  private final MoteCountListener newMotesListener = new MoteCountListener() {
     @Override
     public void moteWasAdded(Mote mote) {
       LED led = mote.getInterfaces().getLED();

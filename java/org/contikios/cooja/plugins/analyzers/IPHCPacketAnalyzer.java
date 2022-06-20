@@ -60,7 +60,7 @@ public class IPHCPacketAnalyzer extends PacketAnalyzer {
   public final static byte[] UNSPECIFIED_ADDRESS
           = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-  private static byte[][] addrContexts = new byte[][]{
+  private static final byte[][] addrContexts = new byte[][]{
     {(byte) 0xaa, (byte) 0xaa, 0, 0, 0, 0, 0, 0}
   };
 
@@ -447,7 +447,7 @@ public class IPHCPacketAnalyzer extends PacketAnalyzer {
     }
     packet.pos += hc06_ptr;
 
-    String protoStr = "" + proto;
+    String protoStr;
     if (proto == PROTO_ICMP) {
       protoStr = "ICMPv6";
     } else if (proto == PROTO_UDP) {

@@ -73,9 +73,9 @@ import org.contikios.cooja.mote.memory.VarMemory;
 public class ContikiClock extends Clock implements ContikiMoteInterface, PolledBeforeActiveTicks, PolledAfterAllTicks {
   private static final Logger logger = LogManager.getLogger(ContikiClock.class);
 
-  private Simulation simulation;
-  private ContikiMote mote;
-  private VarMemory moteMem;
+  private final Simulation simulation;
+  private final ContikiMote mote;
+  private final VarMemory moteMem;
 
   private long moteTime; /* Microseconds */
   private long timeDrift; /* Microseconds */
@@ -124,7 +124,7 @@ public class ContikiClock extends Clock implements ContikiMoteInterface, PolledB
   
   @Override
   public void setDeviation(double deviation) {
-    logger.fatal("Can't change deviation");;
+    logger.fatal("Can't change deviation");
   }
 
   @Override

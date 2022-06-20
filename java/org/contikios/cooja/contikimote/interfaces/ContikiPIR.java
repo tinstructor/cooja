@@ -30,8 +30,6 @@
 
 package org.contikios.cooja.contikimote.interfaces;
 
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.Collection;
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -64,8 +62,8 @@ import org.contikios.cooja.mote.memory.VarMemory;
  */
 public class ContikiPIR extends PIR implements ContikiMoteInterface {
 
-  private ContikiMote mote;
-  private VarMemory moteMem;
+  private final ContikiMote mote;
+  private final VarMemory moteMem;
 
   /**
    * Creates an interface to the PIR at mote.
@@ -89,12 +87,7 @@ public class ContikiPIR extends PIR implements ContikiMoteInterface {
    */
   @Override
   public void triggerChange() {
-    mote.getSimulation().invokeSimulationThread(new Runnable() {
-      @Override
-      public void run() {
-        doTriggerChange();
-      }
-    });
+    mote.getSimulation().invokeSimulationThread(() -> doTriggerChange());
   }
 
   public void doTriggerChange() { 
@@ -112,12 +105,7 @@ public class ContikiPIR extends PIR implements ContikiMoteInterface {
 
     panel.add(clickButton);
 
-    clickButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        triggerChange();
-      }
-    });
+    clickButton.addActionListener(e -> triggerChange());
 
     return panel;
   }

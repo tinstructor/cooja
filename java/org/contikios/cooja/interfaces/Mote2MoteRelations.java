@@ -79,15 +79,15 @@ public class Mote2MoteRelations extends MoteInterface {
   private static final Logger logger = LogManager.getLogger(Mote2MoteRelations.class);
   private Mote mote = null;
 
-  private ArrayList<Mote> relations = new ArrayList<Mote>();
-  private Cooja gui;
+  private final ArrayList<Mote> relations = new ArrayList<>();
+  private final Cooja gui;
 
   private Observer logObserver = new Observer() {
     @Override
     public void update(Observable o, Object arg) {
       String msg = ((Log) o).getLastLogMessage();
       handleNewLog(msg);
-    };
+    }
   };
   
   private MoteCountListener moteCountListener;
@@ -214,7 +214,7 @@ public class Mote2MoteRelations extends MoteInterface {
     notifyObservers();
   }
 
-  private Color decodeColor(String colorString) {
+  private static Color decodeColor(String colorString) {
     if (colorString == null) {
       return null;
     } else if (colorString.equalsIgnoreCase("red")) {

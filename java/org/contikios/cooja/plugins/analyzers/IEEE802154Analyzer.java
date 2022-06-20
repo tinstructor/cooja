@@ -29,16 +29,9 @@ public class IEEE802154Analyzer extends PacketAnalyzer {
   private static final String[] addrModeNames = {"None", "Reserved", "Short", "Long"};
   private PcapExporter pcapExporter;
 
-//    private int defaultAddressMode = LONG_ADDRESS;
-//    private byte seqNo = 0;
-//    private int myPanID = 0xabcd;
   public IEEE802154Analyzer(boolean pcap) {
     if (pcap) {
-      try {
-        pcapExporter = new PcapExporter();
-      } catch (IOException e) {
-        logger.error(e);
-      }
+      pcapExporter = new PcapExporter();
     }
   }
 
@@ -189,7 +182,7 @@ public class IEEE802154Analyzer extends PacketAnalyzer {
     return ANALYSIS_OK_CONTINUE;
   }
 
-  private void printAddress(StringBuilder sb, int type, byte[] addr) {
+  private static void printAddress(StringBuilder sb, int type, byte[] addr) {
     if (type == SHORT_ADDRESS) {
       sb.append("0x").append(StringUtils.toHex(addr));
     } else if (type == LONG_ADDRESS) {

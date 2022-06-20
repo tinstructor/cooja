@@ -33,16 +33,12 @@ package org.contikios.cooja.radiomediums;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 import org.jdom.Element;
 
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.interfaces.Radio;
 
 public class DestinationRadio {
-	private static final Logger logger = LogManager.getLogger(DestinationRadio.class);
-
 	public Radio radio; /* destination radio */
 	public DestinationRadio() {
 	}
@@ -56,11 +52,11 @@ public class DestinationRadio {
 	}
 
 	public Collection<Element> getConfigXML() {
-		ArrayList<Element> config = new ArrayList<Element>();
+		ArrayList<Element> config = new ArrayList<>();
 		Element element;
 
 		element = new Element("radio");
-		element.setText("" + radio.getMote().getID());
+		element.setText(String.valueOf(radio.getMote().getID()));
 		config.add(element);
 		return config;
 	}

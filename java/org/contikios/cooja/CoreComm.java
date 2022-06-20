@@ -30,13 +30,23 @@ package org.contikios.cooja;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.Reader;
+import java.lang.reflect.Constructor;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Vector;
+import java.util.ArrayList;
 import org.contikios.cooja.MoteType.MoteTypeCreationException;
 import org.contikios.cooja.contikimote.ContikiMoteType;
 import org.contikios.cooja.dialogs.MessageContainer;
@@ -77,9 +87,9 @@ import org.contikios.cooja.dialogs.MessageList;
 public abstract class CoreComm {
 
   // Static pointers to current libraries
-  private final static Vector<CoreComm> coreComms = new Vector<CoreComm>();
+  private final static ArrayList<CoreComm> coreComms = new ArrayList<>();
 
-  private final static Vector<File> coreCommFiles = new Vector<File>();
+  private final static ArrayList<File> coreCommFiles = new ArrayList<>();
 
   private static int fileCounter = 1;
 
@@ -176,7 +186,7 @@ public abstract class CoreComm {
       // Replace special fields in template
       String line;
       while ((line = templateFileReader.readLine()) != null) {
-        line = line.replaceFirst("\\[CLASSNAME\\]", className);
+        line = line.replace("[CLASSNAME]", className);
         sourceFileWriter.write(line + "\n");
       }
 
@@ -193,9 +203,8 @@ public abstract class CoreComm {
       } catch (Exception e2) {
       }
 
-      throw (MoteTypeCreationException) new MoteTypeCreationException(
-          "Could not generate corecomm source file: " + className + ".java")
-          .initCause(e);
+      throw new MoteTypeCreationException(
+          "Could not generate corecomm source file: " + className + ".java", e);
     }
 
     if (Files.exists(Path.of(tempDir + "/org/contikios/cooja/corecomm/" + destFilename))) {
@@ -250,9 +259,8 @@ public abstract class CoreComm {
         return;
       }
     } catch (IOException | InterruptedException e) {
-      MoteTypeCreationException exception = (MoteTypeCreationException) new MoteTypeCreationException(
-          "Could not compile corecomm source file: " + className + ".java")
-          .initCause(e);
+      var exception = new MoteTypeCreationException(
+          "Could not compile corecomm source file: " + className + ".java", e);
       exception.setCompilationOutput(compilationOutput);
       throw exception;
     }
@@ -282,9 +290,8 @@ public abstract class CoreComm {
           + className);
 
     } catch (MalformedURLException | ClassNotFoundException e) {
-      throw (MoteTypeCreationException) new MoteTypeCreationException(
-          "Could not load corecomm class file: " + className + ".class")
-          .initCause(e);
+      throw new MoteTypeCreationException(
+          "Could not load corecomm class file: " + className + ".class", e);
     }
     if (loadedClass == null) {
       throw new MoteTypeCreationException(
@@ -314,8 +321,7 @@ public abstract class CoreComm {
     Class newCoreCommClass = loadClassFile(tempDir, className);
 
     try {
-      Constructor constr = newCoreCommClass
-          .getConstructor(new Class[] { File.class });
+      Constructor constr = newCoreCommClass.getConstructor(File.class);
       CoreComm newCoreComm = (CoreComm) constr
           .newInstance(new Object[] { libFile });
 
@@ -325,8 +331,8 @@ public abstract class CoreComm {
 
       return newCoreComm;
     } catch (Exception e) {
-      throw (MoteTypeCreationException) new MoteTypeCreationException(
-          "Error when creating corecomm instance: " + className).initCause(e);
+      throw new MoteTypeCreationException(
+          "Error when creating corecomm instance: " + className, e);
     }
   }
 

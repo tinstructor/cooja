@@ -92,7 +92,7 @@ public class UDGM extends AbstractRadioMedium {
   public double INTERFERENCE_RANGE_2400 = 100; /* Interference range. Ignored if below transmission range. */
   public double INTERFERENCE_RANGE_868 = 120; /* Interference range for secondary. Ignored if below transmission range. */
 
-  private DirectedGraphMedium dgrm; /* Used only for efficient destination lookup */
+  private final DirectedGraphMedium dgrm; /* Used only for efficient destination lookup */
 
   private Random random = null;
 
@@ -409,12 +409,12 @@ public class UDGM extends AbstractRadioMedium {
 
     /* Transmission success probability */
     element = new Element("success_ratio_tx");
-    element.setText("" + SUCCESS_RATIO_TX);
+    element.setText(String.valueOf(SUCCESS_RATIO_TX));
     config.add(element);
 
     /* Reception success probability */
     element = new Element("success_ratio_rx");
-    element.setText("" + SUCCESS_RATIO_RX);
+    element.setText(String.valueOf(SUCCESS_RATIO_RX));
     config.add(element);
 
     return config;

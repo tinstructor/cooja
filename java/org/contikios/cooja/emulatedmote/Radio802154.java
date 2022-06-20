@@ -29,15 +29,15 @@
  */
 package org.contikios.cooja.emulatedmote;
 
-import java.util.*;
+import java.util.Collection;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.jdom.Element;
-
-import org.contikios.cooja.*;
+import org.contikios.cooja.Mote;
+import org.contikios.cooja.RadioPacket;
 import org.contikios.cooja.interfaces.CustomDataRadio;
 import org.contikios.cooja.interfaces.Position;
 import org.contikios.cooja.interfaces.Radio;
+import org.jdom.Element;
 
 /**
  * 802.15.4 radio class for COOJA.
@@ -57,12 +57,12 @@ public abstract class Radio802154 extends Radio implements CustomDataRadio {
 
     protected boolean isInterfered = false;
 
-    private boolean isTransmitting = false;
+    private final boolean isTransmitting = false;
 
     protected boolean isReceiving = false;
     //    private boolean hasFailedReception = false;
 
-    private boolean radioOn = true;
+    private final boolean radioOn = true;
 
     private RadioByte lastOutgoingByte = null;
 
@@ -73,7 +73,7 @@ public abstract class Radio802154 extends Radio implements CustomDataRadio {
     private RadioPacket lastIncomingPacket = null;
 
     //    private int mode;
-    protected Mote mote;
+    protected final Mote mote;
      
     public Radio802154(Mote mote) {
         this.mote = mote;
@@ -81,7 +81,7 @@ public abstract class Radio802154 extends Radio implements CustomDataRadio {
 
     int len = 0;
     int expLen = 0;
-    byte[] buffer = new byte[127 + 15];
+    final byte[] buffer = new byte[127 + 15];
     protected void handleTransmit(byte val) {
         if (len == 0) {
             lastEventTime = mote.getSimulation().getSimulationTime();
@@ -231,8 +231,6 @@ public abstract class Radio802154 extends Radio implements CustomDataRadio {
         lastEventTime = mote.getSimulation().getSimulationTime();
         lastEvent = RadioEvent.RECEPTION_FINISHED;
         if (DEBUG) logger.debug("----- 802.15.4 RECEPTION FINISHED -----");
-       // Exception e = new IllegalStateException("Why finished?");
-       // e.printStackTrace();
         setChanged();
         notifyObservers();
     }

@@ -52,7 +52,7 @@ public class SectionMoteMemory implements MemoryInterface {
   private static final Logger logger = LogManager.getLogger(SectionMoteMemory.class);
   private static final boolean DEBUG = logger.isDebugEnabled();
 
-  private Map<String, MemoryInterface> sections = new HashMap<>();
+  private final Map<String, MemoryInterface> sections = new HashMap<>();
 
   private final Map<String, Symbol> symbols;
   private MemoryLayout memLayout;
@@ -93,7 +93,7 @@ public class SectionMoteMemory implements MemoryInterface {
         return false;
       }
       /* Min start address is main start address */
-      startAddr = sec.getStartAddr() < startAddr ? sec.getStartAddr() : startAddr;
+      startAddr = Math.min(sec.getStartAddr(), startAddr);
       /* Layout is last layout. XXX Check layout consistency? */
       memLayout = section.getLayout();
     }
@@ -286,17 +286,17 @@ public class SectionMoteMemory implements MemoryInterface {
 
     SectionMoteMemory clone = new SectionMoteMemory(symbols);
 
-    for (String secname : sections.keySet()) {
+    for (Map.Entry<String, MemoryInterface> entry : sections.entrySet()) {
       // Copy section memory to new ArrayMemory
-      MemoryInterface section = sections.get(secname);
+      MemoryInterface section = entry.getValue();
       MemoryInterface cpmem = new ArrayMemory(section.getStartAddr(), section.getLayout(), section.getMemory().clone(), section.getSymbolMap());
-      clone.addMemorySection(secname, cpmem);
+      clone.addMemorySection(entry.getKey(), cpmem);
     }
 
     return clone;
   }
 
-  private ArrayList<PolledMemorySegments> polledMemories = new ArrayList<PolledMemorySegments>();
+  private final ArrayList<PolledMemorySegments> polledMemories = new ArrayList<>();
   public void pollForMemoryChanges() {
     for (PolledMemorySegments mem: polledMemories.toArray(new PolledMemorySegments[0])) {
       mem.notifyIfChanged();

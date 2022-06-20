@@ -35,9 +35,6 @@ import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Point;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.MoteInterface;
@@ -58,12 +55,10 @@ import org.contikios.cooja.plugins.VisualizerSkin;
  */
 @ClassDescription("Log output: printf()'s")
 public class LogVisualizerSkin implements VisualizerSkin {
-  private static final Logger logger = LogManager.getLogger(LogVisualizerSkin.class);
-
   private Simulation simulation = null;
   private Visualizer visualizer = null;
 
-  private LogOutputListener logOutputListener = new LogOutputListener() {
+  private final LogOutputListener logOutputListener = new LogOutputListener() {
     @Override
     public void moteWasAdded(Mote mote) {
       visualizer.repaint();

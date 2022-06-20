@@ -62,7 +62,6 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
 
   private File moteClassPath = null;
   private String moteClassName = null;
-  private Class<? extends AbstractApplicationMote> moteClass = null;
   private Constructor<? extends AbstractApplicationMote> moteConstructor = null;
 
   public ImportAppMoteType() {
@@ -149,8 +148,8 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
         loader = parentLoader;
       }
 
-      moteClass = loader.loadClass(moteClassName).asSubclass(AbstractApplicationMote.class);
-      moteConstructor = moteClass.getConstructor(new Class[] { MoteType.class, Simulation.class });
+      var moteClass = loader.loadClass(moteClassName).asSubclass(AbstractApplicationMote.class);
+      moteConstructor = moteClass.getConstructor(MoteType.class, Simulation.class);
     } catch (Exception | LinkageError e) {
       throw createError(e);
     }
@@ -162,12 +161,9 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
   }
 
   private MoteTypeCreationException createError(Throwable e) {
-    MoteTypeCreationException mte =
-      new MoteTypeCreationException("Error when loading class from: "
-          + (moteClassPath != null ? moteClassPath.getAbsolutePath() : "") + " "
-          + moteClassName);
-    mte.initCause(e);
-    return mte;
+    return new MoteTypeCreationException("Error when loading class from: "
+        + (moteClassPath != null ? moteClassPath.getAbsolutePath() : "") + " "
+        + moteClassName, e);
   }
 
   @Override
@@ -175,7 +171,7 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
     try {
       return moteConstructor.newInstance(ImportAppMoteType.this, simulation);
     } catch (Exception e) {
-      throw (RuntimeException) new RuntimeException("Error when generating mote").initCause(e);
+      throw new RuntimeException("Error when generating mote", e);
     }
   }
 
@@ -223,7 +219,7 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
 
   public TestLoader createTestLoader(File classFile) throws IOException {
     classFile = classFile.getCanonicalFile();
-    ArrayList<URL> list = new ArrayList<URL>();
+    ArrayList<URL> list = new ArrayList<>();
     for(File parent = classFile.getParentFile();
         parent != null;
         parent = parent.getParentFile()) {
@@ -236,7 +232,7 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
   public static class TestLoader extends URLClassLoader {
     private final File classFile;
     private File classPath;
-    private Class<?> testClass;
+    private final Class<?> testClass;
 
     private TestLoader(URL[] classpath, ClassLoader parentClassLoader, File classFile)
       throws IOException

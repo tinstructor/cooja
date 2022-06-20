@@ -31,13 +31,19 @@
 package org.contikios.cooja.interfaces;
 
 import java.text.NumberFormat;
-import java.util.*;
-import javax.swing.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Observable;
+import java.util.Observer;
+import javax.swing.BoxLayout;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.contikios.cooja.ClassDescription;
+import org.contikios.cooja.Mote;
+import org.contikios.cooja.MoteInterface;
 import org.jdom.Element;
-
-import org.contikios.cooja.*;
 
 /**
  * Mote 3D position.
@@ -51,7 +57,7 @@ import org.contikios.cooja.*;
 public class Position extends MoteInterface {
   private static final Logger logger = LogManager.getLogger(Position.class);
   private Mote mote = null;
-  private double[] coords = new double[3];
+  private final double[] coords = new double[3];
 
   /**
    * Creates a position for given mote with coordinates (x=0, y=0, z=0).
@@ -173,11 +179,10 @@ public class Position extends MoteInterface {
 
   @Override
   public Collection<Element> getConfigXML() {
-    Vector<Element> config = new Vector<Element>();
-    Element element;
+    var config = new ArrayList<Element>();
 
     // X coordinate
-    element = new Element("x");
+    var element = new Element("x");
     element.setText(Double.toString(getXCoordinate()));
     config.add(element);
 

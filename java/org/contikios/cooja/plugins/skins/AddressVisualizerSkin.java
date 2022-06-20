@@ -40,9 +40,6 @@ import java.awt.datatransfer.StringSelection;
 import java.util.Observable;
 import java.util.Observer;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.Simulation;
@@ -63,18 +60,16 @@ import org.contikios.cooja.plugins.Visualizer.MoteMenuAction;
  */
 @ClassDescription("Addresses: IP or Rime")
 public class AddressVisualizerSkin implements VisualizerSkin {
-  private static final Logger logger = LogManager.getLogger(AddressVisualizerSkin.class);
-
   private Simulation simulation = null;
   private Visualizer visualizer = null;
 
-  private Observer addrObserver = new Observer() {
+  private final Observer addrObserver = new Observer() {
     @Override
     public void update(Observable obs, Object obj) {
       visualizer.repaint();
     }
   };
-  private MoteCountListener newMotesListener = new MoteCountListener() {
+  private final MoteCountListener newMotesListener = new MoteCountListener() {
     @Override
     public void moteWasAdded(Mote mote) {
       IPAddress ipAddr = mote.getInterfaces().getIPAddress();
@@ -187,7 +182,8 @@ public class AddressVisualizerSkin implements VisualizerSkin {
       StringSelection stringSelection = new StringSelection(getMoteString(mote));
       clipboard.setContents(stringSelection, null);
     }
-  };
+  }
+
   @Override
   public Visualizer getVisualizer() {
     return visualizer;

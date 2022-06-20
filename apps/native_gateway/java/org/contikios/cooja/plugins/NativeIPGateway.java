@@ -85,7 +85,6 @@ import org.contikios.cooja.interfaces.SerialPort;
 @PluginType(PluginType.MOTE_PLUGIN)
 @SupportedArguments(moteInterfaces = {IPAddress.class})
 public class NativeIPGateway extends VisPlugin implements MotePlugin {
-  private static final long serialVersionUID = 1L;
   private static final Logger logger = LogManager.getLogger(NativeIPGateway.class);
 
   private final static int IP_HEADER_LEN = 20;
@@ -585,7 +584,7 @@ public class NativeIPGateway extends VisPlugin implements MotePlugin {
       File tunContikiApp = new File(tunContikiAppDir, "hello-world." + TUNNEL_APP_TARGET);
       /*logger.info("Creating tap0 via " + tunContikiAppDir + "/" + tunContikiApp);*/
       Process p = CompileContiki.compile(
-          GUI.getExternalToolsSetting("PATH_MAKE") + " " + tunContikiApp.getName()  + " TARGET=" + TUNNEL_APP_TARGET,
+          GUI.getExternalToolsSetting("PATH_MAKE") + " -j$(CPUS) " + tunContikiApp.getName()  + " TARGET=" + TUNNEL_APP_TARGET,
           null,
           null /* Do not observe output firmware file */,
           tunContikiAppDir,

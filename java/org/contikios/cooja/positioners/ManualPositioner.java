@@ -31,8 +31,6 @@
 package org.contikios.cooja.positioners;
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.text.NumberFormat;
@@ -49,7 +47,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
-import org.contikios.cooja.*;
+import org.contikios.cooja.ClassDescription;
+import org.contikios.cooja.Cooja;
+import org.contikios.cooja.Positioner;
 
 /**
  * Asks for user input for every mote added.
@@ -62,8 +62,13 @@ public class ManualPositioner extends Positioner {
   private boolean skipRemainder = false;
   private double lastX, lastY, lastZ;
 
-  private double startX, endX, startY, endY, startZ, endZ;
-  private Random random = new Random(); /* Do not use main random generator for setup */
+  private final double startX;
+  private final double endX;
+  private final double startY;
+  private final double endY;
+  private final double startZ;
+  private final double endZ;
+  private final Random random = new Random(); /* Do not use main random generator for setup */
 
   public ManualPositioner(int totalNumberOfMotes,
       double startX, double endX,
@@ -131,10 +136,10 @@ public class ManualPositioner extends Positioner {
   }
 
   static class PositionDialog extends JDialog {
-    private NumberFormat doubleFormat = NumberFormat.getNumberInstance();
-
     public boolean shouldSkipRemainder = false;
-    public JFormattedTextField xField, yField, zField;
+    public final JFormattedTextField xField;
+    public final JFormattedTextField yField;
+    public final JFormattedTextField zField;
     public PositionDialog(int mote) {
       JButton button;
       JFormattedTextField numberField;
@@ -153,20 +158,14 @@ public class ManualPositioner extends Positioner {
         @Override
         public void focusGained(FocusEvent e) {
           final JFormattedTextField source = ((JFormattedTextField)e.getSource());
-          SwingUtilities.invokeLater(
-              new Runnable() {
-                @Override
-                public void run() {
-                  source.selectAll();
-                }
-              }
-          );
+          SwingUtilities.invokeLater(() -> source.selectAll());
         }
         @Override
         public void focusLost(FocusEvent e) {
         }
       };
 
+      NumberFormat doubleFormat = NumberFormat.getNumberInstance();
       numberField = new JFormattedTextField(doubleFormat);
       numberField.setValue(0.0);
       numberField.setColumns(5);
@@ -194,22 +193,14 @@ public class ManualPositioner extends Positioner {
       buttons.add(Box.createHorizontalGlue());
 
       button = new JButton("Next");
-      button.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          dispose();
-        }
-      });
+      button.addActionListener(e -> dispose());
       buttons.add(button);
       getRootPane().setDefaultButton(button);
 
       button = new JButton("Skip remainder (random)");
-      button.addActionListener(new ActionListener() {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-          shouldSkipRemainder = true;
-          dispose();
-        }
+      button.addActionListener(e -> {
+        shouldSkipRemainder = true;
+        dispose();
       });
       buttons.add(button);
 

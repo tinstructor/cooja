@@ -74,8 +74,8 @@ public class MessageListUI extends JList implements MessageList {
 
   private static final Logger logger = LogManager.getLogger(MessageListUI.class);
 
-  private Color[] foregrounds = new Color[] { null, Color.red };
-  private Color[] backgrounds = new Color[] { null, null };
+  private final Color[] foregrounds = new Color[] { null, Color.red };
+  private final Color[] backgrounds = new Color[] { null, null };
 
   private JPopupMenu popup = null;
   private boolean hideNormal = false;
@@ -162,7 +162,7 @@ public class MessageListUI extends JList implements MessageList {
     addMessage(message, NORMAL);
   }
 
-  private ArrayList<MessageContainer> messages = new ArrayList<MessageContainer>();
+  private final ArrayList<MessageContainer> messages = new ArrayList<>();
 
   @Override
   public MessageContainer[] getMessages() {
@@ -192,12 +192,7 @@ public class MessageListUI extends JList implements MessageList {
     MessageContainer msg = new MessageContainer(message, type);
     messages.add(msg);
 
-    java.awt.EventQueue.invokeLater(new Runnable() {
-      @Override
-      public void run() {
-        updateModel();
-      }
-    });
+    java.awt.EventQueue.invokeLater(() -> updateModel());
   }
 
   @Override
@@ -284,7 +279,7 @@ public class MessageListUI extends JList implements MessageList {
               if (hideNormal && msg.type == NORMAL) {
                 continue;
               }
-              sb.append(msg + "\n");
+              sb.append(msg).append("\n");
             }
 
             StringSelection stringSelection = new StringSelection(sb.toString());
@@ -315,7 +310,7 @@ public class MessageListUI extends JList implements MessageList {
   }
 
   private class MessageRenderer extends DefaultListCellRenderer {
-    private Dimension nullDimension = new Dimension(0,0);
+    private final Dimension nullDimension = new Dimension(0,0);
     @Override
     public Component getListCellRendererComponent(
         JList list,
