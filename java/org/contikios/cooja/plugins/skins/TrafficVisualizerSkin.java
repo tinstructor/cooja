@@ -60,8 +60,8 @@ import org.contikios.cooja.radiomediums.AbstractRadioMedium;
 @SupportedArguments(radioMediums = {AbstractRadioMedium.class})
 public class TrafficVisualizerSkin implements VisualizerSkin {
   private static final int MAX_HISTORY_SIZE = 200;
-  private final float TRANSMITTED_COLOR_RGB[] = Color.BLUE.getRGBColorComponents(null);
-  private final float UNTRANSMITTED_COLOR_RGB[] = Color.RED.getRGBColorComponents(null);
+  private final float[] TRANSMITTED_COLOR_RGB = Color.BLUE.getRGBColorComponents(null);
+  private final float[] UNTRANSMITTED_COLOR_RGB = Color.RED.getRGBColorComponents(null);
 
   private boolean active = false;
   private Simulation simulation = null;
@@ -93,15 +93,8 @@ public class TrafficVisualizerSkin implements VisualizerSkin {
       if (historyList.size() > 0) {
 
         synchronized (historyList) {
-          /* Increase age and remove too old arrows */
-          Iterator<RadioConnectionArrow> iter = historyList.iterator();
-          while (iter.hasNext()) {
-            RadioConnectionArrow rca = iter.next();
-            /* Try to increase age and remove if max age was reached */
-            if (!rca.increaseAge()) {
-              iter.remove();
-            }
-          }
+          /* Try to increase age and remove if max age was reached */
+          historyList.removeIf(rca -> !rca.increaseAge());
         }
 
         visualizer.repaint(500);

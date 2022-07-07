@@ -42,9 +42,7 @@ import java.util.regex.Pattern;
 import javax.swing.Action;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.contikios.cooja.Cooja;
 import org.contikios.cooja.MoteType.MoteTypeCreationException;
-import org.contikios.cooja.contikimote.ContikiMoteType;
 
 /**
  * Contiki compiler library.
@@ -58,43 +56,6 @@ public class CompileContiki {
   /**
    * Executes a Contiki compilation command.
    *
-   * @param command Command
-   * @param env (Optional) Environment. May be null.
-   * @param outputFile Expected output. May be null.
-   * @param directory Directory in which to execute command
-   * @param onSuccess Action called if compilation succeeds
-   * @param onFailure Action called if compilation fails
-   * @param compilationOutput Is written both std and err process output
-   * @param synchronous If true, method blocks until process completes
-   * @return Sub-process if called asynchronously
-   * @throws Exception If process returns error, or outputFile does not exist
-   */
-  public static Process compile(
-      final String command,
-      final String[] env,
-      final File outputFile,
-      final File directory,
-      final Action onSuccess,
-      final Action onFailure,
-      final MessageList compilationOutput,
-      boolean synchronous)
-  throws Exception {
-    Pattern p = Pattern.compile("([^\\s\"']+|\"[^\"]*\"|'[^']*')");
-    Matcher m = p.matcher(command);
-    ArrayList<String> commandList = new ArrayList<>();
-    while(m.find()) {
-      String arg = m.group();
-      if (arg.length() > 1 && (arg.charAt(0) == '"' || arg.charAt(0) == '\'')) {
-          arg = arg.substring(1, arg.length() - 1);
-      }
-      commandList.add(arg);
-    }
-    return compile(commandList.toArray(new String[commandList.size()]), env, outputFile, directory, onSuccess, onFailure, compilationOutput, synchronous);
-  }
-
-  /**
-   * Perform variable expansion and execute a Contiki compilation command.
-   *
    * @param commandIn Command
    * @param env (Optional) Environment. May be null.
    * @param outputFile Expected output. May be null.
@@ -107,7 +68,7 @@ public class CompileContiki {
    * @throws Exception If process returns error, or outputFile does not exist
    */
   public static Process compile(
-      final String commandIn[],
+      final String commandIn,
       final String[] env,
       final File outputFile,
       final File directory,
@@ -116,6 +77,17 @@ public class CompileContiki {
       final MessageList compilationOutput,
       boolean synchronous)
   throws Exception {
+    Pattern p = Pattern.compile("([^\\s\"']+|\"[^\"]*\"|'[^']*')");
+    Matcher m = p.matcher(commandIn);
+    ArrayList<String> commandList = new ArrayList<>();
+    while(m.find()) {
+      String arg = m.group();
+      if (arg.length() > 1 && (arg.charAt(0) == '"' || arg.charAt(0) == '\'')) {
+          arg = arg.substring(1, arg.length() - 1);
+      }
+      commandList.add(arg);
+    }
+
   	/* TODO Fix me */
     final MessageList messageDialog;
   	if (compilationOutput == null) {
@@ -125,14 +97,14 @@ public class CompileContiki {
   	}
     String cpus = Integer.toString(Runtime.getRuntime().availableProcessors());
     // Perform compile command variable expansions.
-    String command[] = new String[commandIn.length];
-    for (int i = 0; i < commandIn.length; i++) {
-      command[i] = commandIn[i].replace("$(CPUS)", cpus);
+    String[] command = new String[commandList.size()];
+    for (int i = 0; i < commandList.size(); i++) {
+      command[i] = commandList.get(i).replace("$(CPUS)", cpus);
     }
     {
-      String cmd = "";
+      var cmd = new StringBuilder();
       for (String c: command) {
-      	cmd += c + " ";
+      	cmd.append(c).append(" ");
       }
       messageDialog.addMessage("", MessageList.NORMAL);
       messageDialog.addMessage("> " + cmd, MessageList.NORMAL);
@@ -166,9 +138,7 @@ public class CompileContiki {
           try {
             String readLine;
             while ((readLine = processNormal.readLine()) != null) {
-              if (messageDialog != null) {
-                messageDialog.addMessage(readLine, MessageList.NORMAL);
-              }
+              messageDialog.addMessage(readLine, MessageList.NORMAL);
             }
           } catch (IOException e) {
             logger.warn("Error while reading from process");
@@ -182,9 +152,7 @@ public class CompileContiki {
           try {
             String readLine;
             while ((readLine = processError.readLine()) != null) {
-              if (messageDialog != null) {
-                messageDialog.addMessage(readLine, MessageList.ERROR);
-              }
+              messageDialog.addMessage(readLine, MessageList.ERROR);
             }
           } catch (IOException e) {
             logger.warn("Error while reading from process");
@@ -275,74 +243,5 @@ public class CompileContiki {
     }
 
     return compileProcess;
-  }
-
-  /**
-   * Generate compiler environment using external tools settings.
-   * Used by Contiki Mote Type.
-   *
-   * @param mote      Mote type
-   * @param javaClass Java JNI library class, "Lib4"
-   * @return Compilation environment
-   * @throws Exception At errors
-   */
-  public static String[][] createCompilationEnvironment(
-      ContikiMoteType mote,
-      String javaClass)
-  throws Exception {
-
-    if (mote == null) {
-      throw new Exception("No mote specified");
-    }
-    if (javaClass == null) {
-      throw new Exception("No Java library class name specified");
-    }
-
-    String sources = "";
-    String dirs = "";
-    // Check whether Cooja projects include additional sources.
-    String[] coojaSources = mote.getConfig().getStringArrayValue(ContikiMoteType.class, "C_SOURCES");
-    if (coojaSources != null) {
-      for (String s : coojaSources) {
-        if (s.trim().isEmpty()) {
-          continue;
-        }
-        File p = mote.getConfig().getUserProjectDefining(ContikiMoteType.class, "C_SOURCES", s);
-        if (p == null) {
-          logger.warn("Project defining C_SOURCES$" + s + " not found");
-          continue;
-        }
-        sources += s + " ";
-        dirs += p.getPath() + " ";
-      }
-    }
-    /* Fetch configuration from external tools */
-    String ccFlags = Cooja.getExternalToolsSetting("COMPILER_ARGS", "");
-
-    /* Create environment */
-    ArrayList<String[]> env = new ArrayList<>();
-    env.add(new String[] { "LIBNAME", "$(BUILD_DIR_BOARD)/" + mote.getIdentifier() + ".cooja" });
-    // COOJA_VERSION is used to detect incompatibility with the Contiki-NG
-    // build system. The format is <YYYY><MM><DD><2 digit sequence number>.
-    env.add(new String[] { "COOJA_VERSION", "2022052601" });
-    env.add(new String[] { "CLASSNAME", javaClass });
-    env.add(new String[] { "COOJA_SOURCEDIRS", dirs.replace("\\", "/") });
-    env.add(new String[] { "COOJA_SOURCEFILES", sources });
-    env.add(new String[] { "CC", Cooja.getExternalToolsSetting("PATH_C_COMPILER") });
-    env.add(new String[] { "OBJCOPY", Cooja.getExternalToolsSetting("PATH_OBJCOPY") });
-    env.add(new String[] { "EXTRA_CC_ARGS", ccFlags });
-    env.add(new String[] { "LD", Cooja.getExternalToolsSetting("PATH_LINKER") });
-    env.add(new String[] { "AR", Cooja.getExternalToolsSetting("PATH_AR") });
-    env.add(new String[] { "PATH", System.getenv("PATH") });
-    // Pass through environment variables for the Contiki-NG CI.
-    String ci = System.getenv("CI");
-    if (ci != null) {
-      env.add(new String[] { "CI", ci });
-    }
-    String relstr = System.getenv("RELSTR");
-    if (relstr != null) {
-      env.add(new String[] { "RELSTR", relstr });
-    }
-    return env.toArray(new String[0][0]);
   }
 }

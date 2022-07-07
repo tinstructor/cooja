@@ -52,7 +52,7 @@ import java.nio.file.Paths;
  * Contains the command line parameters and is the main entry point for Cooja.
  */
 @Command(version = {
-        "Cooja " + Cooja.VERSION,
+        "Cooja " + Cooja.VERSION + ", Contiki-NG build interface version " + Cooja.CONTIKI_NG_BUILD_VERSION,
         "JVM: ${java.version} (${java.vendor} ${java.vm.name} ${java.vm.version})",
         "OS: ${os.name} ${os.version} ${os.arch}"})
 class Main {
@@ -161,7 +161,7 @@ class Main {
     // Verify soundness of -nogui/-quickstart argument.
     if (options.action != null) {
       String file = options.action.nogui == null ? options.action.quickstart : options.action.nogui;
-      if (!file.endsWith(".csc")) {
+      if (!file.endsWith(".csc") && !file.endsWith(".csc.gz")) {
         String option = options.action.nogui == null ? "-quickstart" : "-nogui";
         System.err.println("Cooja " + option + " expects a filename extension of '.csc'");
         System.exit(1);

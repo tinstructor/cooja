@@ -216,22 +216,22 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
   private Observer moteRelationsObserver = null;
 
   /* Popup menu */
-  public static interface SimulationMenuAction {
+  public interface SimulationMenuAction {
 
-    public boolean isEnabled(Visualizer visualizer, Simulation simulation);
+    boolean isEnabled(Visualizer visualizer, Simulation simulation);
 
-    public String getDescription(Visualizer visualizer, Simulation simulation);
+    String getDescription(Visualizer visualizer, Simulation simulation);
 
-    public void doAction(Visualizer visualizer, Simulation simulation);
+    void doAction(Visualizer visualizer, Simulation simulation);
   }
 
-  public static interface MoteMenuAction {
+  public interface MoteMenuAction {
 
-    public boolean isEnabled(Visualizer visualizer, Mote mote);
+    boolean isEnabled(Visualizer visualizer, Mote mote);
 
-    public String getDescription(Visualizer visualizer, Mote mote);
+    String getDescription(Visualizer visualizer, Mote mote);
 
-    public void doAction(Visualizer visualizer, Mote mote);
+    void doAction(Visualizer visualizer, Mote mote);
   }
 
   private final ArrayList<Class<? extends SimulationMenuAction>> simulationMenuActions
@@ -470,7 +470,7 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
         if (mouseActionState == MotesActionState.MOVING) {
           /* Reset positions to those of move start */
           for (Mote m : Visualizer.this.getSelectedMotes()) {
-            double rstPos[] = Visualizer.this.moveStartPositions.get(m);
+            double[] rstPos = Visualizer.this.moveStartPositions.get(m);
             m.getInterfaces().getPosition().setCoordinates(rstPos[0], rstPos[1], rstPos[2]);
           }
           mouseActionState = MotesActionState.NONE;
@@ -1249,7 +1249,7 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
     for (Mote mote : allMotes) {
 
       /* Use the first skin's non-null mote colors */
-      Color moteColors[] = null;
+      Color[] moteColors = null;
       for (VisualizerSkin skin : currentSkins) {
         moteColors = skin.getColorOf(mote);
         if (moteColors != null) {

@@ -41,6 +41,9 @@
     <pathelement location="lib/picocli-4.6.3.jar"/>
     <pathelement location="lib/syntaxpane-1.2.0.jar"/>
     <pathelement location="lib/swingx-all-1.6.4.jar"/>
+    <!-- Copied into dist/lib by the mspsim rule -->
+    <pathelement location="dist/lib/jipv6.jar" />
+    <pathelement location="dist/lib/mspsim.jar" />
   </path>
 
   <target name="help">
@@ -70,8 +73,27 @@ The COOJA Simulator
     </javadoc>
   </target>
 
-  <target name="compile">
+  <target name="mspsim">
+    <fail>-
+      ----------------
+      Could not find the MSPSim build file. Did you run &quot;git submodule update --init --recursive&quot;?
+      ----------------
+      <condition><not>
+        <available file="mspsim/build.xml" />
+      </not></condition>
+    </fail>
+    <mkdir dir="${dist}/lib"/>
+    <ant antfile="build.xml" dir="mspsim" target="jar" inheritAll="false"/>
+    <copy todir="${dist}/lib" file="mspsim/mspsim.jar" />
+    <copy todir="${dist}/lib" file="mspsim/lib/jipv6.jar" />
+  </target>
+
+  <target name="compile" depends="mspsim">
     <mkdir dir="${build}"/>
+    <javac srcdir="tools/coffee-manager" destdir="${build}" debug="on" release="${languageversion}"
+           includeantruntime="false"
+           encoding="utf-8">
+    </javac>
     <javac srcdir="${java}" destdir="${build}" debug="on" release="${languageversion}"
            includeantruntime="false"
            encoding="utf-8">
@@ -84,14 +106,14 @@ The COOJA Simulator
     <copy todir="${build}">
       <fileset dir="${config}"/>
       <fileset dir="images"/>
+      <fileset file="tools/coffee-manager/sky.properties"/>
+      <fileset file="tools/coffee-manager/esb.properties"/>
     </copy>
   </target>
 
   <target name="clean">
     <delete dir="${build}"/>
     <delete dir="${dist}"/>
-    <ant antfile="build.xml" dir="apps/mspsim" target="clean" inheritAll="false"/>
-    <ant antfile="build.xml" dir="apps/powertracker" target="clean" inheritAll="false"/>
   </target>
 
   <target name="run" depends="jar">
@@ -146,11 +168,6 @@ The COOJA Simulator
     </java>
   </target>
 
-  <target name="jar" depends="jar_cooja">
-    <ant antfile="build.xml" dir="apps/mspsim" target="jar" inheritAll="false"/>
-    <ant antfile="build.xml" dir="apps/powertracker" target="jar" inheritAll="false"/>
-  </target>
-
   <pathconvert property="manifest.classpath" pathsep=" ">
     <path refid="cooja.classpath"/>
     <mapper>
@@ -161,7 +178,7 @@ The COOJA Simulator
     </mapper>
   </pathconvert>
 
-  <target name="jar_cooja" depends="compile, copy configs">
+  <target name="jar" depends="compile, copy configs">
     <mkdir dir="${dist}/lib"/>
     <jar destfile="${dist}/cooja.jar" basedir="${build}">
       <manifest>
@@ -173,5 +190,4 @@ The COOJA Simulator
       <fileset dir="${lib}"/>
     </copy>
   </target>
-
 </project>

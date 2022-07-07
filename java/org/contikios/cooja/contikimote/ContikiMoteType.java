@@ -101,12 +101,12 @@ public class ContikiMoteType implements MoteType {
   /**
    * Library file suffix
    */
-  final static public String librarySuffix = ".cooja";
+  private static final String librarySuffix = ".cooja";
 
   /**
    * Map file suffix
    */
-  final static public String mapSuffix = ".map";
+  private static final String mapSuffix = ".map";
 
   /**
    * Temporary output directory
@@ -206,25 +206,84 @@ public class ContikiMoteType implements MoteType {
     return new ContikiMote(this, simulation);
   }
 
+  /**
+   * Get the mote file for the extension.
+   *
+   * @param extension File extension (.map)
+   * @return The mote file for the extension
+   */
+  private File getMoteFile(String extension) {
+    var dir = Cooja.getExternalToolsSetting("PATH_CONTIKI_NG_BUILD_DIR", "build/cooja");
+    return new File(fileSource.getParentFile(),dir + "/" + identifier + extension);
+  }
+
+  /**
+   * Configure the internal state of the mote, so it can be compiled.
+   *
+   * @return The compilation environment
+   */
+  public String[][] configureForCompilation() {
+    mapFile = getMoteFile(mapSuffix);
+    javaClassName = CoreComm.getAvailableClassName();
+    var sources = new StringBuilder();
+    var dirs = new StringBuilder();
+    // Check whether Cooja projects include additional sources.
+    String[] coojaSources = getConfig().getStringArrayValue(ContikiMoteType.class, "C_SOURCES");
+    if (coojaSources != null) {
+      for (String s : coojaSources) {
+        if (s.trim().isEmpty()) {
+          continue;
+        }
+        File p = getConfig().getUserProjectDefining(ContikiMoteType.class, "C_SOURCES", s);
+        if (p == null) {
+          logger.warn("Project defining C_SOURCES$" + s + " not found");
+          continue;
+        }
+        sources.append(s).append(" ");
+        dirs.append(p.getPath()).append(" ");
+      }
+    }
+
+    // Create the compilation environment.
+    String ccFlags = Cooja.getExternalToolsSetting("COMPILER_ARGS", "");
+    ArrayList<String[]> env = new ArrayList<>();
+    env.add(new String[] { "LIBNAME", "$(BUILD_DIR_BOARD)/" + getIdentifier() + ".cooja" });
+    env.add(new String[] { "COOJA_VERSION",  Cooja.CONTIKI_NG_BUILD_VERSION });
+    env.add(new String[] { "CLASSNAME", javaClassName});
+    env.add(new String[] { "COOJA_SOURCEDIRS", dirs.toString().replace("\\", "/") });
+    env.add(new String[] { "COOJA_SOURCEFILES", sources.toString() });
+    env.add(new String[] { "CC", Cooja.getExternalToolsSetting("PATH_C_COMPILER") });
+    env.add(new String[] { "OBJCOPY", Cooja.getExternalToolsSetting("PATH_OBJCOPY") });
+    env.add(new String[] { "EXTRA_CC_ARGS", ccFlags });
+    env.add(new String[] { "LD", Cooja.getExternalToolsSetting("PATH_LINKER") });
+    env.add(new String[] { "AR", Cooja.getExternalToolsSetting("PATH_AR") });
+    env.add(new String[] { "PATH", System.getenv("PATH") });
+    // Pass through environment variables for the Contiki-NG CI.
+    String ci = System.getenv("CI");
+    if (ci != null) {
+      env.add(new String[] { "CI", ci });
+    }
+    String relstr = System.getenv("RELSTR");
+    if (relstr != null) {
+      env.add(new String[] { "RELSTR", relstr });
+    }
+    return env.toArray(new String[0][0]);
+  }
+
   @Override
   public boolean configureAndInit(Container parentContainer, Simulation simulation,
                                   boolean visAvailable) throws MoteTypeCreationException {
     myConfig = simulation.getCooja().getProjectConfig().clone();
-    String output_dir = Cooja.getExternalToolsSetting("PATH_CONTIKI_NG_BUILD_DIR", "build/cooja");
-    
-    if (visAvailable && !simulation.isQuickSetup()) {
 
+    if (visAvailable && !simulation.isQuickSetup()) {
       if (getDescription() == null) {
         setDescription("Cooja Mote Type #" + (simulation.getMoteTypes().length + 1));
       }
 
       /* Compile Contiki from dialog */
-      boolean compileOK
-              = ContikiMoteCompileDialog.showDialog(parentContainer, simulation, this);
-      if (!compileOK) {
+      if (!ContikiMoteCompileDialog.showDialog(parentContainer, simulation, this)) {
         return false;
       }
-
     } else {
       if (getIdentifier() == null) {
         throw new MoteTypeCreationException("No identifier specified");
@@ -232,31 +291,17 @@ public class ContikiMoteType implements MoteType {
       if (getContikiSourceFile() == null) {
         throw new MoteTypeCreationException("No Contiki application specified");
       }
-
-      /* Create variables used for compiling Contiki. */
-      // Contiki application: hello-world.c
-      File contikiApp = getContikiSourceFile();
-      mapFile = new File(
-              contikiApp.getParentFile(),
-              output_dir + "/" + getIdentifier() + mapSuffix);
-      javaClassName = CoreComm.getAvailableClassName();
-
-      /* Prepare compiler environment */
-      String[][] env;
-      try {
-        env = CompileContiki.createCompilationEnvironment(this, javaClassName);
-      } catch (Exception e) {
-        throw new MoteTypeCreationException("Error when creating environment: " + e.getMessage(), e);
+      if (getCompileCommands() == null) {
+        throw new MoteTypeCreationException("No compile commands specified");
       }
+
+      var env = configureForCompilation();
       String[] envOneDimension = new String[env.length];
       for (int i = 0; i < env.length; i++) {
         envOneDimension[i] = env[i][0] + "=" + env[i][1];
       }
 
       /* Compile Contiki (may consist of several commands) */
-      if (getCompileCommands() == null) {
-        throw new MoteTypeCreationException("No compile commands specified");
-      }
       final MessageList compilationOutput = MessageContainer.createMessageList(visAvailable);
       String[] arr = getCompileCommands().split("\n");
       for (String cmd : arr) {
@@ -461,7 +506,7 @@ public class ContikiMoteType implements MoteType {
   /**
    * Abstract base class for concrete section parser class.
    */
-  public static abstract class SectionParser {
+  static abstract class SectionParser {
 
     private final String[] mapFileData;
     protected long startAddr;
@@ -540,9 +585,9 @@ public class ContikiMoteType implements MoteType {
   }
 
   /**
-   * Parses Map file for seciton data.
+   * Parses Map file for section data.
    */
-  public static class MapSectionParser extends SectionParser {
+  static class MapSectionParser extends SectionParser {
 
     private final String startRegExp;
     private final String sizeRegExp;
@@ -641,7 +686,7 @@ public class ContikiMoteType implements MoteType {
   /**
    * Parses command output for section data.
    */
-  public static class CommandSectionParser extends SectionParser {
+  static class CommandSectionParser extends SectionParser {
 
     private final String startRegExp;
     private final String endRegExp;
@@ -819,6 +864,13 @@ public class ContikiMoteType implements MoteType {
   @Override
   public void setContikiFirmwareFile(File file) {
     fileFirmware = file;
+  }
+
+  /**
+   * Set the Contiki firmware file according to the source file.
+   */
+  public void setContikiFirmwareFile() {
+    fileFirmware = getMoteFile(librarySuffix);
   }
 
   @Override
@@ -999,7 +1051,7 @@ public class ContikiMoteType implements MoteType {
     boolean available = false;
 
     while (!available) {
-      testID = "mtype" + new Random().nextInt(1000);
+      testID = "mtype" + new Random().nextInt(1000000000);
       available = reservedIdentifiers == null || !reservedIdentifiers.contains(testID);
 
       if (!available) {
@@ -1118,8 +1170,6 @@ public class ContikiMoteType implements MoteType {
           throws MoteTypeCreationException {
     boolean warnedOldVersion = false;
     File oldVersionSource = null;
-    String output_dir = Cooja.getExternalToolsSetting("PATH_CONTIKI_NG_BUILD_DIR", "build/cooja");
-
     moteInterfacesClasses = new ArrayList<>();
 
     for (Element element : configXML) {
@@ -1136,12 +1186,9 @@ public class ContikiMoteType implements MoteType {
           File file = new File(element.getText());
           if (!file.exists()) {
             file = simulation.getCooja().restorePortablePath(file);
-          } setContikiSourceFile(file);
-          /* XXX Do not load the generated firmware. Instead, load the unique library file directly */
-        File contikiFirmware = new File(
-                getContikiSourceFile().getParentFile(),
-                output_dir + "/" + getIdentifier() + librarySuffix);
-          setContikiFirmwareFile(contikiFirmware);
+          }
+          setContikiSourceFile(file);
+          setContikiFirmwareFile();
           break;
         case "commands":
           compileCommands = element.getText();

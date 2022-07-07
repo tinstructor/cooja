@@ -509,13 +509,13 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
       for (Mote m: simulation.getMotes()) {
         source.addItem(m);
       }
-      Object description[] = {
+      Object[] description = {
           source
       };
       JOptionPane optionPane = new JOptionPane();
       optionPane.setMessage(description);
       optionPane.setMessageType(JOptionPane.QUESTION_MESSAGE);
-      String options[] = new String[] {"Cancel", "Show"};
+      String[] options = new String[] {"Cancel", "Show"};
       optionPane.setOptions(options);
       optionPane.setInitialValue(options[1]);
       JDialog dialog = optionPane.createDialog(Cooja.getTopParentContainer(), "Show mote in timeline");
@@ -683,7 +683,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
   }
 
   private class ChangeMinEventWidthAction extends AbstractAction {
-      private int minWidth;
+      private final int minWidth;
       public ChangeMinEventWidthAction(String name, int minWidth) {
         super(name);
         this.minWidth = minWidth;
@@ -735,22 +735,22 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
         /* Output all events (sorted per mote) */
         for (MoteEvents events: allMoteEvents) {
           for (MoteEvent ev: events.ledEvents) {
-            outStream.write(events.mote + "\t" + ev.time + "\t" + ev.toString() + "\n");
+            outStream.write(events.mote + "\t" + ev.time + "\t" + ev + "\n");
           }
           for (MoteEvent ev: events.logEvents) {
-            outStream.write(events.mote + "\t" + ev.time + "\t" + ev.toString() + "\n");
+            outStream.write(events.mote + "\t" + ev.time + "\t" + ev + "\n");
           }
           for (MoteEvent ev: events.radioChannelEvents) {
-            outStream.write(events.mote + "\t" + ev.time + "\t" + ev.toString() + "\n");
+            outStream.write(events.mote + "\t" + ev.time + "\t" + ev + "\n");
           }
           for (MoteEvent ev: events.radioHWEvents) {
-            outStream.write(events.mote + "\t" + ev.time + "\t" + ev.toString() + "\n");
+            outStream.write(events.mote + "\t" + ev.time + "\t" + ev + "\n");
           }
           for (MoteEvent ev: events.radioRXTXEvents) {
-            outStream.write(events.mote + "\t" + ev.time + "\t" + ev.toString() + "\n");
+            outStream.write(events.mote + "\t" + ev.time + "\t" + ev + "\n");
           }
           for (MoteEvent ev: events.watchpointEvents) {
-            outStream.write(events.mote + "\t" + ev.time + "\t" + ev.toString() + "\n");
+            outStream.write(events.mote + "\t" + ev.time + "\t" + ev + "\n");
           }
         }
 
@@ -1043,7 +1043,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
     }
   };
 
-  private Action logEventMoteColorAction = new AbstractAction("use Mote colors") {
+  private final Action logEventMoteColorAction = new AbstractAction("use Mote colors") {
       private static final long serialVersionUID = -8626118368774023257L;
       
       @Override
@@ -2285,7 +2285,8 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
     }
   }
 
-  private enum FilterState { NONE, PASS, REJECTED };
+  private enum FilterState { NONE, PASS, REJECTED }
+
   class LogEvent extends MoteEvent {
     final LogOutputEvent logEvent;
     // filter result cache

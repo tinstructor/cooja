@@ -30,7 +30,6 @@
 
 package org.contikios.cooja;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Observable;
@@ -162,8 +161,8 @@ public abstract class RadioMedium {
       IllegalAccessException, InstantiationException {
 
     // Generating radio medium
-    Constructor constr = radioMediumClass.getConstructor(Simulation.class);
-    return (RadioMedium) constr.newInstance(new Object[] { simulation });
+    var constr = radioMediumClass.getConstructor(Simulation.class);
+    return constr.newInstance(simulation);
   }
   
   /**

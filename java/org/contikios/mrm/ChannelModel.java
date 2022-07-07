@@ -38,9 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Hashtable;
-import java.util.Observable;
 import java.util.Observer;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Vector;
 
@@ -76,15 +74,12 @@ public class ChannelModel {
 
   enum TransmissionData { SIGNAL_STRENGTH, SIGNAL_STRENGTH_VAR, SNR, SNR_VAR, PROB_OF_RECEPTION, DELAY_SPREAD, DELAY_SPREAD_RMS}
 
-  private Hashtable<Parameter,Object> parametersDefaults = new Hashtable<Parameter,Object>();
-  private Hashtable<Parameter,Object> parameters = new Hashtable<Parameter,Object>();
-  private Properties parameterDescriptions = new Properties();
+  private final Hashtable<Parameter,Object> parametersDefaults;
+  private final Hashtable<Parameter,Object> parameters = new Hashtable<>();
 
   // Parameters used for speeding up calculations
   private boolean needToPrecalculateFSPL = true;
-  private static double paramFSPL = 0;
-  private boolean needToPrecalculateOutputPower = true;
-  private static double paramOutputPower = 0;
+  private double paramFSPL = 0;
 
   private ObstacleWorld myObstacleWorld = new ObstacleWorld();
 
@@ -93,20 +88,17 @@ public class ChannelModel {
   private StringBuilder logInfo = null;
   private ArrayList<Line2D> loggedRays = null;
 
-  private Simulation simulation;
-
-  
   // Ray tracing components temporary vector
-  private Vector<Vector<Line2D>> calculatedVisibleSides = new Vector<Vector<Line2D>>();
-  private Vector<Point2D> calculatedVisibleSidesSources = new Vector<Point2D>();
-  private Vector<Line2D> calculatedVisibleSidesLines = new Vector<Line2D>();
-  private Vector<AngleInterval> calculatedVisibleSidesAngleIntervals = new Vector<AngleInterval>();
-  private static int maxSavedVisibleSides = 30; // Max size of lists above
+  private final Vector<Vector<Line2D>> calculatedVisibleSides = new Vector<>();
+  private final Vector<Point2D> calculatedVisibleSidesSources = new Vector<>();
+  private final Vector<Line2D> calculatedVisibleSidesLines = new Vector<>();
+  private final Vector<AngleInterval> calculatedVisibleSidesAngleIntervals = new Vector<>();
+  private static final int maxSavedVisibleSides = 30; // Max size of lists above
 
   /**
    * Notifies observers when this channel model has changed settings.
    */
-  private ScnObservable settingsObservable = new ScnObservable();
+  private final ScnObservable settingsObservable = new ScnObservable();
   public enum Parameter {
     apply_random,
     snr_threshold,
@@ -189,7 +181,7 @@ public class ChannelModel {
       case captureEffect:
         return true;
       case captureEffectPreambleDuration:
-        return (double) (1000*1000*4*0.5*8/250000); /* 2 bytes, 250kbit/s, us */
+        return 1000*1000*4*0.5*8/250000; /* 2 bytes, 250kbit/s, us */
       case captureEffectSignalTreshold:
         return 3.0; /* dB, according to previous 802.15.4 studies */
       }
@@ -283,8 +275,6 @@ public class ChannelModel {
   }
   
   public ChannelModel(Simulation simulation) {
-    this.simulation = simulation;
-    
     /* Default values */
     for (Parameter p: Parameter.values()) {
       parameters.put(p, Parameter.getDefaultValue(p));
@@ -315,8 +305,7 @@ public class ChannelModel {
   /**
    * Deletes an earlier registered setting observer.
    *
-   * @param osb
-   *          Earlier registered observer
+   * @param obs Earlier registered observer
    */
   public void deleteSettingsObserver(Observer obs) {
     settingsObservable.deleteObserver(obs);
@@ -380,7 +369,7 @@ public class ChannelModel {
   /**
    * Returns a parameter value
    *
-   * @param identifier Parameter identifier
+   * @param id Parameter identifier
    * @return Current parameter value
    */
   public Object getParameterValue(Parameter id) {
@@ -395,31 +384,31 @@ public class ChannelModel {
   /**
    * Returns a double parameter value
    *
-   * @param identifier Parameter identifier
+   * @param id Parameter identifier
    * @return Current parameter value
    */
   public double getParameterDoubleValue(Parameter id) {
-    return ((Double) getParameterValue(id)).doubleValue();
+    return (Double) getParameterValue(id);
   }
 
   /**
    * Returns an integer parameter value
    *
-   * @param identifier Parameter identifier
+   * @param id Parameter identifier
    * @return Current parameter value
    */
   public int getParameterIntegerValue(Parameter id) {
-    return ((Integer) getParameterValue(id)).intValue();
+    return (Integer) getParameterValue(id);
   }
 
   /**
    * Returns a boolean parameter value
    *
-   * @param identifier Parameter identifier
+   * @param id Parameter identifier
    * @return Current parameter value
    */
   public boolean getParameterBooleanValue(Parameter id) {
-    return ((Boolean) getParameterValue(id)).booleanValue();
+    return (Boolean) getParameterValue(id);
   }
 
   /**
@@ -437,7 +426,6 @@ public class ChannelModel {
 
     // Guessing we need to recalculate input to FSPL+Output power
     needToPrecalculateFSPL = true;
-    needToPrecalculateOutputPower = true;
 
     settingsObservable.setChangedAndNotify();
   }
@@ -495,7 +483,7 @@ public class ChannelModel {
     Line2D testLine = new Line2D.Double(x1, y1, x2, y2);
 
     // Check which sides of the rectangle the test line passes through
-    Vector<Line2D> intersectedSides = new Vector<Line2D>();
+    Vector<Line2D> intersectedSides = new Vector<>();
 
     if (rectangleLower.intersectsLine(testLine)) {
       intersectedSides.add(rectangleLower);
@@ -519,12 +507,10 @@ public class ChannelModel {
     }
 
     // Calculate all resulting line points (should be 2)
-    Vector<Point2D> intersectingLinePoints = new Vector<Point2D>();
+    Vector<Point2D> intersectingLinePoints = new Vector<>();
 
-    for (int i=0; i < intersectedSides.size(); i++) {
-      intersectingLinePoints.add(
-          getIntersectionPoint(testLine, intersectedSides.get(i))
-      );
+    for (var intersectedSide : intersectedSides) {
+      intersectingLinePoints.add(getIntersectionPoint(testLine, intersectedSide));
     }
 
     // If only one side was intersected, one point must be inside rectangle
@@ -562,7 +548,7 @@ public class ChannelModel {
    * @param secondLine Second line
    * @return Intersection point of the two lines or null
    */
-  private Point2D getIntersectionPoint(Line2D firstLine, Line2D secondLine) {
+  private static Point2D getIntersectionPoint(Line2D firstLine, Line2D secondLine) {
     double dx1 = firstLine.getX2() - firstLine.getX1();
     double dy1 = firstLine.getY2() - firstLine.getY1();
     double dx2 = secondLine.getX2() - secondLine.getX1();
@@ -576,10 +562,7 @@ public class ChannelModel {
 
     double mu = ((firstLine.getX1() - secondLine.getX1())*dy1 - (firstLine.getY1() - secondLine.getY1())*dx1)/det;
     if (mu >= 0.0  &&  mu <= 1.0) {
-      Point2D.Double intersectionPoint = new Point2D.Double((secondLine.getX1() + mu*dx2),
-          (secondLine.getY1() + mu*dy2));
-
-      return intersectionPoint;
+      return new Point2D.Double((secondLine.getX1() + mu*dx2), (secondLine.getY1() + mu*dy2));
     }
 
     // Lines not intersecting withing segments
@@ -593,7 +576,7 @@ public class ChannelModel {
    * @param secondLine Second line
    * @return Intersection point of the two infinite lines or null if parallell
    */
-  private Point2D getIntersectionPointInfinite(Line2D firstLine, Line2D secondLine) {
+  private static Point2D getIntersectionPointInfinite(Line2D firstLine, Line2D secondLine) {
     double dx1 = firstLine.getX2() - firstLine.getX1();
     double dy1 = firstLine.getY2() - firstLine.getY1();
     double dx2 = secondLine.getX2() - secondLine.getX1();
@@ -606,10 +589,7 @@ public class ChannelModel {
     }
 
     double mu = ((firstLine.getX1() - secondLine.getX1())*dy1 - (firstLine.getY1() - secondLine.getY1())*dx1)/det;
-    Point2D.Double intersectionPoint = new Point2D.Double((secondLine.getX1() + mu*dx2),
-        (secondLine.getY1() + mu*dy2));
-
-    return intersectionPoint;
+    return new Point2D.Double((secondLine.getX1() + mu*dx2), (secondLine.getY1() + mu*dy2));
   }
 
   /**
@@ -700,7 +680,7 @@ public class ChannelModel {
 
     // Get possible diffraction sources
     Vector<Point2D> diffractionSources = null;
-    if (rayData.getDiffractedSubRaysLimit() > 0) {
+    if (rayData.getDiffractedSubRaysLimit() > 0 && visibleSides != null) {
       diffractionSources = getAllDiffractionSources(visibleSides);
     }
 
@@ -740,10 +720,10 @@ public class ChannelModel {
    * @return All ray paths from origin to destnation
    */
   private Vector<RayPath> getConnectingPaths(Point2D origin, Point2D dest, DefaultMutableTreeNode visibleLinesTree) {
-    Vector<RayPath> allPaths = new Vector<RayPath>();
+    Vector<RayPath> allPaths = new Vector<>();
 
     // Analyse the possible paths to find which actually reached destination
-    Enumeration treeEnum = visibleLinesTree.breadthFirstEnumeration();
+    var treeEnum = visibleLinesTree.breadthFirstEnumeration();
     while (treeEnum.hasMoreElements()) {
       // For every element,
       //  check if it is the origin, a diffraction, refraction or a reflection source
@@ -821,9 +801,6 @@ public class ChannelModel {
         DefaultMutableTreeNode currentlyTracedNode = treeNode;
         RayData currentlyTracedRayData = (RayData) currentlyTracedNode.getUserObject();
         RayData.RayType currentlyTracedNodeType = currentlyTracedRayData.getType();
-        Point2D currentlyTracedSource = currentlyTracedRayData.getSourcePoint();
-        Line2D currentlyTracedLine = currentlyTracedRayData.getLine();
-
 
         // Traverse upwards until origin found
         while (!pathBroken && currentlyTracedNodeType != RayData.RayType.ORIGIN) {
@@ -832,8 +809,8 @@ public class ChannelModel {
           currentlyTracedNode = (DefaultMutableTreeNode) currentlyTracedNode.getParent();
           currentlyTracedRayData = (RayData) currentlyTracedNode.getUserObject();
           currentlyTracedNodeType = currentlyTracedRayData.getType();
-          currentlyTracedSource = currentlyTracedRayData.getSourcePoint();
-          currentlyTracedLine = currentlyTracedRayData.getLine();
+          Point2D currentlyTracedSource = currentlyTracedRayData.getSourcePoint();
+          Line2D currentlyTracedLine = currentlyTracedRayData.getLine();
 
           if (currentlyTracedNodeType == RayData.RayType.ORIGIN) {
             // We finally found the path origin, path ends here
@@ -927,10 +904,10 @@ public class ChannelModel {
 
     // Check for intersections
     if (visibleSides != null) {
-      for (int i=0; i < visibleSides.size(); i++) {
-        if (visibleSides.get(i).intersectsLine(sourceToDest)) {
+      for (var visibleSide : visibleSides) {
+        if (visibleSide.intersectsLine(sourceToDest)) {
           // Check that intersection point is not destination
-          Point2D intersectionPoint = getIntersectionPointInfinite(visibleSides.get(i), sourceToDest);
+          var intersectionPoint = getIntersectionPointInfinite(visibleSide, sourceToDest);
           if (dest.distance(intersectionPoint) > 0.01) {
             return false;
           }
@@ -955,7 +932,6 @@ public class ChannelModel {
    */
   protected double getFastFading(double sourceX, double sourceY, double destX, double destY) {
     Point2D dest = new Point2D.Double(destX, destY);
-    Point2D source = new Point2D.Double(sourceX, sourceY);
 
     // Destination inside an obstacle? => no reflection factor
     for (int i=0; i < myObstacleWorld.getNrObstacles(); i++) {
@@ -978,7 +954,7 @@ public class ChannelModel {
    * @return All diffraction sources
    */
   private Vector<Point2D> getAllDiffractionSources(Vector<Line2D> allVisibleLines) {
-    Vector<Point2D> allDiffractionSources = new Vector<Point2D>();
+    Vector<Point2D> allDiffractionSources = new Vector<>();
     Enumeration<Line2D> allVisibleLinesEnum = allVisibleLines.elements();
 
     while (allVisibleLinesEnum.hasMoreElements()) {
@@ -1044,8 +1020,8 @@ public class ChannelModel {
       }
     }
 
-    Vector<Line2D> visibleLines = new Vector<Line2D>();
-    Vector<AngleInterval> unhandledAngles = new Vector<AngleInterval>();
+    Vector<Line2D> visibleLines = new Vector<>();
+    Vector<AngleInterval> unhandledAngles = new Vector<>();
 
     if (lookThrough != null) {
       if (angleInterval == null) {
@@ -1088,9 +1064,8 @@ public class ChannelModel {
         }
 
         // <<<< Get visible line candidates of these obstacles >>>>
-        Vector<Line2D> visibleLineCandidates = new Vector<Line2D>();
-        for (int i=0; i < visibleObstacleCandidates.size(); i++) {
-          Rectangle2D obstacle = visibleObstacleCandidates.get(i);
+        Vector<Line2D> visibleLineCandidates = new Vector<>();
+        for (var obstacle : visibleObstacleCandidates) {
           int outcode = obstacle.outcode(source);
 
           if ((outcode & Rectangle2D.OUT_BOTTOM) != 0) {
@@ -1121,14 +1096,12 @@ public class ChannelModel {
         }
 
         // <<<< Get cropped visible line candidates of these lines >>>>
-        Vector<Line2D> croppedVisibleLineCandidates = new Vector<Line2D>();
-        for (int i=0; i < visibleLineCandidates.size(); i++) {
-          Line2D lineCandidate = visibleLineCandidates.get(i);
-
+        Vector<Line2D> croppedVisibleLineCandidates = new Vector<>();
+        for (var lineCandidate : visibleLineCandidates) {
           // Create angle interval of this line
           AngleInterval lineAngleInterval = AngleInterval.getAngleIntervalOfLine(source, lineCandidate);
 
-          AngleInterval intersectionInterval = null;
+          AngleInterval intersectionInterval;
 
           // Add entire line if it is fully inside our visible angle interval
           if (angleIntervalToCheck.contains(lineAngleInterval)) {
@@ -1227,8 +1200,7 @@ public class ChannelModel {
         }
 
         // <<<< Get visible lines from these line candidates >>>>
-        for (int i=0; i < croppedVisibleLineCandidates.size(); i++) {
-          Line2D visibleLineCandidate = croppedVisibleLineCandidates.get(i);
+        for (Line2D visibleLineCandidate : croppedVisibleLineCandidates) {
           AngleInterval visibleLineCandidateAngleInterval =
             AngleInterval.getAngleIntervalOfLine(source, visibleLineCandidate).intersectWith(angleIntervalToCheck);
 
@@ -1245,12 +1217,11 @@ public class ChannelModel {
           // Does any other line shadow this line?
           boolean unshadowed = true;
           boolean unhandledAnglesChanged = false;
-          for (int j=0; j < croppedVisibleLineCandidates.size(); j++) {
+          for (var shadowLineCandidate : croppedVisibleLineCandidates) {
 
             // Create shadow rectangle
-            Line2D shadowLineCandidate = croppedVisibleLineCandidates.get(j);
             Rectangle2D shadowRectangleCandidate = shadowLineCandidate.getBounds2D();
-            double minDelta = 0.01*Math.max(
+            double minDelta = 0.01 * Math.max(
                 shadowRectangleCandidate.getWidth(),
                 shadowRectangleCandidate.getHeight()
             );
@@ -1304,7 +1275,7 @@ public class ChannelModel {
 
               } else if (visibleLineCandidateAngleInterval.intersects(shadowLineCandidateAngleInterval)) {
                 // Covers us partly, split angle interval
-                Vector<AngleInterval> newIntervalsToAdd = new Vector<AngleInterval>();
+                Vector<AngleInterval> newIntervalsToAdd = new Vector<>();
 
                 // Create angle interval of intersection between shadow and visible candidate
                 AngleInterval intersectedInterval =
@@ -1314,9 +1285,9 @@ public class ChannelModel {
                     AngleInterval.intersect(unhandledAngles, intersectedInterval);
 
                   if (tempVector1 != null) {
-                    for (int k=0; k < tempVector1.size(); k++) {
-                      if (tempVector1.get(k) != null && !tempVector1.get(k).isEmpty()) {
-                        newIntervalsToAdd.add(tempVector1.get(k));
+                    for (var interval : tempVector1) {
+                      if (interval != null && !interval.isEmpty()) {
+                        newIntervalsToAdd.add(interval);
                       }
                     }
                   }
@@ -1326,9 +1297,9 @@ public class ChannelModel {
                 Vector<AngleInterval> tempVector2 =
                   visibleLineCandidateAngleInterval.subtract(shadowLineCandidateAngleInterval);
                 if (tempVector2 != null) {
-                  for (int k=0; k < tempVector2.size(); k++) {
-                    if (tempVector2.get(k) != null && !tempVector2.get(k).isEmpty()) {
-                      newIntervalsToAdd.addAll(AngleInterval.intersect(unhandledAngles, tempVector2.get(k)));
+                  for (var interval : tempVector2) {
+                    if (interval != null && !interval.isEmpty()) {
+                      newIntervalsToAdd.addAll(AngleInterval.intersect(unhandledAngles, interval));
                     }
                   }
                 }
@@ -1339,10 +1310,10 @@ public class ChannelModel {
 
                 // Add new angle intervals
                 //logger.info("Split angle interval: " + visibleLineCandidateAngleInterval);
-                for (int k=0; k < newIntervalsToAdd.size(); k++) {
-                  if (newIntervalsToAdd.get(k) != null && !newIntervalsToAdd.get(k).isEmpty()) {
+                for (var interval : newIntervalsToAdd) {
+                  if (interval != null && !interval.isEmpty()) {
                     //logger.info("> into: " + newIntervalsToAdd.get(k));
-                    unhandledAngles.add(newIntervalsToAdd.get(k));
+                    unhandledAngles.add(interval);
                     unhandledAnglesChanged = true;
                   }
                 }
@@ -1405,14 +1376,8 @@ public class ChannelModel {
    * random variable. This method uses current parameters such as transmitted
    * power, obstacles, overall system loss etc.
    *
-   * @param sourceX
-   *          Source position X
-   * @param sourceY
-   *          Source position Y
-   * @param destX
-   *          Destination position X
-   * @param destY
-   *          Destination position Y
+   * @param txPair Information about the source and destination coordinates
+   *               and transmission power.
    * @return Received signal strength (dBm) random variable. The first value is
    *         the random variable mean, and the second is the variance.
    */
@@ -1449,7 +1414,7 @@ public class ChannelModel {
       Enumeration<RayPath> pathsEnum = allPaths.elements();
       while (pathsEnum.hasMoreElements()) {
         RayPath currentPath = pathsEnum.nextElement();
-        logInfo.append("* " + currentPath + "\n");
+        logInfo.append("* ").append(currentPath).append("\n");
         for (int i=0; i < currentPath.getSubPathCount(); i++) {
           loggedRays.add(currentPath.getSubPath(i));
         }
@@ -1502,9 +1467,7 @@ public class ChannelModel {
 
           Vector<Rectangle2D> allPossibleObstacles = myObstacleWorld.getAllObstaclesNear(subPath.getP1());
 
-          for (int k=0; k < allPossibleObstacles.size(); k++) {
-            Rectangle2D obstacle = allPossibleObstacles.get(k);
-
+          for (var obstacle : allPossibleObstacles) {
             // Calculate the intersection distance
             Line2D line = getIntersectionLine(
                 subPath.getP1().getX(),
@@ -1573,12 +1536,12 @@ public class ChannelModel {
         // Using Rician fading approach, TODO Only one best signal considered - combine these? (need two limits)
         totalPathGain += Math.pow(10, pathGain[i]/10.0)*Math.cos(2*Math.PI * pathModdedLengths[i]/wavelength);
         if (logMode) {
-          logInfo.append("Signal component: " + String.format("%2.3f", pathGain[i]) + " dB, phase " + String.format("%2.3f", (2*/*Math.PI* */ pathModdedLengths[i]/wavelength)) + " pi\n");
+          logInfo.append("Signal component: ").append(String.format("%2.3f", pathGain[i])).append(" dB, phase ").append(String.format("%2.3f", (2 */*Math.PI* */ pathModdedLengths[i] / wavelength))).append(" pi\n");
         }
       } else if (logMode) {
         /* TODO Log mode affects result? */
         pathModdedLengths[i] = (pathLengths[i] - pathLengths[bestSignalNr]) % wavelength;
-        logInfo.append("(IGNORED) Signal component: " + String.format("%2.3f", pathGain[i]) + " dB, phase " + String.format("%2.3f", (2*/*Math.PI* */ pathModdedLengths[i]/wavelength)) + " pi\n");
+        logInfo.append("(IGNORED) Signal component: ").append(String.format("%2.3f", pathGain[i])).append(" dB, phase ").append(String.format("%2.3f", (2 */*Math.PI* */ pathModdedLengths[i] / wavelength))).append(" pi\n");
       }
 
     }
@@ -1592,9 +1555,9 @@ public class ChannelModel {
     totalPathGain = 10*Math.log10(Math.abs(totalPathGain));
 
     if (logMode) {
-        logInfo.append("\nTotal path gain: " + String.format("%2.3f", totalPathGain) + " dB\n");
-        logInfo.append("Delay spread: " + String.format("%2.3f", delaySpread) + "\n");
-        logInfo.append("RMS delay spread: " + String.format("%2.3f", delaySpreadRMS) + "\n");
+        logInfo.append("\nTotal path gain: ").append(String.format("%2.3f", totalPathGain)).append(" dB\n");
+        logInfo.append("Delay spread: ").append(String.format("%2.3f", delaySpread)).append("\n");
+        logInfo.append("RMS delay spread: ").append(String.format("%2.3f", delaySpreadRMS)).append("\n");
     }
 
     // - Calculate received power -
@@ -1617,7 +1580,7 @@ public class ChannelModel {
 
     double receivedPower = outputPower + systemGain + transmitterGain + totalPathGain;
     if (logMode) {
-        logInfo.append("\nReceived signal strength: " + String.format("%2.3f", receivedPower) + " dB (variance " + accumulatedVariance + ")\n");
+        logInfo.append("\nReceived signal strength: ").append(String.format("%2.3f", receivedPower)).append(" dB (variance ").append(accumulatedVariance).append(")\n");
     }
 
     if (dataType == TransmissionData.DELAY_SPREAD || dataType == TransmissionData.DELAY_SPREAD_RMS) {
@@ -1627,7 +1590,7 @@ public class ChannelModel {
     return new double[] {receivedPower, accumulatedVariance};
   }
 
-  public class TrackedSignalComponents {
+  public static class TrackedSignalComponents {
     ArrayList<Line2D> components;
     String log;
   }
@@ -1637,17 +1600,15 @@ public class ChannelModel {
    * were to be made. The resulting rays depend on the current settings and may
    * include rays through obstacles, reflected rays or scattered rays.
    *
-   * @param sourceX Source position X
-   * @param sourceY Source position Y
-   * @param destX Destination position X
-   * @param destY Destination position Y
+   * @param txPair Information about the source and destination coordinates
+   *               and transmission power.
    * @return Signal components and printable description
    */
   public TrackedSignalComponents getRaysOfTransmission(TxPair txPair) {
     TrackedSignalComponents tsc = new TrackedSignalComponents();
 
     logInfo = new StringBuilder();
-    loggedRays = new ArrayList<Line2D>();
+    loggedRays = new ArrayList<>();
 
     /* TODO Include background noise? */
     logMode = true;
@@ -1664,15 +1625,13 @@ public class ChannelModel {
   }
 
   /**
-   * Calculates and returns the signal to noise ratio (dB) of a signal sent from
+   * Calculates and returns the signal-to-noise ratio (dB) of a signal sent from
    * the given source position to the given destination position as a random
    * variable. This method uses current parameters such as transmitted power,
    * obstacles, overall system loss etc.
    *
-   * @param sourceX Source position X
-   * @param sourceY Source position Y
-   * @param destX Destination position X
-   * @param destY Destination position Y
+   * @param txPair Information about the source and destination coordinates
+   *               and transmission power.
    * @return Received SNR (dB) random variable:
    * The first value in the array is the random variable mean.
    * The second is the variance.
@@ -1708,7 +1667,7 @@ public class ChannelModel {
     snrData[1] += noiseVariance;
 
     if (logMode) {
-        logInfo.append("\nReceived SNR: " + String.format("%2.3f", snrData[0]) + " dB (variance " + snrData[1] + ")\n");
+        logInfo.append("\nReceived SNR: ").append(String.format("%2.3f", snrData[0])).append(" dB (variance ").append(snrData[1]).append(")\n");
     }
     return snrData;
   }
@@ -1723,10 +1682,8 @@ public class ChannelModel {
    * TODO Packet size
    * TODO External interference/Background noise
    *
-   * @param sourceX Source position X
-   * @param sourceY Source position Y
-   * @param destX Destination position X
-   * @param destY Destination position Y
+   * @param txPair Information about the source and destination coordinates
+   *               and transmission power.
    * @param interference Current interference at destination (dBm)
    * @return [Probability of reception, signal strength at destination]
    */
@@ -1749,7 +1706,7 @@ public class ChannelModel {
       threshold = rxSensitivity + snrMean - signalStrength;
     }
 
-    // If not random varianble, probability is either 1 or 0
+    // If not random variable, probability is either 1 or 0
     if (snrVariance == 0) {
       return new double[] {
         threshold - snrMean > 0 ? 0:1, signalStrength
@@ -1766,7 +1723,7 @@ public class ChannelModel {
     double probReception = 1 - GaussianWrapper.cdfErrorAlgo(threshold, snrMean, snrStdDev);
 
     if (logMode) {
-      logInfo.append("Reception probability: " + String.format("%1.1f%%", 100*probReception) + "\n");
+      logInfo.append("Reception probability: ").append(String.format("%1.1f%%", 100 * probReception)).append("\n");
     }
 
     // Returns probabilities
@@ -1778,18 +1735,12 @@ public class ChannelModel {
    * This method uses current parameters such as transmitted power,
    * obstacles, overall system loss, packet size etc. TODO Packet size?!
    *
-   * @param sourceX
-   *          Source position X
-   * @param sourceY
-   *          Source position Y
-   * @param destX
-   *          Destination position X
-   * @param destY
-   *          Destination position Y
+   * @param txPair Information about the source and destination coordinates
+   *               and transmission power.
    * @return RMS delay spread
    */
-  public double getRMSDelaySpread(TxPair tx) {
-    return getTransmissionData(tx, TransmissionData.DELAY_SPREAD)[1];
+  public double getRMSDelaySpread(TxPair txPair) {
+    return getTransmissionData(txPair, TransmissionData.DELAY_SPREAD)[1];
   }
 
   /**
@@ -1799,12 +1750,12 @@ public class ChannelModel {
    * @return XML element collection
    */
   public Collection<Element> getConfigXML() {
-    ArrayList<Element> config = new ArrayList<Element>();
+    ArrayList<Element> config = new ArrayList<>();
     Element element;
 
     Enumeration<Parameter> paramEnum = parameters.keys();
     while (paramEnum.hasMoreElements()) {
-      Parameter p = (Parameter) paramEnum.nextElement();
+      Parameter p = paramEnum.nextElement();
       element = new Element(p.toString());
       if (parametersDefaults.get(p).equals(parameters.get(p))) {
         /* Default value */
@@ -1837,7 +1788,7 @@ public class ChannelModel {
       } else /* Parameter values */ {
         String name = element.getName();
         String value;
-        Parameter param = null;
+        Parameter param;
     
         if (name.equals("wavelength")) {
           /* Backwards compatability: ignored parameters */
@@ -1881,7 +1832,6 @@ public class ChannelModel {
       }
     }
     needToPrecalculateFSPL = true;
-    needToPrecalculateOutputPower = true;
     settingsObservable.setChangedAndNotify();
     return true;
   }
@@ -1951,18 +1901,14 @@ public class ChannelModel {
         return 0;
       }
       DirectionalAntennaRadio r = (DirectionalAntennaRadio)getFromRadio();
-      double txGain = r.getRelativeGain(r.getDirection() + getAngle(), getAngle());
-      //logger.debug("tx gain: " + txGain + " (angle " + String.format("%1.1f", Math.toDegrees(r.getDirection() + getAngle())) + ")");
-      return txGain;
+      return r.getRelativeGain(r.getDirection() + getAngle(), getAngle());
     }
     public double getRxGain() {
       if (!(getToRadio() instanceof DirectionalAntennaRadio)) {
         return 0;
       }
       DirectionalAntennaRadio r = (DirectionalAntennaRadio)getFromRadio();
-      double txGain = r.getRelativeGain(r.getDirection() + getAngle() + Math.PI, getDistance());
-      //logger.debug("rx gain: " + txGain + " (angle " + String.format("%1.1f", Math.toDegrees(r.getDirection() + getAngle() + Math.PI)) + ")");
-      return txGain;
+      return r.getRelativeGain(r.getDirection() + getAngle() + Math.PI, getDistance());
     }
   }
   

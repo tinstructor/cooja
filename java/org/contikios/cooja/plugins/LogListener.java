@@ -460,7 +460,7 @@ public class LogListener extends VisPlugin implements HasQuickHelp {
             StringBuilder sb = new StringBuilder();
             sb.append("<html>");
             do {
-              sb.append(t.substring(0, 60)).append("<br>");
+              sb.append(t, 0, 60).append("<br>");
               t = t.substring(60);
             } while (t.length() > 60);
             return sb.append(t).append("</html>").toString();
@@ -769,38 +769,35 @@ public class LogListener extends VisPlugin implements HasQuickHelp {
       } else {
       	regexp = null;
       }
-    	RowFilter<Object, Integer> wrapped = new RowFilter<Object, Integer>() {
+    	RowFilter<Object, Integer> wrapped = new RowFilter<>() {
         @Override
-    		public boolean include(RowFilter.Entry<?, ? extends Integer> entry) {
-    		  if (regexp != null) {
-                    boolean pass;
-                    if (entry.getIdentifier() != null) {
-                        // entry alredy in logs, so can check is it filetred?
-                        int row = entry.getIdentifier().intValue();
-                        LogData log = logs.get(row);
-                        pass = (log.filtered == FilterState.PASS);
-                        if (log.filtered == FilterState.NONE) {
-                            pass = regexp.include(entry);
-                            log.setFiltered(pass);
-                        }
-                    }
-                    else {
-                        pass = regexp.include(entry);
-                    }
-    				if (inverseFilter && pass) {
-    					return false;
-    				} else if (!inverseFilter && !pass) {
-    					return false;
-    				}
-    			}
-    			if (hideDebug) {
-    				if (entry.getStringValue(COLUMN_DATA).startsWith("DEBUG: ")) {
-    					return false;
-    				}
-    			}
-    			return true;
-    		}
-    	};
+        public boolean include(RowFilter.Entry<?, ? extends Integer> entry) {
+          if (regexp != null) {
+            boolean pass;
+            if (entry.getIdentifier() != null) {
+              // entry alredy in logs, so can check is it filetred?
+              int row = entry.getIdentifier().intValue();
+              LogData log = logs.get(row);
+              pass = (log.filtered == FilterState.PASS);
+              if (log.filtered == FilterState.NONE) {
+                pass = regexp.include(entry);
+                log.setFiltered(pass);
+              }
+            } else {
+              pass = regexp.include(entry);
+            }
+            if (inverseFilter && pass) {
+              return false;
+            } else if (!inverseFilter && !pass) {
+              return false;
+            }
+          }
+          if (hideDebug) {
+            return !entry.getStringValue(COLUMN_DATA).startsWith("DEBUG: ");
+          }
+          return true;
+        }
+      };
       logFilter.setRowFilter(wrapped);
       filterTextField.setBackground(filterTextFieldBackground);
       filterTextField.setToolTipText(null);
@@ -833,7 +830,8 @@ public class LogListener extends VisPlugin implements HasQuickHelp {
     });
   }
 
-  private enum FilterState { NONE, PASS, REJECTED };
+  private enum FilterState { NONE, PASS, REJECTED }
+
   private class LogData {
     public final LogOutputEvent ev;
     public       FilterState    filtered;
@@ -901,7 +899,7 @@ public class LogListener extends VisPlugin implements HasQuickHelp {
 
     /* Append to file */
     if (!appendToFileWroteHeader) {
-      appendStream.println("-- Log Listener [" + simulation.getTitle() + "]: Started at " + (new Date()).toString());
+      appendStream.println("-- Log Listener [" + simulation.getTitle() + "]: Started at " + (new Date()));
       appendToFileWroteHeader = true;
     }
     appendStream.print(text);

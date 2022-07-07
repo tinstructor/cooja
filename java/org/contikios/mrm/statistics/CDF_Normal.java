@@ -14,7 +14,7 @@ package org.contikios.mrm.statistics;
 *
 */
 
-public class CDF_Normal extends Object {
+public class CDF_Normal {
 
 /**
 *
@@ -40,19 +40,17 @@ public class CDF_Normal extends Object {
 //  FIX: Eventually I should build in a check that p lies in (0,1)
 
    public static double xnormi(double p) {
-
       double arg,t,t2,t3,xnum,xden,qinvp,x,pc;
 
-      final double c[] = {2.515517, 
+      final double[] c = {2.515517,
       .802853,
       .010328};
 
-      final double d[] = {1.432788,
+      final double[] d = {1.432788,
       .189269,
       .001308};
 
       if (p <= .5) {
-
          arg = -2.0*Math.log(p);
          t = Math.sqrt(arg);
          t2 = t*t;
@@ -62,13 +60,7 @@ public class CDF_Normal extends Object {
          xden = 1.0 + d[0]*t + d[1]*t2 + d[2]*t3;
          qinvp = t - xnum/xden;
          x = -qinvp;
-
-         return x;
-
-      }
-
-      else {
-
+      } else {
          pc = 1.0 - p;
          arg = -2.0*Math.log(pc);
          t = Math.sqrt(arg);
@@ -78,11 +70,8 @@ public class CDF_Normal extends Object {
          xnum = c[0] + c[1]*t + c[2]*t2;
          xden = 1.0 + d[0]*t + d[1]*t2 + d[2]*t3;
          x = t - xnum/xden;
-
-         return x;
-
       }
-
+      return x;
    }
 
 
@@ -186,31 +175,18 @@ C
 //  |z| < cutoff = 10/sqrt(2).
 
       if (zabs < cutoff) {
-
          p = expntl*((((((p6*zabs + p5)*zabs + p4)*zabs + p3)*zabs +
              p2)*zabs + p1)*zabs + p0)/(((((((q7*zabs + q6)*zabs +
              q5)*zabs + q4)*zabs + q3)*zabs + q2)*zabs + q1)*zabs +
              q0);
-
       } else {
-
          p = pdf/(zabs + 1.0/(zabs + 2.0/(zabs + 3.0/(zabs + 4.0/
              (zabs + 0.65)))));
-
       }
-
-      if (z < 0.0) {
-
-         return p;
-
-      } else {
-
+      if (!(z < 0.0)) {
          p = 1.0 - p;
-
-         return p;
-
       }
-
+      return p;
    }
 
 }

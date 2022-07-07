@@ -31,7 +31,9 @@
 package org.contikios.mrm;
 
 import java.awt.Point;
-import java.awt.geom.*;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Vector;
@@ -52,8 +54,8 @@ class ObstacleWorld {
   private Vector<Rectangle2D> allObstacles = null;
   
   // All registered obstacles, with spatial information
-  private int spatialResolution = 10;
-  private Vector<Rectangle2D>[][] allObstaclesSpatial = new Vector[spatialResolution][spatialResolution];
+  private static final int spatialResolution = 10;
+  private final Vector<Rectangle2D>[][] allObstaclesSpatial = new Vector[spatialResolution][spatialResolution];
   private boolean obstaclesOrganized = false;
   
   // Outer bounds of all obstacles
@@ -65,11 +67,11 @@ class ObstacleWorld {
    */
   public ObstacleWorld() {
     // No obstacles present so far
-    allObstacles = new Vector<Rectangle2D>();
+    allObstacles = new Vector<>();
     
     for (int x=0; x < spatialResolution; x++)
       for (int y=0; y < spatialResolution; y++) 
-        allObstaclesSpatial[x][y] = new Vector<Rectangle2D>();
+        allObstaclesSpatial[x][y] = new Vector<>();
     
     outerBounds = new Rectangle2D.Double(0,0,0,0);
   }
@@ -126,7 +128,7 @@ class ObstacleWorld {
     double centerX = (center.getX() - areaStartX)/boxWidth;
     double centerY = (center.getY() - areaStartY)/boxHeight;
 
-    Vector<Rectangle2D> allNearObstacles = new Vector<Rectangle2D>();
+    Vector<Rectangle2D> allNearObstacles = new Vector<>();
 
     Point pointToAdd = new Point((int) centerX, (int) centerY);
     if (pointToAdd.x >= 0 &&
@@ -180,7 +182,7 @@ class ObstacleWorld {
    * @return All obstacles in given angle interval
    */
   public Vector<Rectangle2D> getAllObstaclesInAngleInterval(Point2D center, AngleInterval angleInterval) {
-    Vector<Rectangle2D> obstaclesToReturn = new Vector<Rectangle2D>();
+    Vector<Rectangle2D> obstaclesToReturn = new Vector<>();
     if (!obstaclesOrganized) {
       reorganizeSpatialObstacles();
     }
@@ -195,7 +197,7 @@ class ObstacleWorld {
         (int) ((center.getX() - areaStartX)/boxWidth),
         (int) ((center.getY() - areaStartY)/boxHeight)
     );
-    Vector<Point> pointsToCheck = new Vector<Point>();
+    Vector<Point> pointsToCheck = new Vector<>();
     
     int currentDistance = 0;
     while (currentDistance < 2*spatialResolution) {
@@ -254,19 +256,19 @@ class ObstacleWorld {
       }
       currentDistance++;  
     }
-      
-    for (int pointNr=0; pointNr < pointsToCheck.size(); pointNr++) {
+
+    for (var point : pointsToCheck) {
       // Check which obstacles should be in this box
       boolean hit = false;
-      int x = pointsToCheck.get(pointNr).x;
-      int y = pointsToCheck.get(pointNr).y;
-      
+      int x = point.x;
+      int y = point.y;
+
       // Test if we are inside test box
       if (!hit) {
         if (new Rectangle2D.Double(
             areaStartX + x*boxWidth, 
             areaStartY + y*boxHeight, 
-            boxWidth, 
+            boxWidth,
             boxHeight).contains(center)) {
           hit = true;
           for (int i=0; i < allObstaclesSpatial[x][y].size(); i++) {
@@ -534,8 +536,8 @@ class ObstacleWorld {
    */
   public void recreateOuterBounds() {
     outerBounds = new Rectangle2D.Double(0,0,0,0);
-    for (int i=0; i < allObstacles.size(); i++) {
-      outerBounds = outerBounds.createUnion(allObstacles.get(i));
+    for (var allObstacle : allObstacles) {
+      outerBounds = outerBounds.createUnion(allObstacle);
     }
     obstaclesOrganized = false;
   }
@@ -561,9 +563,9 @@ class ObstacleWorld {
       for (int y=0; y < spatialResolution; y++) {
         // Check which obstacles should be in this box
         Rectangle2D boxToCheck = new Rectangle2D.Double(currentBoxMinX + x*boxWidth, currentBoxMinY + y*boxHeight, boxWidth, boxHeight);
-        for (int i=0; i < allObstacles.size(); i++) {
-          if (allObstacles.get(i).intersects(boxToCheck)) {
-            allObstaclesSpatial[x][y].add(allObstacles.get(i));
+        for (var allObstacle : allObstacles) {
+          if (allObstacle.intersects(boxToCheck)) {
+            allObstaclesSpatial[x][y].add(allObstacle);
           }
         }
       }
@@ -582,7 +584,7 @@ class ObstacleWorld {
     logger.info(". Outer boundary min:\t" + getOuterBounds().getMinX() + ", " + getOuterBounds().getMinY());
     logger.info(". Outer boundary max:\t" + getOuterBounds().getMaxX() + ", " + getOuterBounds().getMaxY());
     
-    Vector<Rectangle2D> uniqueSpatialObstacles = new Vector<Rectangle2D>();
+    Vector<Rectangle2D> uniqueSpatialObstacles = new Vector<>();
     for (int x=0; x < spatialResolution; x++)
       for (int y=0; y < spatialResolution; y++) 
         for (int i=0; i < allObstaclesSpatial[x][y].size(); i++) 
@@ -602,7 +604,7 @@ class ObstacleWorld {
       for (int x=0; x < spatialResolution; x++) {
         System.out.print(allObstaclesSpatial[x][y].size() + " ");
       }
-      System.out.println("");
+      System.out.println();
     }
     
   }
@@ -614,7 +616,7 @@ class ObstacleWorld {
    * @return XML elements representing the obstacles
    */
   public Collection<Element> getConfigXML() {
-    Vector<Element> config = new Vector<Element>();
+    Vector<Element> config = new Vector<>();
     Element element;
 
     for (Rectangle2D rect: allObstacles) {
@@ -636,7 +638,7 @@ class ObstacleWorld {
   public boolean setConfigXML(Collection<Element> configXML) {
     for (Element element : configXML) {
       if (element.getName().equals("obst")) {
-        String rectValues[] = element.getText().split(";");
+        String[] rectValues = element.getText().split(";");
         Rectangle2D newObst = new Rectangle2D.Double(
             Double.parseDouble(rectValues[0]),
             Double.parseDouble(rectValues[1]),

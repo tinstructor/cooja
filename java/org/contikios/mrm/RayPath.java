@@ -38,8 +38,8 @@ import java.util.Vector;
  * @author Fredrik Osterlind
  */
 public class RayPath {
-  private Vector<Point2D> points = new Vector<Point2D>();
-  private Vector<RayData.RayType> types = new Vector<RayData.RayType>();
+  private final Vector<Point2D> points = new Vector<>();
+  private final Vector<RayData.RayType> types = new Vector<>();
   
   public void addPoint(Point2D point, RayData.RayType type) {
     points.insertElementAt(point, 0);
@@ -78,23 +78,22 @@ public class RayPath {
     if (types.firstElement() == types.lastElement())
       return "Malformed ray path (last == first element)";
 
-    String retVal = "";
-    for (int i=0; i < types.size(); i++) {
-      RayData.RayType currentType = types.get(i);
+    var retVal = new StringBuilder();
+    for (var currentType : types) {
       if (currentType == RayData.RayType.DESTINATION)
-        retVal = retVal + " DEST ";
+        retVal.append(" DEST ");
       else if (currentType == RayData.RayType.DIFFRACTION)
-        retVal = retVal + " DIFF ";
+        retVal.append(" DIFF ");
       else if (currentType == RayData.RayType.ORIGIN)
-        retVal = retVal + " ORIG ";
+        retVal.append(" ORIG ");
       else if (currentType == RayData.RayType.REFLECTION)
-        retVal = retVal + " REFL ";
+        retVal.append(" REFL ");
       else if (currentType == RayData.RayType.REFRACTION)
-        retVal = retVal + " REFR ";
+        retVal.append(" REFR ");
       else
-        retVal = retVal + " ???? ";
+        retVal.append(" ???? ");
     }
-    return retVal;
+    return retVal.toString();
     
   }
   
