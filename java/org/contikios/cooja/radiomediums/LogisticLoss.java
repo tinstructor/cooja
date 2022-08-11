@@ -32,10 +32,10 @@
 package org.contikios.cooja.radiomediums;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Random;
-import java.util.Hashtable;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
@@ -73,7 +73,7 @@ import org.contikios.cooja.plugins.skins.LogisticLossVisualizerSkin;
  *   PRR(rssi) =  1.0 / (1 + exp(-(rssi - rssi_50%))),
  *
  * where:
- * - `rssi` is the transmit power minus the path loss.
+ * - `rssi` is the transmit-power minus the path loss.
  * - `rssi_50%` is the signal level at which 50% packets are received;
  *
  * To model the path loss PL_{dBm}(d) this plugin uses the log-distance path loss model
@@ -226,7 +226,7 @@ public class LogisticLoss extends AbstractRadioMedium {
 
     private Random random = null;
 
-    private final Hashtable<Index, TimeVaryingEdge> edgesTable = new Hashtable<>();
+    private final HashMap<Index, TimeVaryingEdge> edgesTable = new HashMap<>();
 
     public LogisticLoss(Simulation simulation) {
         super(simulation);

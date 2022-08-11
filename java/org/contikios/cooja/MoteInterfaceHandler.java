@@ -33,8 +33,6 @@ package org.contikios.cooja;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 import org.contikios.cooja.contikimote.interfaces.TwofacedRadio;
 import org.contikios.cooja.interfaces.Battery;
 import org.contikios.cooja.interfaces.Beeper;
@@ -66,8 +64,6 @@ import org.contikios.cooja.interfaces.RimeAddress;
  * @author Robbe Elsas
  */
 public class MoteInterfaceHandler {
-  private static final Logger logger = LogManager.getLogger(MoteInterfaceHandler.class);
-
   private final ArrayList<MoteInterface> moteInterfaces = new ArrayList<>();
 
   /* Cached interfaces */
@@ -101,15 +97,9 @@ public class MoteInterfaceHandler {
    * @param mote Mote
    * @param interfaceClasses Mote interface classes
    */
-  public MoteInterfaceHandler(Mote mote, Class<? extends MoteInterface>[] interfaceClasses) {
+  public MoteInterfaceHandler(Mote mote, Class<? extends MoteInterface>[] interfaceClasses) throws MoteType.MoteTypeCreationException {
     for (Class<? extends MoteInterface> interfaceClass : interfaceClasses) {
-      MoteInterface intf = MoteInterface.generateInterface(interfaceClass, mote);
-
-      if (intf != null) {
-        addInterface(intf);
-      } else {
-        logger.fatal("Could not load interface: " + interfaceClass);
-      }
+      addInterface(MoteInterface.generateInterface(interfaceClass, mote));
     }
   }
 

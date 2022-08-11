@@ -77,12 +77,12 @@ public abstract class MoteInterface extends Observable {
    * @return Mote interface instance
    */
   public static MoteInterface generateInterface(
-      Class<? extends MoteInterface> interfaceClass, Mote mote) {
+      Class<? extends MoteInterface> interfaceClass, Mote mote) throws MoteType.MoteTypeCreationException {
     try {
       return interfaceClass.getConstructor(new Class[] { Mote.class }).newInstance(mote);
     } catch (Exception e) {
       logger.fatal("Exception when calling constructor of " + interfaceClass, e);
-      return null;
+      throw new MoteType.MoteTypeCreationException("Exception when calling constructor of " + interfaceClass, e);
     }
   }
 
@@ -108,7 +108,7 @@ public abstract class MoteInterface extends Observable {
    *
    * @see #getInterfaceVisualizer()
    * @param panel
-   *          A interface visualizer panel fetched earlier for this mote
+   *          An interface visualizer panel fetched earlier for this mote
    *          interface.
    */
   public abstract void releaseInterfaceVisualizer(JPanel panel);

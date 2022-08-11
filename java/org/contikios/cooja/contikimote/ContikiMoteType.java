@@ -202,7 +202,7 @@ public class ContikiMoteType implements MoteType {
   }
 
   @Override
-  public Mote generateMote(Simulation simulation) {
+  public Mote generateMote(Simulation simulation) throws MoteTypeCreationException {
     return new ContikiMote(this, simulation);
   }
 
@@ -253,10 +253,7 @@ public class ContikiMoteType implements MoteType {
     env.add(new String[] { "COOJA_SOURCEDIRS", dirs.toString().replace("\\", "/") });
     env.add(new String[] { "COOJA_SOURCEFILES", sources.toString() });
     env.add(new String[] { "CC", Cooja.getExternalToolsSetting("PATH_C_COMPILER") });
-    env.add(new String[] { "OBJCOPY", Cooja.getExternalToolsSetting("PATH_OBJCOPY") });
     env.add(new String[] { "EXTRA_CC_ARGS", ccFlags });
-    env.add(new String[] { "LD", Cooja.getExternalToolsSetting("PATH_LINKER") });
-    env.add(new String[] { "AR", Cooja.getExternalToolsSetting("PATH_AR") });
     env.add(new String[] { "PATH", System.getenv("PATH") });
     // Pass through environment variables for the Contiki-NG CI.
     String ci = System.getenv("CI");
@@ -313,7 +310,6 @@ public class ContikiMoteType implements MoteType {
           CompileContiki.compile(
                   cmd,
                   envOneDimension,
-                  null /* Do not observe output firmware file */,
                   getContikiSourceFile().getParentFile(),
                   null,
                   null,
@@ -804,16 +800,9 @@ public class ContikiMoteType implements MoteType {
    *          Memory to set
    */
   public void getCoreMemory(SectionMoteMemory mem) {
-    for (MemoryInterface section : mem.getSections().values()) {
-      getCoreMemory(
-              section.getStartAddr() - offset,
-              section.getTotalSize(),
-              section.getMemory());
+    for (var sec : mem.getSections().values()) {
+      myCoreComm.getMemory(sec.getStartAddr() - offset, sec.getTotalSize(), sec.getMemory());
     }
-  }
-
-  private void getCoreMemory(long relAddr, int length, byte[] data) {
-    myCoreComm.getMemory(relAddr, length, data);
   }
 
   /**
@@ -824,16 +813,9 @@ public class ContikiMoteType implements MoteType {
    * New memory
    */
   public void setCoreMemory(SectionMoteMemory mem) {
-    for (MemoryInterface section : mem.getSections().values()) {
-      setCoreMemory(
-              section.getStartAddr() - offset,
-              section.getTotalSize(),
-              section.getMemory());
+    for (var sec : mem.getSections().values()) {
+      myCoreComm.setMemory(sec.getStartAddr() - offset, sec.getTotalSize(), sec.getMemory());
     }
-  }
-
-  private void setCoreMemory(long relAddr, int length, byte[] mem) {
-    myCoreComm.setMemory(relAddr, length, mem);
   }
 
   @Override

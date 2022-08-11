@@ -115,6 +115,8 @@ public class ScriptRunner extends VisPlugin {
 
   private static BufferedWriter logWriter = null; /* For non-GUI tests */
 
+  /** The script text when running in headless mode. */
+  private String headlessScript = null;
   private final JEditorPane codeEditor;
   private final JTextArea logTextArea;
 
@@ -126,14 +128,18 @@ public class ScriptRunner extends VisPlugin {
     this.simulation = simulation;
     this.engine = null;
 
+    if (!Cooja.isVisualized()) {
+      codeEditor = null;
+      logTextArea = null;
+      return;
+    }
+
     /* Menus */
     JMenuBar menuBar = new JMenuBar();
     JMenu fileMenu = new JMenu("File");
-    JMenu editMenu = new JMenu("Edit");
     JMenu runMenu = new JMenu("Run");
 
     menuBar.add(fileMenu);
-    menuBar.add(editMenu);
     menuBar.add(runMenu);
 
     this.setJMenuBar(menuBar);
@@ -160,22 +166,17 @@ public class ScriptRunner extends VisPlugin {
     }
     fileMenu.add(examplesMenu);
 
-    {
-      /* XXX Workaround to configure SyntaxPane */
-      JEditorPane e = new JEditorPane();
-      new JScrollPane(e);
-      e.setContentType("text/javascript");
-      if (e.getEditorKit() instanceof DefaultSyntaxKit) {
-        DefaultSyntaxKit kit = (DefaultSyntaxKit) e.getEditorKit();
-        kit.setProperty("PopupMenu", "copy-to-clipboard,-,find,find-next,goto-line,-,linkfile");
-        kit.setProperty("Action.linkfile", JSyntaxLinkFile.class.getName());
-        kit.setProperty("Action.execute-script", ScriptRunnerAction.class.getName());
-      }
-    }
-
     /* Script area */
     setLayout(new BorderLayout());
     codeEditor = new JEditorPane();
+    codeEditor.setContentType("text/javascript");
+    if (codeEditor.getEditorKit() instanceof DefaultSyntaxKit) {
+      DefaultSyntaxKit kit = (DefaultSyntaxKit) codeEditor.getEditorKit();
+      kit.setProperty("PopupMenu", "copy-to-clipboard,-,find,find-next,goto-line,-,linkfile");
+      kit.setProperty("Action.linkfile", JSyntaxLinkFile.class.getName());
+      kit.setProperty("Action.execute-script", ScriptRunnerAction.class.getName());
+      kit.install(codeEditor);
+    }
 
     logTextArea = new JTextArea(12,50);
     logTextArea.setMargin(new Insets(5,5,5,5));
@@ -221,17 +222,7 @@ public class ScriptRunner extends VisPlugin {
       }
     };
     fileMenu.addMenuListener(toggleMenuItems);
-    editMenu.addMenuListener(toggleMenuItems);
     runMenu.addMenuListener(toggleMenuItems);
-
-
-    codeEditor.setContentType("text/javascript");
-    if (codeEditor.getEditorKit() instanceof DefaultSyntaxKit) {
-      DefaultSyntaxKit kit = (DefaultSyntaxKit) codeEditor.getEditorKit();
-      kit.setProperty("PopupMenu", "copy-to-clipboard,-,find,find-next,goto-line,-,linkfile");
-      kit.setProperty("Action.linkfile", JSyntaxLinkFile.class.getName());
-      kit.setProperty("Action.execute-script", ScriptRunnerAction.class.getName());
-    }
 
     JPopupMenu p = codeEditor.getComponentPopupMenu();
     if (p != null) {
@@ -295,17 +286,24 @@ public class ScriptRunner extends VisPlugin {
         actionLinkFile.setMenuText("Link script to disk file");
         actionLinkFile.putValue("JavascriptSource", null);
       }
-
+      if (!Cooja.isVisualized()) {
+        return;
+      }
       codeEditor.setEditable(true);
     } else {
-      updateScript(linkedFile);
+      String script = StringUtils.loadFromFile(linkedFile);
+      if (script != null) {
+        updateScript(script);
+      }
       Cooja.setExternalToolsSetting("SCRIPTRUNNER_LAST_SCRIPTFILE", source.getAbsolutePath());
 
       if (actionLinkFile != null) {
         actionLinkFile.setMenuText("Unlink script: " + source.getName());
         actionLinkFile.putValue("JavascriptSource", source);
       }
-
+      if (!Cooja.isVisualized()) {
+        return;
+      }
       codeEditor.setEditable(false);
     }
     updateTitle();
@@ -378,9 +376,10 @@ public class ScriptRunner extends VisPlugin {
 
       /* Activate engine */
       try {
-        engine.activateScript(codeEditor.getText());
-
-        if (!headless) {
+        if (!Cooja.isVisualized()) {
+          engine.activateScript(headlessScript);
+        } else {
+          engine.activateScript(codeEditor.getText());
           if (actionLinkFile != null) {
             actionLinkFile.setEnabled(false);
           }
@@ -611,22 +610,17 @@ public class ScriptRunner extends VisPlugin {
     }
   }
 
-  public boolean updateScript(File scriptFile) {
-    String script = StringUtils.loadFromFile(scriptFile);
-    if (script == null) {
-      return false;
-    }
-    updateScript(script);
-    return true;
-  }
-
   private void updateScript(String script) {
     if (script == null) {
       return;
     }
 
-    codeEditor.setText(script);
-    logTextArea.setText("");
+    if (Cooja.isVisualized()) {
+      codeEditor.setText(script);
+      logTextArea.setText("");
+    } else {
+      headlessScript = script;
+    }
   }
 
   @Override

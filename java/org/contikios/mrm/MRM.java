@@ -31,7 +31,7 @@
 package org.contikios.mrm;
 
 import java.util.Collection;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Random;
@@ -59,7 +59,7 @@ import org.contikios.mrm.ChannelModel.TxPair;
  *
  * MRM is an alternative to the simpler radio mediums available in
  * COOJA. It is packet based and uses a 2D ray-tracing approach to approximate
- * signal strength attenuation between simulated radios. Currently the
+ * signal strength attenuation between simulated radios. Currently, the
  * ray-tracing only supports reflections and refractions through homogeneous
  * obstacles.
  *
@@ -436,7 +436,7 @@ public class MRM extends AbstractRadioMedium {
   }
 
   static class MRMRadioConnection extends RadioConnection {
-    private final Hashtable<Radio, Double> signalStrengths = new Hashtable<>();
+    private final HashMap<Radio, Double> signalStrengths = new HashMap<>();
 
     public MRMRadioConnection(Radio sourceRadio) {
       super(sourceRadio);

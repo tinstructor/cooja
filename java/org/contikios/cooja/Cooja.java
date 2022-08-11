@@ -59,7 +59,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -70,12 +69,11 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import javax.swing.AbstractAction;
@@ -132,12 +130,13 @@ import org.contikios.cooja.util.ScnObservable;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
+import org.jdom.filter.ElementFilter;
 import org.jdom.input.SAXBuilder;
 import org.jdom.output.Format;
 import org.jdom.output.XMLOutputter;
 
 /**
- * Main file of COOJA Simulator. Typically contains a visualizer for the
+ * Main file of COOJA Simulator. Typically, contains a visualizer for the
  * simulator, but can also be started without visualizer.
  *
  * This class loads external Java classes (in extension directories), and handles the
@@ -188,7 +187,7 @@ public class Cooja extends Observable {
   public static final String EXTERNAL_TOOLS_LINUX_SETTINGS_FILENAME = "/external_tools_linux.config";
 
   /**
-   * External tools default Linux/Unix settings filename for 64 bit architectures.
+   * External tools default Linux/Unix settings filename for 64-bit architectures.
    * Tested on Intel 64-bit Gentoo Linux.
    */
   public static final String EXTERNAL_TOOLS_LINUX_64_SETTINGS_FILENAME = "/external_tools_linux_64.config";
@@ -256,10 +255,6 @@ public class Cooja extends Observable {
     "PATH_MAKE",
     "PATH_SHELL",
     "PATH_C_COMPILER", "COMPILER_ARGS",
-    "PATH_LINKER",
-    "PATH_AR",
-    "PATH_OBJDUMP", "OBJDUMP_ARGS",
-    "PATH_OBJCOPY",
     "PATH_JAVAC",
 
     "CONTIKI_STANDARD_PROCESSES",
@@ -397,6 +392,19 @@ public class Cooja extends Observable {
       }
     }
 
+    if (!vis) {
+      myDesktopPane = null;
+      quickHelpTextPane = null;
+      quickHelpScroll = null;
+      try {
+        parseProjectConfig();
+      } catch (ParseProjectsException e) {
+        logger.fatal("Error when loading extensions: " + e.getMessage(), e);
+      }
+      return;
+    }
+
+    // Visualization enabled past this point.
     myDesktopPane = new JDesktopPane() {
       @Override
       public void setBounds(int x, int y, int w, int h) {
@@ -428,9 +436,7 @@ public class Cooja extends Observable {
       }
     });
     myDesktopPane.setDragMode(JDesktopPane.OUTLINE_DRAG_MODE);
-    if (vis) {
-      frame = new JFrame(WINDOW_TITLE);
-    }
+    frame = new JFrame(WINDOW_TITLE);
 
     /* Help panel */
     quickHelpTextPane = new JTextPane();
@@ -478,14 +484,12 @@ public class Cooja extends Observable {
       parseProjectConfig();
     } catch (ParseProjectsException e) {
       logger.fatal("Error when loading extensions: " + e.getMessage(), e);
-      if (isVisualized()) {
-      	JOptionPane.showMessageDialog(Cooja.getTopParentContainer(),
-      			"All Cooja extensions could not load.\n\n" +
-      			"To manage Cooja extensions:\n" +
-      			"Menu->Settings->Cooja extensions",
-      			"Reconfigure Cooja extensions", JOptionPane.INFORMATION_MESSAGE);
-      	showErrorDialog(getTopParentContainer(), "Cooja extensions load error", e, false);
-      }
+      JOptionPane.showMessageDialog(Cooja.getTopParentContainer(),
+              "All Cooja extensions could not load.\n\n" +
+                      "To manage Cooja extensions:\n" +
+                      "Menu->Settings->Cooja extensions",
+              "Reconfigure Cooja extensions", JOptionPane.INFORMATION_MESSAGE);
+      showErrorDialog(frame, "Cooja extensions load error", e, false);
     }
 
     // Start all standard GUI plugins
@@ -496,9 +500,6 @@ public class Cooja extends Observable {
       }
     }
 
-    if (!vis) {
-      return;
-    }
     frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
 
     // Menu bar.
@@ -626,9 +627,7 @@ public class Cooja extends Observable {
     newHistory.append(newFile);
     for (int i = 0, count = 1; i < history.length && count < 10; i++) {
       String historyFile = history[i];
-      if (newFile.equals(historyFile) || historyFile.length() == 0) {
-        // File already added or empty file name
-      } else {
+      if (!newFile.equals(historyFile) && historyFile.length() != 0) {
         newHistory.append(';').append(historyFile);
         count++;
       }
@@ -984,47 +983,6 @@ public class Cooja extends Observable {
         JMenuItem menuItem = new JMenuItem(description + "...");
         menuItem.putClientProperty("class", newPluginClass);
         menuItem.addActionListener(menuItemListener);
-
-        String tooltip = "<html><pre>";
-        if (pluginType == PluginType.COOJA_PLUGIN || pluginType == PluginType.COOJA_STANDARD_PLUGIN) {
-          tooltip += "Cooja plugin: ";
-        } else if (pluginType == PluginType.SIM_PLUGIN || pluginType == PluginType.SIM_STANDARD_PLUGIN
-        		|| pluginType == PluginType.SIM_CONTROL_PLUGIN) {
-          tooltip += "Simulation plugin: ";
-          if (getSimulation() == null) {
-            menuItem.setEnabled(false);
-          }
-        } else if (pluginType == PluginType.MOTE_PLUGIN) {
-          tooltip += "Mote plugin: ";
-        }
-        tooltip += description + " (" + newPluginClass.getName() + ")";
-
-        /* Check if simulation plugin depends on any particular radio medium */
-        if ((pluginType == PluginType.SIM_PLUGIN || pluginType == PluginType.SIM_STANDARD_PLUGIN
-        		|| pluginType == PluginType.SIM_CONTROL_PLUGIN) && (getSimulation() != null)) {
-          if (newPluginClass.getAnnotation(SupportedArguments.class) != null) {
-            boolean active = false;
-            for (var o: newPluginClass.getAnnotation(SupportedArguments.class).radioMediums()) {
-              if (o.isAssignableFrom(getSimulation().getRadioMedium().getClass())) {
-                active = true;
-                break;
-              }
-            }
-            if (!active) {
-              menuItem.setVisible(false);
-            }
-          }
-        }
-
-        /* Check if plugin was imported by a extension directory */
-        File project =
-          getProjectConfig().getUserProjectDefining(Cooja.class, "PLUGINS", newPluginClass.getName());
-        if (project != null) {
-          tooltip += "\nLoaded by extension: " + project.getPath();
-        }
-
-        tooltip += "</html>";
-        /*menuItem.setToolTipText(tooltip);*/
         return menuItem;
       }
 
@@ -1235,17 +1193,6 @@ public class Cooja extends Observable {
    * @return True if class was registered
    */
   public boolean registerPositioner(Class<? extends Positioner> positionerClass) {
-    // Check that interval constructor exists
-    try {
-      positionerClass
-      .getConstructor(int.class, double.class, double.class,
-          double.class, double.class, double.class, double.class);
-    } catch (Exception e) {
-      logger.fatal("No interval constructor found of positioner: "
-          + positionerClass);
-      return false;
-    }
-
     positionerClasses.add(positionerClass);
     return true;
   }
@@ -1264,17 +1211,7 @@ public class Cooja extends Observable {
    *          Class to register
    * @return True if class was registered
    */
-  public boolean registerRadioMedium(
-      Class<? extends RadioMedium> radioMediumClass) {
-    // Check that simulation constructor exists
-    try {
-      radioMediumClass.getConstructor(Simulation.class);
-    } catch (Exception e) {
-      logger.fatal("No simulation constructor found of radio medium: "
-          + radioMediumClass);
-      return false;
-    }
-
+  public boolean registerRadioMedium(Class<? extends RadioMedium> radioMediumClass) {
     radioMediumClasses.add(radioMediumClass);
     return true;
   }
@@ -1687,39 +1624,24 @@ public class Cooja extends Observable {
    * @return True if this plugin was registered ok, false otherwise
    */
   public boolean registerPlugin(final Class<? extends Plugin> pluginClass) {
-
-    /* Check plugin type */
-    final int pluginType;
-    if (pluginClass.isAnnotationPresent(PluginType.class)) {
-      pluginType = pluginClass.getAnnotation(PluginType.class).value();
-    } else {
+    if (!pluginClass.isAnnotationPresent(PluginType.class)) {
       logger.fatal("Could not register plugin, no plugin type found: " + pluginClass);
       return false;
     }
 
-    /* Check plugin constructor */
-    try {
-      if (pluginType == PluginType.COOJA_PLUGIN || pluginType == PluginType.COOJA_STANDARD_PLUGIN) {
-        pluginClass.getConstructor(Cooja.class);
-      } else if (pluginType == PluginType.SIM_PLUGIN || pluginType == PluginType.SIM_STANDARD_PLUGIN 
-    		  || pluginType == PluginType.SIM_CONTROL_PLUGIN) {
-        pluginClass.getConstructor(Simulation.class, Cooja.class);
-      } else if (pluginType == PluginType.MOTE_PLUGIN) {
-        pluginClass.getConstructor(Mote.class, Simulation.class, Cooja.class);
+    switch (pluginClass.getAnnotation(PluginType.class).value()) {
+      case PluginType.MOTE_PLUGIN:
         menuMotePluginClasses.add(pluginClass);
-      } else {
-        logger.fatal("Could not register plugin, bad plugin type: " + pluginType);
-        return false;
-      }
-      pluginClasses.add(pluginClass);
-    } catch (NoClassDefFoundError e) {
-      logger.fatal("No plugin class: " + pluginClass + ": " + e.getMessage());
-      return false;
-    } catch (NoSuchMethodException e) {
-      logger.fatal("No plugin class constructor: " + pluginClass + ": " + e.getMessage());
-      return false;
+      case PluginType.COOJA_PLUGIN:
+      case PluginType.COOJA_STANDARD_PLUGIN:
+      case PluginType.SIM_PLUGIN:
+      case PluginType.SIM_STANDARD_PLUGIN:
+      case PluginType.SIM_CONTROL_PLUGIN:
+        pluginClasses.add(pluginClass);
+        return true;
     }
-    return true;
+    logger.fatal("Could not register plugin, " + pluginClass + " has unknown plugin type");
+    return false;
   }
 
   /**
@@ -1759,16 +1681,11 @@ public class Cooja extends Observable {
     }
 
     /* Check mote interfaces */
-    boolean moteInterfacesOK = true;
     Class<? extends MoteInterface>[] moteInterfaces =
       motePluginClass.getAnnotation(SupportedArguments.class).moteInterfaces();
-    StringBuilder moteTypeInterfacesError = new StringBuilder();
-    moteTypeInterfacesError.append("The plugin:\n").append(getDescriptionOf(motePluginClass))
-            .append("\nrequires the following mote interfaces:\n");
     for (Class<? extends MoteInterface> requiredMoteInterface: moteInterfaces) {
-      moteTypeInterfacesError.append(getDescriptionOf(requiredMoteInterface)).append("\n");
       if (mote.getInterfaces().getInterfaceOfType(requiredMoteInterface) == null) {
-        moteInterfacesOK = false;
+        return false;
       }
     }
 
@@ -1776,18 +1693,13 @@ public class Cooja extends Observable {
     boolean moteTypeOK = false;
     Class<? extends Mote>[] motes =
       motePluginClass.getAnnotation(SupportedArguments.class).motes();
-    StringBuilder moteTypeError = new StringBuilder();
-    moteTypeError.append("The plugin:\n").append(getDescriptionOf(motePluginClass))
-            .append("\ndoes not support motes of type:\n").append(getDescriptionOf(mote))
-            .append("\n\nIt only supports motes of types:\n");
     for (Class<? extends Mote> supportedMote: motes) {
-      moteTypeError.append(getDescriptionOf(supportedMote)).append("\n");
       if (supportedMote.isAssignableFrom(mote.getClass())) {
         moteTypeOK = true;
       }
     }
 
-    return moteInterfacesOK && moteTypeOK;
+    return moteTypeOK;
   }
 
   public JMenu createMotePluginsSubmenu(Class<? extends Plugin> pluginClass) {
@@ -2029,13 +1941,8 @@ public class Cooja extends Observable {
       return null;
     }
 
-    /* Use provided configuration, or open File Chooser */
-    if (configFile != null && !configFile.isDirectory()) {
-      if (!configFile.exists() || !configFile.canRead()) {
-        logger.fatal("No read access to file: " + configFile.getAbsolutePath());
-        return doLoadConfig(null, quick, manualRandomSeed);
-      }
-    } else {
+    // Open File Chooser if config is not useful.
+    if (configFile == null || !configFile.canRead()) {
       final File suggestedFile = configFile;
       configFile = new RunnableInEDT<File>() {
         @Override
@@ -2056,7 +1963,6 @@ public class Cooja extends Observable {
 
           int returnVal = fc.showOpenDialog(Cooja.getTopParentContainer());
           if (returnVal != JFileChooser.APPROVE_OPTION) {
-            logger.info("Load command cancelled by user...");
             return null;
           }
 
@@ -2084,10 +1990,9 @@ public class Cooja extends Observable {
     addToFileHistory(configFile);
 
     final JDialog progressDialog;
-    final String progressTitle = "Loading " + configFile.getAbsolutePath();
-
     if (quick) {
       final Thread loadThread = Thread.currentThread();
+      final String progressTitle = "Loading " + configFile.getAbsolutePath();
 
       progressDialog = new RunnableInEDT<JDialog>() {
         @Override
@@ -2156,7 +2061,7 @@ public class Cooja extends Observable {
         }
         PROGRESS_WARNINGS.clear();
 
-      } catch (UnsatisfiedLinkError | SimulationCreationException e) {
+      } catch (SimulationCreationException e) {
         shouldRetry = showErrorDialog(Cooja.getTopParentContainer(), "Simulation load error", e, true);
       }
     } while (shouldRetry);
@@ -2223,7 +2128,7 @@ public class Cooja extends Observable {
             }
             PROGRESS_WARNINGS.clear();
 
-          } catch (UnsatisfiedLinkError | SimulationCreationException e) {
+          } catch (SimulationCreationException e) {
             shouldRetry = showErrorDialog(frame, "Simulation reload error", e, true);
 
             cooja.doRemoveSimulation(false);
@@ -2574,11 +2479,9 @@ public class Cooja extends Observable {
       return;
     }
 
-    try {
-      FileInputStream in = new FileInputStream(externalToolsUserSettingsFile);
+    try (var in = new FileInputStream(externalToolsUserSettingsFile)) {
       Properties settings = new Properties();
       settings.load(in);
-      in.close();
 
       Enumeration<Object> en = settings.keys();
       while (en.hasMoreElements()) {
@@ -2599,9 +2502,7 @@ public class Cooja extends Observable {
       return;
     }
 
-    try {
-      FileOutputStream out = new FileOutputStream(externalToolsUserSettingsFile);
-
+    try (var out = new FileOutputStream(externalToolsUserSettingsFile)) {
       Properties differingSettings = new Properties();
       var keyEnum = currentExternalToolsSettings.keys();
       while (keyEnum.hasMoreElements()) {
@@ -2614,7 +2515,6 @@ public class Cooja extends Observable {
       }
 
       differingSettings.store(out, "Cooja External Tools (User specific)");
-      out.close();
     } catch (FileNotFoundException ex) {
       // Could not open settings file for writing, aborting
       logger.warn("Could not save external tools user settings to "
@@ -2762,7 +2662,7 @@ public class Cooja extends Observable {
 
   /**
    * Help method that returns the description for given object. This method
-   * reads from the object's class annotations if existing. Otherwise it returns
+   * reads from the object's class annotations if existing. Otherwise, it returns
    * the simple class name of object's class.
    *
    * @param object
@@ -2775,7 +2675,7 @@ public class Cooja extends Observable {
 
   /**
    * Help method that returns the description for given class. This method reads
-   * from class annotations if existing. Otherwise it returns the simple class
+   * from class annotations if existing. Otherwise, it returns the simple class
    * name.
    *
    * @param clazz
@@ -2865,28 +2765,21 @@ public class Cooja extends Observable {
    * @param file
    *          File to read
    * @return New simulation or null if recompiling failed or aborted
-   * @throws UnsatisfiedLinkError
-   *           If associated libraries could not be loaded
+   * @throws SimulationCreationException If loading fails.
    */
   private Simulation loadSimulationConfig(File file, boolean quick, Long manualRandomSeed)
-  throws UnsatisfiedLinkError, SimulationCreationException {
+  throws SimulationCreationException {
     this.currentConfigFile = file; /* Used to generate config relative paths */
     try {
       this.currentConfigFile = this.currentConfigFile.getCanonicalFile();
     } catch (IOException e) {
     }
 
-    try {
-      SAXBuilder builder = new SAXBuilder();
-    	InputStream in = new FileInputStream(file);
-      if (file.getName().endsWith(".gz")) {
-      	in = new GZIPInputStream(in);
-      }
-      Document doc = builder.build(in);
-      Element root = doc.getRootElement();
-      in.close();
+    try (InputStream in = file.getName().endsWith(".gz")
+            ? new GZIPInputStream(new FileInputStream(file)) : new FileInputStream(file)) {
+      final var doc = new SAXBuilder().build(in);
 
-      return loadSimulationConfig(root, quick, manualRandomSeed);
+      return loadSimulationConfig(doc.getRootElement(), quick, manualRandomSeed);
     } catch (JDOMException e) {
       throw new SimulationCreationException("Config not wellformed", e);
     } catch (IOException e) {
@@ -2896,76 +2789,79 @@ public class Cooja extends Observable {
 
   private Simulation loadSimulationConfig(Element root, boolean quick, Long manualRandomSeed)
   throws SimulationCreationException {
+    // Check that config file version is correct
+    if (!root.getName().equals("simconf")) {
+      logger.fatal("Not a valid Cooja simulation config.");
+      return null;
+    }
+
     Simulation newSim = null;
-
     try {
-      // Check that config file version is correct
-      if (!root.getName().equals("simconf")) {
-        logger.fatal("Not a valid Cooja simulation config.");
-        return null;
-      }
-
       /* Verify extension directories */
       boolean projectsOk = verifyProjects(root.getChildren());
 
       /* GENERATE UNIQUE MOTE TYPE IDENTIFIERS */
-      root.detach();
-      String configString = new XMLOutputter().outputString(new Document(root));
 
       /* Locate Contiki mote types in config */
-      Properties moteTypeIDMappings = new Properties();
-      String identifierExtraction = ContikiMoteType.class.getName() + "[\\s\\n]*<identifier>([^<]*)</identifier>";
-      Matcher matcher = Pattern.compile(identifierExtraction).matcher(configString);
-      while (matcher.find()) {
-        moteTypeIDMappings.setProperty(matcher.group(1), "");
+      var readNames = new ArrayList<String>();
+      var motetypes = root.getDescendants(new ElementFilter("motetype"));
+      while (motetypes.hasNext()) {
+        var e = (Element)motetypes.next();
+        if (ContikiMoteType.class.getName().equals(e.getContent(0).getValue().trim())) {
+          readNames.add(e.getChild("identifier").getValue());
+        }
       }
 
       /* Create old to new identifier mappings */
-      Enumeration<Object> existingIdentifiers = moteTypeIDMappings.keys();
-      while (existingIdentifiers.hasMoreElements()) {
-        String existingIdentifier = (String) existingIdentifiers.nextElement();
-        MoteType[] existingMoteTypes = null;
-        if (mySimulation != null) {
-          existingMoteTypes = mySimulation.getMoteTypes();
-        }
-        ArrayList<Object> reserved = new ArrayList<>();
-        reserved.addAll(moteTypeIDMappings.keySet());
-        reserved.addAll(moteTypeIDMappings.values());
+      var moteTypeIDMappings = new HashMap<String, String>();
+      ArrayList<Object> reserved = new ArrayList<>(readNames);
+      var existingMoteTypes = mySimulation == null ? null : mySimulation.getMoteTypes();
+      for (var existingIdentifier : readNames) {
         String newID = ContikiMoteType.generateUniqueMoteTypeID(existingMoteTypes, reserved);
-        moteTypeIDMappings.setProperty(existingIdentifier, newID);
+        moteTypeIDMappings.put(existingIdentifier, newID);
+        reserved.add(newID);
       }
 
-      /* Create new config */
-      existingIdentifiers = moteTypeIDMappings.keys();
-      while (existingIdentifiers.hasMoreElements()) {
-        String existingIdentifier = (String) existingIdentifiers.nextElement();
-        configString = configString.replaceAll(
-            "<identifier>" + existingIdentifier + "</identifier>",
-            "<identifier>" + moteTypeIDMappings.get(existingIdentifier) + "</identifier>");
-        configString = configString.replaceAll(
-            "<motetype_identifier>" + existingIdentifier + "</motetype_identifier>",
-            "<motetype_identifier>" + moteTypeIDMappings.get(existingIdentifier) + "</motetype_identifier>");
+      // Replace all <motetype>..ContikiMoteType.class<identifier>mtypeXXX</identifier>...
+      // in the config with the new identifiers.
+      motetypes = root.getDescendants(new ElementFilter("motetype"));
+      while (motetypes.hasNext()) {
+        var e = (Element)motetypes.next();
+        if (ContikiMoteType.class.getName().equals(e.getContent(0).getValue().trim())) {
+          var idNode = e.getChild("identifier");
+          var newName = moteTypeIDMappings.get(idNode.getValue());
+          idNode.setText(newName);
+        }
       }
-
-      /* Replace existing config */
-      root = new SAXBuilder().build(new StringReader(configString)).getRootElement();
+      // Replace all <mote>...<motetype_identifier>mtypeXXX</motetype_identifier>...
+      // in the config with the new identifiers.
+      var motes = root.getDescendants(new ElementFilter("mote"));
+      while (motes.hasNext()) {
+        var e = (Element) motes.next();
+        var idNode = e.getChild("motetype_identifier");
+        if (idNode == null) {
+          continue;
+        }
+        var newName = moteTypeIDMappings.get(idNode.getValue());
+        if (newName != null) {
+            idNode.setText(newName);
+        }
+      }
 
       // Create new simulation from config
-      for (Object element : root.getChildren()) {
-        if (((Element) element).getName().equals("simulation")) {
-          Collection<Element> config = ((Element) element).getChildren();
-          newSim = new Simulation(this);
-          System.gc();
+      for (var element : root.getChildren("simulation")) {
+        Collection<Element> config = ((Element) element).getChildren();
+        newSim = new Simulation(this);
+        System.gc();
 
-          if (!newSim.setConfigXML(config, isVisualized(), quick, manualRandomSeed)) {
-            logger.info("Simulation not loaded");
-            return null;
-          }
+        if (!newSim.setConfigXML(config, isVisualized(), quick, manualRandomSeed)) {
+          logger.info("Simulation not loaded");
+          return null;
         }
       }
 
       // Restart plugins from config
-      setPluginsConfigXML(root.getChildren(), newSim);
+      setPluginsConfigXML(root, newSim);
 
     } catch (JDOMException e) {
       throw new SimulationCreationException("Configuration file not wellformed: " + e.getMessage(), e);
@@ -3180,116 +3076,109 @@ public class Cooja extends Observable {
   /**
    * Starts plugins with arguments in given config.
    *
-   * @param configXML  Config XML elements
+   * @param root XML config root element
    * @param sim Simulation on which to start plugins
    * @return True if all plugins started, false otherwise
    */
-  private boolean setPluginsConfigXML(Collection<Element> configXML, Simulation sim) {
-    for (final Element pluginElement : configXML.toArray(new Element[0])) {
-      if (pluginElement.getName().equals("plugin")) {
+  private boolean setPluginsConfigXML(Element root, Simulation sim) {
+    for (var e : root.getChildren("plugin")) {
+      final Element pluginElement = (Element)e;
+      // Read plugin class
+      String pluginClassName = pluginElement.getText().trim();
 
-        // Read plugin class
-        String pluginClassName = pluginElement.getText().trim();
+      /* Backwards compatibility: se.sics -> org.contikios */
+      if (pluginClassName.startsWith("se.sics")) {
+        pluginClassName = pluginClassName.replaceFirst("se\\.sics", "org.contikios");
+      }
 
-        /* Backwards compatibility: se.sics -> org.contikios */
-        if (pluginClassName.startsWith("se.sics")) {
-        	pluginClassName = pluginClassName.replaceFirst("se\\.sics", "org.contikios");
+      /* Backwards compatibility: old visualizers were replaced */
+      if (pluginClassName.equals("org.contikios.cooja.plugins.VisUDGM") ||
+              pluginClassName.equals("org.contikios.cooja.plugins.VisBattery") ||
+              pluginClassName.equals("org.contikios.cooja.plugins.VisTraffic") ||
+              pluginClassName.equals("org.contikios.cooja.plugins.VisState")) {
+        logger.warn("Old simulation config detected: visualizers have been remade");
+        pluginClassName = "org.contikios.cooja.plugins.Visualizer";
+      }
+
+      Class<? extends Plugin> pluginClass =
+              tryLoadClass(this, Plugin.class, pluginClassName);
+      if (pluginClass == null) {
+        logger.fatal("Could not load plugin class: " + pluginClassName);
+        return false;
+      }
+
+      // Parse plugin mote argument (if any)
+      Mote mote = null;
+      for (var pluginSubElement : pluginElement.getChildren("mote_arg")) {
+        int moteNr = Integer.parseInt(((Element)pluginSubElement).getText());
+        if (moteNr >= 0 && moteNr < sim.getMotesCount()) {
+          mote = sim.getMote(moteNr);
         }
+      }
 
-        /* Backwards compatibility: old visualizers were replaced */
-        if (pluginClassName.equals("org.contikios.cooja.plugins.VisUDGM") ||
-        		pluginClassName.equals("org.contikios.cooja.plugins.VisBattery") ||
-        		pluginClassName.equals("org.contikios.cooja.plugins.VisTraffic") ||
-        		pluginClassName.equals("org.contikios.cooja.plugins.VisState")) {
-        	logger.warn("Old simulation config detected: visualizers have been remade");
-        	pluginClassName = "org.contikios.cooja.plugins.Visualizer";
-        }
+      /* Start plugin */
+      final Plugin startedPlugin = tryStartPlugin(pluginClass, this, sim, mote, false);
+      if (startedPlugin == null) {
+        continue;
+      }
 
-        Class<? extends Plugin> pluginClass =
-          tryLoadClass(this, Plugin.class, pluginClassName);
-        if (pluginClass == null) {
-          logger.fatal("Could not load plugin class: " + pluginClassName);
-          return false;
-        }
+      /* Apply plugin specific configuration */
+      for (var pluginSubElement : pluginElement.getChildren("plugin_config")) {
+        startedPlugin.setConfigXML(((Element)pluginSubElement).getChildren(), isVisualized());
+      }
 
-        // Parse plugin mote argument (if any)
-        Mote mote = null;
-        for (Element pluginSubElement : (List<Element>) pluginElement.getChildren()) {
-          if (pluginSubElement.getName().equals("mote_arg")) {
-            int moteNr = Integer.parseInt(pluginSubElement.getText());
-            if (moteNr >= 0 && moteNr < sim.getMotesCount()) {
-              mote = sim.getMote(moteNr);
-            }
-          }
-        }
+      /* Activate plugin */
+      startedPlugin.startPlugin();
 
-        /* Start plugin */
-        final Plugin startedPlugin = tryStartPlugin(pluginClass, this, sim, mote, false);
-        if (startedPlugin == null) {
-          continue;
-        }
+      /* If Cooja not visualized, ignore window configuration */
+      if (startedPlugin.getCooja() == null || !Cooja.isVisualized()) {
+        continue;
+      }
 
-        /* Apply plugin specific configuration */
-        for (Element pluginSubElement : (List<Element>) pluginElement.getChildren()) {
-          if (pluginSubElement.getName().equals("plugin_config")) {
-            startedPlugin.setConfigXML(pluginSubElement.getChildren(), isVisualized());
-          }
-        }
+      // If plugin is visualizer plugin, parse visualization arguments
+      new RunnableInEDT<Boolean>() {
+        @Override
+        public Boolean work() {
+          Dimension size = new Dimension(100, 100);
+          Point location = new Point(100, 100);
 
-        /* Activate plugin */
-        startedPlugin.startPlugin();
-
-        /* If Cooja not visualized, ignore window configuration */
-        if (startedPlugin.getCooja() == null) {
-          continue;
-        }
-
-        // If plugin is visualizer plugin, parse visualization arguments
-        new RunnableInEDT<Boolean>() {
-          @Override
-          public Boolean work() {
-            Dimension size = new Dimension(100, 100);
-            Point location = new Point(100, 100);
-
-            for (Element pluginSubElement : (List<Element>) pluginElement.getChildren()) {
-              if (pluginSubElement.getName().equals("width")) {
-                size.width = Integer.parseInt(pluginSubElement.getText());
-                startedPlugin.getCooja().setSize(size);
-              } else if (pluginSubElement.getName().equals("height")) {
-                size.height = Integer.parseInt(pluginSubElement.getText());
-                startedPlugin.getCooja().setSize(size);
-              } else if (pluginSubElement.getName().equals("z")) {
-                int zOrder = Integer.parseInt(pluginSubElement.getText());
-                startedPlugin.getCooja().putClientProperty("zorder", zOrder);
-              } else if (pluginSubElement.getName().equals("location_x")) {
-                location.x = Integer.parseInt(pluginSubElement.getText());
-                startedPlugin.getCooja().setLocation(location);
-              } else if (pluginSubElement.getName().equals("location_y")) {
-                location.y = Integer.parseInt(pluginSubElement.getText());
-                startedPlugin.getCooja().setLocation(location);
-              } else if (pluginSubElement.getName().equals("minimized")) {
-                boolean minimized = Boolean.parseBoolean(pluginSubElement.getText());
-                final JInternalFrame pluginGUI = startedPlugin.getCooja();
-                if (minimized && pluginGUI != null) {
-                  SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                      try {
-                        pluginGUI.setIcon(true);
-                      } catch (PropertyVetoException e) {
-                      }
+          for (Element pluginSubElement : (List<Element>) pluginElement.getChildren()) {
+            if (pluginSubElement.getName().equals("width")) {
+              size.width = Integer.parseInt(pluginSubElement.getText());
+              startedPlugin.getCooja().setSize(size);
+            } else if (pluginSubElement.getName().equals("height")) {
+              size.height = Integer.parseInt(pluginSubElement.getText());
+              startedPlugin.getCooja().setSize(size);
+            } else if (pluginSubElement.getName().equals("z")) {
+              int zOrder = Integer.parseInt(pluginSubElement.getText());
+              startedPlugin.getCooja().putClientProperty("zorder", zOrder);
+            } else if (pluginSubElement.getName().equals("location_x")) {
+              location.x = Integer.parseInt(pluginSubElement.getText());
+              startedPlugin.getCooja().setLocation(location);
+            } else if (pluginSubElement.getName().equals("location_y")) {
+              location.y = Integer.parseInt(pluginSubElement.getText());
+              startedPlugin.getCooja().setLocation(location);
+            } else if (pluginSubElement.getName().equals("minimized")) {
+              boolean minimized = Boolean.parseBoolean(pluginSubElement.getText());
+              final JInternalFrame pluginGUI = startedPlugin.getCooja();
+              if (minimized && pluginGUI != null) {
+                SwingUtilities.invokeLater(new Runnable() {
+                  @Override
+                  public void run() {
+                    try {
+                      pluginGUI.setIcon(true);
+                    } catch (PropertyVetoException e) {
                     }
-                  });
-                }
+                  }
+                });
               }
             }
-
-            showPlugin(startedPlugin);
-            return true;
           }
-        }.invokeAndWait();
 
-      }
+          showPlugin(startedPlugin);
+          return true;
+        }
+      }.invokeAndWait();
     }
 
     /* Z order visualized plugins */
@@ -3558,7 +3447,7 @@ public class Cooja extends Observable {
   /**
    * This method can be used by various different modules in the simulator to
    * indicate for example that a mote has been selected. All mote highlight
-   * listeners will be notified. An example application of mote highlightinh is
+   * listeners will be notified. An example application of mote highlighting is
    * a simulator visualizer that highlights the mote.
    *
    * @see #addMoteHighlightObserver(Observer)
@@ -3627,7 +3516,7 @@ public class Cooja extends Observable {
 
   /**
    * Adds mote relation observer.
-   * Typically used by visualizer plugins.
+   * Typically, used by visualizer plugins.
    *
    * @param newObserver Observer
    */
@@ -3637,7 +3526,7 @@ public class Cooja extends Observable {
 
   /**
    * Removes mote relation observer.
-   * Typically used by visualizer plugins.
+   * Typically, used by visualizer plugins.
    *
    * @param observer Observer
    */
@@ -3781,6 +3670,26 @@ public class Cooja extends Observable {
 
   private final static String PATH_CONFIG_IDENTIFIER = "[CONFIG_DIR]";
   public File currentConfigFile = null; /* Used to generate config relative paths */
+
+  /**
+   * Returns the config dir.
+   */
+  public String getConfigDir() {
+    if (currentConfigFile == null) {
+      return null;
+    }
+    var parent = currentConfigFile.getParentFile();
+    return parent == null ? null : parent.toString();
+  }
+
+  /**
+   * Replaces all occurrences of [CONFIG_DIR] in s with the config dir.
+   */
+  public String resolveConfigDir(String s) {
+    var cfgDir = getConfigDir();
+    return s.replace(PATH_CONFIG_IDENTIFIER, cfgDir == null ? "." : cfgDir);
+  }
+
   private File createConfigRelativePath(File file) {
     String id = PATH_CONFIG_IDENTIFIER;
     if (currentConfigFile == null) {
@@ -3927,16 +3836,16 @@ public class Cooja extends Observable {
 		public GUIAction(String name) {
       super(name);
     }
-    public GUIAction(String name, int nmenomic) {
+    public GUIAction(String name, int mnemonic) {
       this(name);
-      putValue(Action.MNEMONIC_KEY, nmenomic);
+      putValue(Action.MNEMONIC_KEY, mnemonic);
     }
     public GUIAction(String name, KeyStroke accelerator) {
       this(name);
       putValue(Action.ACCELERATOR_KEY, accelerator);
     }
-    public GUIAction(String name, int nmenomic, KeyStroke accelerator) {
-      this(name, nmenomic);
+    public GUIAction(String name, int mnemonic, KeyStroke accelerator) {
+      this(name, mnemonic);
       putValue(Action.ACCELERATOR_KEY, accelerator);
     }
     public abstract boolean shouldBeEnabled();
