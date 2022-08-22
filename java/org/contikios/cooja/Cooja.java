@@ -70,6 +70,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
@@ -296,7 +297,7 @@ public class Cooja extends Observable {
 
   private Simulation mySimulation;
 
-  protected final GUIEventHandler guiEventHandler = new GUIEventHandler();
+  protected final GUIEventHandler guiEventHandler;
 
   private JMenu menuMoteTypeClasses, menuMoteTypes;
 
@@ -396,6 +397,7 @@ public class Cooja extends Observable {
       myDesktopPane = null;
       quickHelpTextPane = null;
       quickHelpScroll = null;
+      guiEventHandler = null;
       try {
         parseProjectConfig();
       } catch (ParseProjectsException e) {
@@ -405,6 +407,7 @@ public class Cooja extends Observable {
     }
 
     // Visualization enabled past this point.
+    guiEventHandler = new GUIEventHandler();
     myDesktopPane = new JDesktopPane() {
       @Override
       public void setBounds(int x, int y, int w, int h) {
@@ -713,6 +716,175 @@ public class Cooja extends Observable {
   }
 
   private JMenuBar createMenuBar() {
+    final var newSimulationAction = new GUIAction("New simulation...", KeyEvent.VK_N, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK)) {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if (!cooja.doRemoveSimulation(true)) {
+          return;
+        }
+
+        var sim = new Simulation(cooja);
+        if (CreateSimDialog.showDialog(Cooja.getTopParentContainer(), sim)) {
+          cooja.setSimulation(sim, true);
+        }
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        return true;
+      }
+    };
+    final var closeSimulationAction = new GUIAction("Close simulation", KeyEvent.VK_C) {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        cooja.doRemoveSimulation(true);
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        return getSimulation() != null;
+      }
+    };
+    final var reloadSimulationAction = new GUIAction("Reload with same random seed", KeyEvent.VK_K, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK)) {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if (getSimulation() == null) {
+          // Reload last opened simulation.
+          final File file = getLastOpenedFile();
+          new Thread(() -> cooja.doLoadConfig(file, true, null)).start();
+          return;
+        }
+        reloadCurrentSimulation();
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        return true;
+      }
+    };
+    final var reloadRandomSimulationAction = new GUIAction("Reload with new random seed", KeyEvent.VK_N, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.SHIFT_DOWN_MASK | InputEvent.CTRL_DOWN_MASK)) {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if (getSimulation() != null) {
+          getSimulation().setRandomSeed(getSimulation().getRandomSeed()+1);
+          reloadCurrentSimulation();
+        }
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        return getSimulation() != null;
+      }
+    };
+    final var saveSimulationAction = new GUIAction("Save simulation as...", KeyEvent.VK_S) {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        cooja.doSaveConfig(true);
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        return getSimulation() != null;
+      }
+    };
+    final var exitCoojaAction = new GUIAction("Exit", 'x') {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        cooja.doQuit(true);
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        return true;
+      }
+    };
+    final var startStopSimulationAction = new GUIAction("Start simulation", KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)) {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        // Start/Stop current simulation.
+        Simulation s = getSimulation();
+        if (s == null) {
+          return;
+        }
+        if (s.isRunning()) {
+          s.stopSimulation();
+        } else {
+          s.startSimulation();
+        }
+      }
+      @Override
+      public void setEnabled(boolean newValue) {
+        if (getSimulation() == null) {
+          putValue(NAME, "Start simulation");
+        } else if (getSimulation().isRunning()) {
+          putValue(NAME, "Pause simulation");
+        } else {
+          putValue(NAME, "Start simulation");
+        }
+        super.setEnabled(newValue);
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        return getSimulation() != null && getSimulation().isRunnable();
+      }
+    };
+    final var removeAllMotesAction = new GUIAction("Remove all motes") {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        Simulation s = getSimulation();
+        if (s.isRunning()) {
+          s.stopSimulation();
+        }
+
+        while (s.getMotesCount() > 0) {
+          s.removeMote(getSimulation().getMote(0));
+        }
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        Simulation s = getSimulation();
+        return s != null && s.getMotesCount() > 0;
+      }
+    };
+    final var showGettingStartedAction = new GUIAction("Getting started") {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        loadQuickHelp("GETTING_STARTED");
+        var checkBox = ((JCheckBoxMenuItem)showQuickHelpAction.getValue("checkbox"));
+        if (checkBox == null || checkBox.isSelected()) {
+          return;
+        }
+        checkBox.doClick();
+      }
+
+      @Override
+      public boolean shouldBeEnabled() {
+        return true;
+      }
+    };
+    final var showKeyboardShortcutsAction = new GUIAction("Keyboard shortcuts") {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        loadQuickHelp("KEYBOARD_SHORTCUTS");
+        var checkBox = ((JCheckBoxMenuItem)showQuickHelpAction.getValue("checkbox"));
+        if (checkBox == null || checkBox.isSelected()) {
+          return;
+        }
+        checkBox.doClick();
+      }
+
+      @Override
+      public boolean shouldBeEnabled() {
+        return true;
+      }
+    };
+    final var showBufferSettingsAction = new GUIAction("Buffer sizes...") {
+      @Override
+      public void actionPerformed(ActionEvent e) {
+        if (mySimulation == null) {
+          return;
+        }
+        BufferSettings.showDialog(myDesktopPane, mySimulation);
+      }
+      @Override
+      public boolean shouldBeEnabled() {
+        return mySimulation != null;
+      }
+    };
 
     JMenuItem menuItem;
 
@@ -983,6 +1155,8 @@ public class Cooja extends Observable {
         JMenuItem menuItem = new JMenuItem(description + "...");
         menuItem.putClientProperty("class", newPluginClass);
         menuItem.addActionListener(menuItemListener);
+        // Only enable items when there is a simulation, otherwise the user gets a dialog with a backtrace.
+        menuItem.setEnabled(getSimulation() != null);
         return menuItem;
       }
 
@@ -1544,6 +1718,10 @@ public class Cooja extends Observable {
     Plugin plugin;
 
     try {
+      if (!isVisualized() && VisPlugin.class.isAssignableFrom(pluginClass)) {
+        throw new PluginRequiresVisualizationException();
+      }
+
       if (pluginType == PluginType.MOTE_PLUGIN) {
         if (argGUI == null) {
           throw new PluginConstructionException("No GUI argument for mote plugin");
@@ -2330,9 +2508,8 @@ public class Cooja extends Observable {
         setExternalToolsSetting("FRAME_WIDTH", String.valueOf(frame.getWidth()));
         setExternalToolsSetting("FRAME_HEIGHT", String.valueOf(frame.getHeight()));
       }
+      saveExternalToolsUserSettings();
     }
-    saveExternalToolsUserSettings();
-
     System.exit(exitCode);
   }
 
@@ -2814,10 +2991,15 @@ public class Cooja extends Observable {
 
       /* Create old to new identifier mappings */
       var moteTypeIDMappings = new HashMap<String, String>();
-      ArrayList<Object> reserved = new ArrayList<>(readNames);
+      var reserved = new HashSet<>(readNames);
       var existingMoteTypes = mySimulation == null ? null : mySimulation.getMoteTypes();
+      if (existingMoteTypes != null) {
+        for (var mote : existingMoteTypes) {
+          reserved.add(mote.getIdentifier());
+        }
+      }
       for (var existingIdentifier : readNames) {
-        String newID = ContikiMoteType.generateUniqueMoteTypeID(existingMoteTypes, reserved);
+        String newID = ContikiMoteType.generateUniqueMoteTypeID(reserved);
         moteTypeIDMappings.put(existingIdentifier, newID);
         reserved.add(newID);
       }
@@ -3850,112 +4032,6 @@ public class Cooja extends Observable {
     }
     public abstract boolean shouldBeEnabled();
   }
-  final GUIAction newSimulationAction = new GUIAction("New simulation...", KeyEvent.VK_N, KeyStroke.getKeyStroke(KeyEvent.VK_N, InputEvent.CTRL_DOWN_MASK)) {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      if (!cooja.doRemoveSimulation(true)) {
-        return;
-      }
-
-      var sim = new Simulation(cooja);
-      if (CreateSimDialog.showDialog(Cooja.getTopParentContainer(), sim)) {
-        cooja.setSimulation(sim, true);
-      }
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      return true;
-    }
-  };
-  final GUIAction closeSimulationAction = new GUIAction("Close simulation", KeyEvent.VK_C) {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      cooja.doRemoveSimulation(true);
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      return getSimulation() != null;
-    }
-  };
-  final GUIAction reloadSimulationAction = new GUIAction("Reload with same random seed", KeyEvent.VK_K, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.CTRL_DOWN_MASK)) {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      if (getSimulation() == null) {
-        /* Reload last opened simulation */
-        final File file = getLastOpenedFile();
-        new Thread(() -> cooja.doLoadConfig(file, true, null)).start();
-        return;
-      }
-      reloadCurrentSimulation();
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      return true;
-    }
-  };
-  final GUIAction reloadRandomSimulationAction = new GUIAction("Reload with new random seed", KeyEvent.VK_N, KeyStroke.getKeyStroke(KeyEvent.VK_R, InputEvent.SHIFT_DOWN_MASK | InputEvent.CTRL_DOWN_MASK)) {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      if (getSimulation() != null) {
-        getSimulation().setRandomSeed(getSimulation().getRandomSeed()+1);
-        reloadCurrentSimulation();
-      }
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      return getSimulation() != null;
-    }
-  };
-  final GUIAction saveSimulationAction = new GUIAction("Save simulation as...", KeyEvent.VK_S) {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      cooja.doSaveConfig(true);
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      return getSimulation() != null;
-    }
-  };
-  final GUIAction exitCoojaAction = new GUIAction("Exit", 'x') {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      cooja.doQuit(true);
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      return true;
-    }
-  };
-  final GUIAction startStopSimulationAction = new GUIAction("Start simulation", KeyStroke.getKeyStroke(KeyEvent.VK_S, InputEvent.CTRL_DOWN_MASK)) {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      /* Start/Stop current simulation */
-      Simulation s = getSimulation();
-      if (s == null) {
-        return;
-      }
-      if (s.isRunning()) {
-        s.stopSimulation();
-      } else {
-        s.startSimulation();
-      }
-    }
-    @Override
-    public void setEnabled(boolean newValue) {
-      if (getSimulation() == null) {
-        putValue(NAME, "Start simulation");
-      } else if (getSimulation().isRunning()) {
-        putValue(NAME, "Pause simulation");
-      } else {
-        putValue(NAME, "Start simulation");
-      }
-      super.setEnabled(newValue);
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      return getSimulation() != null && getSimulation().isRunnable();
-    }
-  };
   class StartPluginGUIAction extends GUIAction {
                public StartPluginGUIAction(String name) {
       super(name);
@@ -3978,24 +4054,6 @@ public class Cooja extends Observable {
     }
   }
 
-  final GUIAction removeAllMotesAction = new GUIAction("Remove all motes") {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      Simulation s = getSimulation();
-      if (s.isRunning()) {
-        s.stopSimulation();
-      }
-
-      while (s.getMotesCount() > 0) {
-        s.removeMote(getSimulation().getMote(0));
-      }
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      Simulation s = getSimulation();
-      return s != null && s.getMotesCount() > 0;
-    }
-  };
   final GUIAction showQuickHelpAction = new GUIAction("Quick help", KeyStroke.getKeyStroke(KeyEvent.VK_F1, 0)) {
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -4013,57 +4071,6 @@ public class Cooja extends Observable {
     @Override
     public boolean shouldBeEnabled() {
       return true;
-    }
-  };
-  final GUIAction showGettingStartedAction = new GUIAction("Getting started") {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      loadQuickHelp("GETTING_STARTED");
-      JCheckBoxMenuItem checkBox = ((JCheckBoxMenuItem)showQuickHelpAction.getValue("checkbox"));
-      if (checkBox == null) {
-        return;
-      }
-      if (checkBox.isSelected()) {
-        return;
-      }
-      checkBox.doClick();
-    }
-
-    @Override
-    public boolean shouldBeEnabled() {
-      return true;
-    }
-  };
-  final GUIAction showKeyboardShortcutsAction = new GUIAction("Keyboard shortcuts") {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      loadQuickHelp("KEYBOARD_SHORTCUTS");
-      JCheckBoxMenuItem checkBox = ((JCheckBoxMenuItem)showQuickHelpAction.getValue("checkbox"));
-      if (checkBox == null) {
-        return;
-      }
-      if (checkBox.isSelected()) {
-        return;
-      }
-      checkBox.doClick();
-    }
-
-    @Override
-    public boolean shouldBeEnabled() {
-      return true;
-    }
-  };
-  final GUIAction showBufferSettingsAction = new GUIAction("Buffer sizes...") {
-    @Override
-    public void actionPerformed(ActionEvent e) {
-      if (mySimulation == null) {
-        return;
-      }
-      BufferSettings.showDialog(myDesktopPane, mySimulation);
-    }
-    @Override
-    public boolean shouldBeEnabled() {
-      return mySimulation != null;
     }
   };
 

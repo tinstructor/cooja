@@ -45,6 +45,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.JComponent;
@@ -414,7 +415,6 @@ public class ContikiMoteType implements MoteType {
     SectionParser bssSecParser;
     SectionParser commonSecParser;
 
-    HashMap<String, Symbol> variables = new HashMap<>();
     if (useCommand) {
       /* Parse command output */
       String[] output = loadCommandData(getContikiFirmwareFile(), withUI);
@@ -466,6 +466,7 @@ public class ContikiMoteType implements MoteType {
      *
      * This offset will be used in Cooja in the memory abstraction to match
      * Contiki's and Cooja's address spaces */
+    HashMap<String, Symbol> variables = new HashMap<>();
     {
       SectionMoteMemory tmp = new SectionMoteMemory(variables);
       VarMemory varMem = new VarMemory(tmp);
@@ -1024,31 +1025,16 @@ public class ContikiMoteType implements MoteType {
   /**
    * Generates a unique Cooja mote type ID.
    *
-   * @param existingTypes Already existing mote types, may be null
-   * @param reservedIdentifiers Already reserved identifiers, may be null
+   * @param reservedIdentifiers Already reserved identifiers
    * @return Unique mote type ID.
    */
-  public static String generateUniqueMoteTypeID(MoteType[] existingTypes, Collection reservedIdentifiers) {
+  public static String generateUniqueMoteTypeID(Set<String> reservedIdentifiers) {
     String testID = "";
     boolean available = false;
 
     while (!available) {
       testID = "mtype" + new Random().nextInt(1000000000);
-      available = reservedIdentifiers == null || !reservedIdentifiers.contains(testID);
-
-      if (!available) {
-        continue;
-      }
-
-      // Check if identifier is used
-      if (existingTypes != null) {
-        for (MoteType existingMoteType : existingTypes) {
-          if (existingMoteType.getIdentifier().equals(testID)) {
-            available = false;
-            break;
-          }
-        }
-      }
+      available = !reservedIdentifiers.contains(testID);
       // FIXME: add check that the library name is not already used.
     }
 
