@@ -40,9 +40,9 @@ import org.contikios.coffee.CoffeeFS.CoffeeException;
 import org.contikios.coffee.CoffeeFS.CoffeeFileException;
 
 public class CoffeeManager {
-	public enum Command { INSERT, EXTRACT, REMOVE, LIST, STATS };
+	public enum Command { INSERT, EXTRACT, REMOVE, LIST, STATS }
 
-	public static void main(String args[]) {
+	public static void main(String[] args) {
 		String platform = "sky";
 		Command command = Command.STATS;
 		String filename = "";
@@ -58,7 +58,7 @@ public class CoffeeManager {
 			System.exit(1);
 		}
 
-		Pattern optionArg = Pattern.compile("-(p|i|e|r)");
+		Pattern optionArg = Pattern.compile("-([pier])");
 
 		for(int i = 0; i < args.length - 1; i++) {
 			if (optionArg.matcher(args[i]).matches()) {

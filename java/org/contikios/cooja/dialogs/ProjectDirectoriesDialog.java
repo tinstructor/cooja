@@ -411,10 +411,14 @@ public class ProjectDirectoriesDialog extends JDialog {
 					   (project.configRead()?"OK":"FAILED") + "\n\n");
 			return;
 		}
-		
-		if (project.getConfigPlugins() != null) {
-			projectInfo.append("Plugins: " + Arrays.toString(project.getConfigPlugins()) + "\n");
-		}
+    var sb = new StringBuilder();
+    sb.append("Plugins:");
+    for (var plugin : gui.getRegisteredPlugins()) {
+      sb.append(' ').append(plugin);
+    }
+    sb.append("\n");
+    projectInfo.append(sb.toString());
+    sb.setLength(0);
 		if (project.getConfigJARs() != null) {
 			String[] jars = project.getConfigJARs();
 			projectInfo.append("JARs: " + Arrays.toString(jars) + "\n");
@@ -429,12 +433,26 @@ public class ProjectDirectoriesDialog extends JDialog {
 				}
 			}
 		}
-		if (project.getConfigMoteTypes() != null) {
-			projectInfo.append("Mote types: " + Arrays.toString(project.getConfigMoteTypes()) + "\n");
-		}
-		if (project.getConfigRadioMediums() != null) {
-			projectInfo.append("Radio mediums: " + Arrays.toString(project.getConfigRadioMediums()) + "\n");
-		}
+    var moteTypes = gui.getRegisteredMoteTypes();
+    if (moteTypes != null) {
+      sb.append("Mote types:");
+      for (var moteType : moteTypes) {
+        sb.append(' ').append(moteType.toString());
+      }
+      sb.append("\n");
+      projectInfo.append(sb.toString());
+      sb.setLength(0);
+    }
+    var radioMediums = gui.getRegisteredRadioMediums();
+    if (radioMediums != null) {
+      sb.append("Radio mediums:");
+      for (var medium : radioMediums) {
+        sb.append(' ').append(medium.toString());
+      }
+      sb.append("\n");
+      projectInfo.append(sb.toString());
+      sb.setLength(0);
+    }
 		if (project.getConfigMoteInterfaces() != null) {
 			projectInfo.append("Cooja mote interfaces: " + Arrays.toString(project.getConfigMoteInterfaces()) + "\n");
 		}

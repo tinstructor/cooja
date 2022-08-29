@@ -33,9 +33,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.util.Collection;
 import javax.swing.JPanel;
-import org.jdom.Element;
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.interfaces.LED;
@@ -61,6 +59,7 @@ public class MspLED extends LED {
         }
         leds.addStateChangeListener(new StateChangeListener() {
 
+            @Override
             public void stateChanged(Object source, int oldState, int newState) {
                 setChanged();
                 notifyObservers();
@@ -130,15 +129,6 @@ public class MspLED extends LED {
         if (panel instanceof LedsPanel) {
             ((LedsPanel) panel).close();
         }
-    }
-
-    @Override
-    public Collection<Element> getConfigXML() {
-        return null;
-    }
-
-    @Override
-    public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
     }
 
     private class LedsPanel extends JPanel implements StateChangeListener {

@@ -56,10 +56,10 @@ import org.contikios.cooja.plugins.skins.LogisticLossVisualizerSkin;
 /**
  * The LogisticLoss radio medium aims to be more realistic as the UDGM radio medium
  * while remaining as easily usable.
- *
- * It takes its name from the fact that the logistic function (shaped as a sigmoid)
+ * <p>
+ * It takes its name from the fact that the logistic function (shaped as a sigmoid) 
  * is used to model the packet reception probability based on RSSI.
- *
+ * <p>
  * Features:
  * - Models a non-linear relationship between signal level packet reception probability
  * - Models the signal level as a function of distance following a standard formula
@@ -67,20 +67,20 @@ import org.contikios.cooja.plugins.skins.LogisticLossVisualizerSkin;
  * - Adds a random level of noise (AWGN) to the signal level of each packet (shadowing)
  * - Multiple Configurable parameters
  * - Visualization similar to UDGM visualization
- *
+ * <p>
  * This Cooja plugin uses a logistic function to model the PRR-RSSI relationship:
- *
+ * <p>
  *   PRR(rssi) =  1.0 / (1 + exp(-(rssi - rssi_50%))),
- *
+ * <p>
  * where:
  * - `rssi` is the transmit-power minus the path loss.
  * - `rssi_50%` is the signal level at which 50% packets are received;
- *
+ * <p>
  * To model the path loss PL_{dBm}(d) this plugin uses the log-distance path loss model
  * with log-normal shadowing (see Rappaport, T.S. Wireless Communications, Principles and Practice)
- *
+ * <p>
  *  PL_{dBm}(d) = PL_0 + PL_t + 10 * \alpha * \log_10 (d / d_0) + NormalDistribution(0, \sigma),
- *
+ * <p>
  * where:
  * - `d_0` a close-in reference distance in the transmitter's far-field region;
  * - `PL_0` is the path loss at `d_0` (to be calculated with the free-space path
@@ -90,18 +90,18 @@ import org.contikios.cooja.plugins.skins.LogisticLossVisualizerSkin;
  * - `\sigma` is the standard deviation of the Additive White Gaussian Noise;
  * - `NormalDistribution(0, \sigma)` is a Gaussian-distributed random variable
  *    with zero-mean and standard deviation `\sigma`;
- *
+ * <p>
  * The default value of `\alpha` (the path loss exponent) is 3.0 and the default
  * value of `\sigma` is 3.0 as well, both of which approximately correspond to
  * "indoors, 2.4 GHz frequency" according to RF propagation theory. For 868 MHz
  * `\alpha` is also set to 3.0 while `\sigma` is set to 5.0 by default.
- *
+ * <p>
  * If the time-varying behavior is enabled, the value of `PL_t` is changing over time.
  * The change is within bounds `[TVPL_{min}, TVPL_{max}]`. The evolution is done in discrete steps.
  * At the time `t`, the `PL_t` is updated as:
- *
+ * <p>
  *  PL_t = bound(PL_{t-1} + r),
- *
+ * <p>
  * where `r` is a small random value, and `bound(pl) = min(MAX_PL, max(MIN_PL, pl))`,
  * and `MIN_PL` and `MAX_PL` are time minimum and maximum values of the time-varying path loss.
  *

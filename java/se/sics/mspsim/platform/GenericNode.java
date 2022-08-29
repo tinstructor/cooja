@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -260,6 +260,7 @@ public abstract class GenericNode extends Chip implements Runnable {
   }
 
 
+  @Override
   public void run() {
     if (!cpu.isRunning()) {
       try {
@@ -273,7 +274,7 @@ public abstract class GenericNode extends Chip implements Runnable {
 
   public void start() {
     if (!cpu.isRunning()) {
-      Thread thread = new Thread(this);
+      Thread thread = new Thread(this, "GenericNode.start");
       // Set this thread to normal priority in case the start method was called
       // from the higher priority AWT thread.
       thread.setPriority(Thread.NORM_PRIORITY);
@@ -328,6 +329,7 @@ public abstract class GenericNode extends Chip implements Runnable {
     return elf;
   }
 
+  @Override
   public int getConfiguration(int param) {
       return 0;
   }

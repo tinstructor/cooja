@@ -1,10 +1,26 @@
 package se.sics.mspsim.extutil.highlight;
-import java.awt.*;
-import javax.swing.*;
-import javax.swing.text.*;
-import javax.swing.event.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Rectangle;
+import java.io.IOException;
+import java.io.Reader;
+import javax.swing.JTextPane;
 import java.awt.geom.Rectangle2D;
-import java.io.*;
+import javax.swing.event.CaretEvent;
+import javax.swing.event.CaretListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DefaultStyledDocument;
+import javax.swing.text.Element;
+import javax.swing.text.Position;
+import javax.swing.text.Segment;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 
 // Public domain, no restrictions, Ian Holyer, University of Bristol.
 
@@ -42,6 +58,7 @@ public class SyntaxHighlighter extends JTextPane implements DocumentListener, To
     // Quick fix to highlight selected line
     addCaretListener(new CaretListener() {
 
+      @Override
       public void caretUpdate(CaretEvent e) {
         int caret = getCaretPosition();
         if (caret >= 0) {
@@ -98,6 +115,7 @@ public class SyntaxHighlighter extends JTextPane implements DocumentListener, To
    * <code>read</code> in <code>JTextComponent</code> in order to highlight
    * the new text.
    */
+  @Override
   public void read(Reader in, Object desc) throws IOException {
     int oldLength = getDocument().getLength();
     doc.removeDocumentListener(this);
@@ -192,9 +210,10 @@ public class SyntaxHighlighter extends JTextPane implements DocumentListener, To
 
 
   /**
-   * <font style='color:gray;'>Ignore this method. Responds to the underlying
-   * document changes by re-highlighting.</font>
+   * <span style="color:gray;">Ignore this method. Responds to the underlying
+   * document changes by re-highlighting.</span>
    */
+  @Override
   public void insertUpdate(DocumentEvent e) {
     int offset = e.getOffset();
     int length = e.getLength();
@@ -203,9 +222,10 @@ public class SyntaxHighlighter extends JTextPane implements DocumentListener, To
   }
 
   /**
-   * <font style='color:gray;'>Ignore this method. Responds to the underlying
-   * document changes by re-highlighting.</font>
+   * <span style="color:gray;">Ignore this method. Responds to the underlying
+   * document changes by re-highlighting.</span>
    */
+  @Override
   public void removeUpdate(DocumentEvent e) {
     int offset = e.getOffset();
     int length = e.getLength();
@@ -214,9 +234,10 @@ public class SyntaxHighlighter extends JTextPane implements DocumentListener, To
   }
 
   /**
-   * <font style='color:gray;'>Ignore this method. Responds to the underlying
-   * document changes by re-highlighting.</font>
+   * <span style="color:gray;">Ignore this method. Responds to the underlying
+   * document changes by re-highlighting.</span>
    */
+  @Override
   public void changedUpdate(DocumentEvent e) {
     // Do nothing.
   }
@@ -233,9 +254,10 @@ public class SyntaxHighlighter extends JTextPane implements DocumentListener, To
   private Color highlightColor = new Color(0, 240, 0, 255);
 
   /**
-   * <font style='color:gray;'>Ignore this method. Carries out a small amount of
-   * re-highlighting for each call to <code>repaint</code>.</font>
+   * <span style="color:gray;">Ignore this method. Carries out a small amount of
+   * re-highlighting for each call to <code>repaint</code>.</span>
    */
+  @Override
   protected void paintComponent(Graphics g) {
     if (currentHeight > 0) {
       g.setColor(highlightColor);

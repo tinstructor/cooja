@@ -19,7 +19,7 @@ public class CommandHandler implements ActiveComponent, LineListener {
   protected final PrintStream err;
   private MapTable mapTable;
   private ComponentRegistry registry;
-  private ArrayList<CommandContext[]> currentAsyncCommands = new ArrayList<CommandContext[]>();
+  private final ArrayList<CommandContext[]> currentAsyncCommands = new ArrayList<>();
   private int pidCounter = 0;
 
   public CommandHandler(PrintStream out, PrintStream err) {
@@ -81,7 +81,7 @@ public class CommandHandler implements ActiveComponent, LineListener {
         }
         // TODO: Check if first command is also LineListener and set it up for input!!
       }
-      // Execute when all is set-up in opposite order...
+      // Execute when all is set up in opposite order...
       int index = commands.length - 1;
       try {
         for (; index >= 0; index--) {
@@ -176,10 +176,12 @@ public class CommandHandler implements ActiveComponent, LineListener {
     return cmds;
   }
 
+  @Override
   public void init(String name, ComponentRegistry registry) {
     this.registry = registry;
   }
 
+  @Override
   public void start() {
     Object[] commandBundles = registry.getAllComponents(CommandBundle.class);
     if (commandBundles != null) {
@@ -191,10 +193,11 @@ public class CommandHandler implements ActiveComponent, LineListener {
 
   private void registerCommands() {
     registerCommand("help", new BasicCommand("show help for the specified command or command list", "[command]") {
+      @Override
       public int executeCommand(CommandContext context) {
         if (context.getArgumentCount() == 0) {
           context.out.println("Available commands:");
-          String[] names = commands.keySet().toArray(new String[commands.size()]);
+          String[] names = commands.keySet().toArray(new String[0]);
           Arrays.sort(names);
           for(String name : names) {
             Command command = commands.get(name);
@@ -247,6 +250,7 @@ public class CommandHandler implements ActiveComponent, LineListener {
     });
 
     registerCommand("ps", new BasicCommand("list current executing commands/processes", "") {
+      @Override
       public int executeCommand(CommandContext context) {
         if (currentAsyncCommands.size() > 0) {
             context.out.println(" PID\tCommand");
@@ -262,6 +266,7 @@ public class CommandHandler implements ActiveComponent, LineListener {
     });
 
     registerCommand("kill", new BasicCommand("kill a currently executing command", "<process>") {
+      @Override
       public int executeCommand(CommandContext context) {
         int pid = context.getArgumentAsInt(0);
         if (removePid(pid)) {
@@ -304,6 +309,7 @@ public class CommandHandler implements ActiveComponent, LineListener {
       return false;
   }
 
+  @Override
   public void lineRead(String line) {
     executeCommand(line, null);
   }

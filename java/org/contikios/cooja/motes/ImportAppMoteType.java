@@ -41,6 +41,8 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jdom.Element;
 
 import org.contikios.cooja.AbstractionLevelDescription;
@@ -57,6 +59,7 @@ import org.contikios.cooja.util.ArrayUtils;
 @ClassDescription("Import Java mote")
 @AbstractionLevelDescription("Application level")
 public class ImportAppMoteType extends AbstractApplicationMoteType {
+  private static final Logger logger = LogManager.getLogger(ImportAppMoteType.class);
 
   private Simulation simulation;
 
@@ -198,8 +201,7 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
     }
     File moteClassFile = new File(moteClassName);
     if (moteClassFile.canRead()) {
-      try {
-        TestLoader test = createTestLoader(moteClassFile);
+      try (var test = createTestLoader(moteClassFile)) {
         // Successfully found the class
         moteClassPath = test.getTestClassPath();
         moteClassName = test.getTestClassName();
@@ -210,11 +212,13 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
   }
 
   private ClassLoader getParentClassLoader() {
-    if (simulation.getCooja().projectDirClassLoader == null) {
-      return ClassLoader.getSystemClassLoader();
-    } else {
-      return simulation.getCooja().projectDirClassLoader;
+    ClassLoader ldr = null;
+    try {
+      ldr = simulation.getCooja().getProjectClassLoader();
+    } catch (Exception e) {
+      logger.warn("Could not get Cooja classloader: " + e);
     }
+    return ldr == null ? ClassLoader.getSystemClassLoader() : ldr;
   }
 
   public TestLoader createTestLoader(File classFile) throws IOException {
@@ -225,7 +229,7 @@ public class ImportAppMoteType extends AbstractApplicationMoteType {
         parent = parent.getParentFile()) {
       list.add(parent.toURI().toURL());
     }
-    return new TestLoader(list.toArray(new URL[list.size()]),
+    return new TestLoader(list.toArray(new URL[0]),
         getParentClassLoader(), classFile);
   }
 

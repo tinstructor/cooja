@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -106,18 +106,18 @@ public abstract class IOUnit implements InterruptHandler, Loggable {
   public void reset(int type) {
   }
 
-  // write
   // write a value to the IO unit
   public abstract void write(int address, int value, boolean word, long cycles);
 
-  // read
   // read a value from the IO unit
   public abstract int read(int address, boolean word, long cycles);
 
+  @Override
   public String getID() {
       return id;
   }
 
+  @Override
   public String getName() {
       return name;
   }
@@ -130,6 +130,7 @@ public abstract class IOUnit implements InterruptHandler, Loggable {
       logger.logw(this, type, msg);
   }
 
+  @Override
   public String info() {
       return "* no info";
   }

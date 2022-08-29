@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -51,6 +51,7 @@ public abstract class BasicLineCommand extends BasicAsyncCommand implements
     super(cmdHelp, argHelp);
   }
 
+  @Override
   public void stopCommand(CommandContext context) {
     context.exit(0);
   }

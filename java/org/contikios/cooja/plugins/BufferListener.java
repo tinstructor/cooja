@@ -52,6 +52,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -140,7 +141,6 @@ public class BufferListener extends VisPlugin {
     registerBufferParser(IntegerParser.class);
     registerBufferParser(TerminatedStringParser.class);
     registerBufferParser(PrintableCharactersParser.class);
-    registerBufferParser(IPv4AddressParser.class);
     registerBufferParser(IPv6AddressParser.class);
     /* TODO Add parsers: ValueToWidth, AccessHeatmap, .. */
     registerBufferParser(GraphicalHeight4BitsParser.class);
@@ -342,7 +342,7 @@ public class BufferListener extends VisPlugin {
           BufferAccess ba = logs.get(row);
           return
           "<html><pre>" +
-          "Address: " + (ba.address==0?"null":String.format("%04x\n", ba.address)) +
+          "Address: " + (ba.address==0?"null":String.format("%016x\n", ba.address)) +
           StringUtils.hexDump(ba.mem, 4, 4) +
           "</pre></html>";
         }
@@ -1346,8 +1346,8 @@ public class BufferListener extends VisPlugin {
   private void setParser(Class<? extends Parser> bpClass) {
     Parser bp = null;
     try {
-      bp = bpClass.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      bp = bpClass.getDeclaredConstructor().newInstance();
+    } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
       logger.warn("Could not create buffer parser: " + e.getMessage(), e);
       return;
     }
@@ -1377,7 +1377,7 @@ public class BufferListener extends VisPlugin {
         mainPanel.add(new JLabel("Size (1-" + MAX_BUFFER_SIZE + "):"));
         mainPanel.add(textSize);
       }
-      if (size != null) {
+      if (offset != null) {
         textOffset.setText(offset);
         mainPanel.add(new JLabel("Offset"));
         mainPanel.add(textOffset);
@@ -1399,8 +1399,8 @@ public class BufferListener extends VisPlugin {
 
   private static Buffer createBufferInstance(Class<? extends Buffer> btClass) {
     try {
-      return btClass.newInstance();
-    } catch (InstantiationException | IllegalAccessException e) {
+      return btClass.getDeclaredConstructor().newInstance();
+    } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
       logger.warn("Could not create buffer type: " + e.getMessage(), e);
       return null;
     }
@@ -1506,7 +1506,7 @@ public class BufferListener extends VisPlugin {
           bl,
           mote,
           getPointerAddress(mote),
-          mote.getMemory().getLayout().intSize,
+          mote.getMemory().getLayout().addrSize,
           getSize(mote)
       );
     }
@@ -1666,18 +1666,6 @@ public class BufferListener extends VisPlugin {
         mem = ba.mem;
       }
       return IPUtils.getCompressedIPv6AddressString(mem);
-    }
-  }
-
-  @ClassDescription("IPv4 address")
-  public static class IPv4AddressParser extends StringParser {
-    @Override
-    public String parseString(BufferAccess ba) {
-      /* TODO Diff? */
-      if (ba.mem.length < 4) {
-        return "[must monitor at least 4 bytes]";
-      }
-      return IPUtils.getIPv4AddressString(ba.mem);
     }
   }
 

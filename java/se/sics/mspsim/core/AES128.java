@@ -32,6 +32,7 @@
  */
 package se.sics.mspsim.core;
 
+import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -40,7 +41,7 @@ import se.sics.mspsim.core.EmulationLogger.WarningType;
 
 /**
  * AES128 msp430 peripheral emulation
- *
+ * <p>
  * TODO:
  *      advanced cipher modes
  *      longer key support
@@ -48,7 +49,7 @@ import se.sics.mspsim.core.EmulationLogger.WarningType;
  *      timing concerns
  *      first round key operations
  *
- * @author Víctor Ariño <victor.arino@tado.com>
+ * @author Víctor Ariño (victor.arino@tado.com)
  */
 public class AES128 extends IOUnit {
 
@@ -128,6 +129,7 @@ public class AES128 extends IOUnit {
          * Clear everything when reset. The cleared fields are specified in the
          * manual
          */
+        @Override
         public void reset(int type) {
                 /*
                  * AES software reset. Immediately resets the complete AES accelerator
@@ -288,7 +290,7 @@ public class AES128 extends IOUnit {
 
         /**
          * Java implementation of the AES encryption algorithm
-         *
+         * <p>
          * This method encrypts whatever is in inData using key and sets it into
          * outData
          */
@@ -304,13 +306,13 @@ public class AES128 extends IOUnit {
                         outData.put(bytes);
                         outData.resetPos();
                 } catch (Exception e) {
-                        log(e.getStackTrace().toString());
+                        log(Arrays.toString(e.getStackTrace()));
                 }
         }
 
         /**
          * Java implementation of the AES decryption algorithm
-         *
+         * <p>
          * This method decrypts whatever is in inData using key and sets it into
          * outData
          */
@@ -326,7 +328,7 @@ public class AES128 extends IOUnit {
                         outData.put(bytes);
                         outData.resetPos();
                 } catch (Exception e) {
-                        log(e.getStackTrace().toString());
+                        log(Arrays.toString(e.getStackTrace()));
                 }
         }
 
@@ -356,6 +358,7 @@ public class AES128 extends IOUnit {
         /**
          * The registers are written
          */
+        @Override
         public void write(int address, int value, boolean word, long cycles) {
                 log("write @ %x <-- %x (word=%b)\n", address, value, word);
                 int lo = (value) & 0xff; // low byte
@@ -472,6 +475,7 @@ public class AES128 extends IOUnit {
         /**
          * Registers are read
          */
+        @Override
         public int read(int address, boolean word, long cycles) {
                 log("read %x (word?%b)\n", address, word);
                 switch (address - offset) {
@@ -499,6 +503,7 @@ public class AES128 extends IOUnit {
                 return 0;
         }
 
+        @Override
         public void interruptServiced(int vector) {
                 if (vector == AES_VECTOR) {
                         readyInterruptFlag = false;

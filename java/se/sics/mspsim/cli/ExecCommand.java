@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2008, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -37,6 +37,8 @@
  *           $Revision$
  */
 package se.sics.mspsim.cli;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -55,6 +57,7 @@ public class ExecCommand extends BasicLineCommand {
     super("execute the specified command", "<cmd> [args...]");
   }
 
+  @Override
   public int executeCommand(CommandContext context) {
     this.context = context;
 
@@ -84,12 +87,14 @@ public class ExecCommand extends BasicLineCommand {
     return 0;
   }
 
+  @Override
   public void lineRead(String line) {
     System.out.println("Exec: sending a line: " + line);
     output.println(line);
     output.flush();
   }
 
+  @Override
   public void stopCommand(CommandContext context) {
     if (runner != null && runner.isRunning) {
       process.destroy();
@@ -114,6 +119,7 @@ public class ExecCommand extends BasicLineCommand {
       this.isRunning = false;
     }
 
+    @Override
     public void run() {
       int exitValue = -1;
       isRunning = true;
@@ -155,10 +161,11 @@ public class ExecCommand extends BasicLineCommand {
                   InputStream input, PrintStream out) {
       super(name);
       this.command = command;
-      this.input = new BufferedReader(new InputStreamReader(input));
+      this.input = new BufferedReader(new InputStreamReader(input, UTF_8));
       this.out = out;
     }
 
+    @Override
     public void run() {
       try {
         String line;

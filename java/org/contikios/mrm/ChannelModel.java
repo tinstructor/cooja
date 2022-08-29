@@ -59,10 +59,10 @@ import org.contikios.mrm.statistics.GaussianWrapper;
 /**
  * The channel model object in MRM is responsible for calulating propagation
  * impact on packets being sent in the radio medium.
- *
+ * <p>
  * By registering as a settings observer on this channel model, other parts will
  * be notified if the settings change.
- *
+ * <p>
  * TODO Add better support for different signal strengths
  *
  * @author Fredrik Osterlind
@@ -1678,7 +1678,7 @@ public class ChannelModel {
    * a packet from a transmitter at given source.
    * This method uses current parameters such as transmitted power,
    * obstacles, overall system loss, packet size etc.
-   * 
+   * <p>
    * TODO Packet size
    * TODO External interference/Background noise
    *
@@ -1874,26 +1874,33 @@ public class ChannelModel {
     public abstract Radio getFromRadio();
     public abstract Radio getToRadio();
     
+    @Override
     public double getDistance() {
       double w = getFromX() - getToX();
       double h = getFromY() - getToY();
       return Math.sqrt(w*w+h*h);
     }
+    @Override
     public double getFromX() {
       return getFromRadio().getPosition().getXCoordinate();
     }
+    @Override
     public double getFromY() {
       return getFromRadio().getPosition().getYCoordinate();
     }
+    @Override
     public double getToX() {
       return getToRadio().getPosition().getXCoordinate();
     }
+    @Override
     public double getToY() {
       return getToRadio().getPosition().getYCoordinate();
     }
+    @Override
     public double getTxPower() {
       return getFromRadio().getCurrentOutputPower();
     }
+    @Override
     public double getTxGain() {
       if (!(getFromRadio() instanceof DirectionalAntennaRadio)) {
         return 0;
@@ -1901,6 +1908,7 @@ public class ChannelModel {
       DirectionalAntennaRadio r = (DirectionalAntennaRadio)getFromRadio();
       return r.getRelativeGain(r.getDirection() + getAngle(), getAngle());
     }
+    @Override
     public double getRxGain() {
       if (!(getToRadio() instanceof DirectionalAntennaRadio)) {
         return 0;

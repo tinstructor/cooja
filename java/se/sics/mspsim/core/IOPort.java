@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007-2012, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -43,9 +43,9 @@ import se.sics.mspsim.util.Utils;
 
 public class IOPort extends IOUnit {
 
-    public enum PinState { LOW, HI };
+    public enum PinState { LOW, HI }
 
-    public enum PortReg {IN, OUT, DIR, SEL, SEL2, IFG, IES, IE, REN, DS, IV_L, IV_H};
+    public enum PortReg {IN, OUT, DIR, SEL, SEL2, IFG, IES, IE, REN, DS, IV_L, IV_H}
 
     /* portmaps for 1611 */
     private static final PortReg[] PORTMAP_INTERRUPT =
@@ -57,7 +57,7 @@ public class IOPort extends IOUnit {
     private final int interrupt;
 
     // External pin state!
-    private final PinState pinState[] = new PinState[8];
+    private final PinState[] pinState = new PinState[8];
 
     private final PortReg[] portMap;
 
@@ -257,8 +257,7 @@ public class IOPort extends IOUnit {
             return v;
         }
         case IV_H: {
-            int v = iv >> 8;
-            return v;
+            return iv >> 8;
         }
         }
         /* default is zero ??? */
@@ -336,6 +335,7 @@ public class IOPort extends IOUnit {
     }
 
 
+    @Override
     public int read(int address, boolean word, long cycles) {
         PortReg reg = portMap[address - offset];
         /* only byte read allowed if not having an ioPair */
@@ -351,6 +351,7 @@ public class IOPort extends IOUnit {
     }
 
 
+    @Override
     public void write(int address, int data, boolean word, long cycles) {
         int iAddress = address - offset;
         PortReg fun = portMap[iAddress];
@@ -370,6 +371,7 @@ public class IOPort extends IOUnit {
         }
     }
 
+    @Override
     public void interruptServiced(int vector) {
     }
 
@@ -416,6 +418,7 @@ public class IOPort extends IOUnit {
         }
     }
 
+    @Override
     public void reset(int type) {
         int oldValue = out | (~dir) & 0xff;
 
@@ -435,6 +438,7 @@ public class IOPort extends IOUnit {
         }
     }
 
+    @Override
     public String info() {
         StringBuilder sb = new StringBuilder();
         sb.append(" $").append(Utils.hex(offset, 2)).append(':');

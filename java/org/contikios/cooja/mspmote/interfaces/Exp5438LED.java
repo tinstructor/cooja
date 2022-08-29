@@ -32,7 +32,6 @@ package org.contikios.cooja.mspmote.interfaces;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -40,7 +39,6 @@ import javax.swing.JPanel;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
@@ -71,6 +69,7 @@ public class Exp5438LED extends LED {
     IOUnit unit = mspMote.getCPU().getIOUnit("P1");
     if (unit instanceof IOPort) {
       ((IOPort) unit).addPortListener(new PortListener() {
+        @Override
         public void portWrite(IOPort source, int data) {
           redOn = (data & Exp5438Node.LEDS_CONF_RED) != 0;
           yellowOn = (data & Exp5438Node.LEDS_CONF_YELLOW) != 0;
@@ -81,24 +80,30 @@ public class Exp5438LED extends LED {
     }
   }
 
+  @Override
   public boolean isAnyOn() {
     return redOn || yellowOn;
   }
 
+  @Override
   public boolean isGreenOn() {
     return false; /* does not exist */
   }
 
+  @Override
   public boolean isRedOn() {
 	  return redOn;
   }
 
+  @Override
   public boolean isYellowOn()  {
     return yellowOn;
   }
 
+  @Override
   public JPanel getInterfaceVisualizer() {
     final JPanel panel = new JPanel() {
+	@Override
 	public void paintComponent(Graphics g) {
         super.paintComponent(g);
 
@@ -132,6 +137,7 @@ public class Exp5438LED extends LED {
 
     Observer observer;
     this.addObserver(observer = new Observer() {
+      @Override
       public void update(Observable obs, Object obj) {
         panel.repaint();
       }
@@ -146,6 +152,7 @@ public class Exp5438LED extends LED {
     return panel;
   }
 
+  @Override
   public void releaseInterfaceVisualizer(JPanel panel) {
     Observer observer = (Observer) panel.getClientProperty("intf_obs");
     if (observer == null) {
@@ -154,14 +161,6 @@ public class Exp5438LED extends LED {
     }
 
     this.deleteObserver(observer);
-  }
-
-
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
 }

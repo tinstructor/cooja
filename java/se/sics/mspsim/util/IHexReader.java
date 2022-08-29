@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -40,6 +40,8 @@
  */
 
 package se.sics.mspsim.util;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -50,7 +52,7 @@ import se.sics.mspsim.core.MSP430;
 public class IHexReader {
 
   // 64k tmp ram!
-  private int tmpMemory[] = new int[64 * 1024];
+  private int[] tmpMemory = new int[64 * 1024];
 
   /**
    * Creates a new <code>IHexReader</code> instance.
@@ -59,12 +61,12 @@ public class IHexReader {
   public IHexReader() {
   }
 
-  public boolean readFile(int memory[], String file) {
+  public boolean readFile(int[] memory, String file) {
     for (int i = 0, n = tmpMemory.length; i < n; i++) {
       tmpMemory[i] = -1;
     }
     try {
-      BufferedReader bInput = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+      BufferedReader bInput = new BufferedReader(new InputStreamReader(new FileInputStream(file), UTF_8));
       String line;
       boolean terminate = false;
       while ((line = bInput.readLine()) != null && !terminate) {
@@ -87,7 +89,7 @@ public class IHexReader {
           terminate = true;
         } else {
           int index = 9;
-          for (int i = 0, n = size; i < n; i++) {
+          for (int i = 0; i < size; i++) {
             tmpMemory[adr + i] = (hexToInt(line.charAt(index++)) * 0x10 +
                                   hexToInt(line.charAt(index++)));
           }
@@ -126,7 +128,7 @@ public class IHexReader {
     }
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     IHexReader reader = new IHexReader();
     int data = 0x84;
     System.out.println("RRA: " + hex((data & 0x80) + (data >> 1)));

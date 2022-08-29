@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -72,6 +72,7 @@ public class SkyNode extends MoteIVNode {
   }
 
   // USART Listener
+  @Override
   public void dataReceived(USARTSource source, int data) {
     radio.dataReceived(source, data);
     flash.dataReceived(source, data);
@@ -86,6 +87,7 @@ public class SkyNode extends MoteIVNode {
     flash.portWrite(source, data);
   }
 
+  @Override
   public void setupNodePorts() {
     super.setupNodePorts();
     if (getFlash() == null) {

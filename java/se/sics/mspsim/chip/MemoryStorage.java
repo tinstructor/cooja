@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2012, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -41,7 +41,7 @@ public class MemoryStorage implements Storage {
     private byte[] data;
     private int maxSize;
 
-    private void ensureCapacity(int size) throws IOException {
+    private void ensureCapacity(int size) {
         if (data == null) {
             data = new byte[size];
         } else if (data.length < size) {

@@ -22,10 +22,10 @@ public class TSPTest extends AbstractPacketHandler implements Runnable {
     TSPClient tunnel = TSPClient.startTSPTunnel(ipStack, "anon.freenet6.net", null, null);
     ipStack.setTunnel(tunnel);
 
-    new Thread(testLink).start();
-
+    new Thread(testLink, "TSPTest.main").start();
   }
 
+  @Override
   public void run() {
     IPv6Packet ping = new IPv6Packet();
     ping.setDestinationAddress(GOOGLE);
@@ -44,9 +44,11 @@ public class TSPTest extends AbstractPacketHandler implements Runnable {
     }
   }
 
+  @Override
   public void packetReceived(Packet container) {
     System.out.println("Packet received from IP Stack...: " + container);
   }
 
+  @Override
   public void sendPacket(Packet packet) {  }
 }

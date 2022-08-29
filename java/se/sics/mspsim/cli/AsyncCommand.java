@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -46,5 +46,5 @@ package se.sics.mspsim.cli;
  *
  */
 public interface AsyncCommand {
-  public void stopCommand(CommandContext context);
+  void stopCommand(CommandContext context);
 }

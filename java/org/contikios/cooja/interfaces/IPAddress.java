@@ -31,7 +31,6 @@
 package org.contikios.cooja.interfaces;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
@@ -47,10 +46,9 @@ import org.contikios.cooja.mote.memory.MemoryInterface.SegmentMonitor;
 import org.contikios.cooja.mote.memory.MemoryLayout;
 import org.contikios.cooja.mote.memory.VarMemory;
 import org.contikios.cooja.util.IPUtils;
-import org.jdom.Element;
 
 /**
- * Read-only interface to IPv4 or IPv6 address.
+ * Read-only interface to IPv6 address.
  *
  * @author Fredrik Osterlind
  * @author Enrico Joerns
@@ -63,7 +61,6 @@ public class IPAddress extends MoteInterface {
 
   private enum IPv {
     NONE,
-    IPv4,
     IPv6
   }
 
@@ -95,15 +92,7 @@ public class IPAddress extends MoteInterface {
           return;
         }
 
-        /* XXX Quick & Dirty IPv4 update handle */
-        if (ipVersion == IPv.IPv4) {
-          updateIPAddresses();
-          setChanged();
-          notifyObservers();
-          return;
-        }
-
-        /* Wait until size and offsest values are set initially,
+        /* Wait until size and offset values are set initially,
          * then add memory monitor for each ip field */
         if ((ipv6_addr_list_offset == 0) || (ipv6_addr_size == 0)) {
           ipv6_addr_list_offset = moteMem.getByteValueOf("uip_ds6_netif_addr_list_offset");
@@ -161,14 +150,7 @@ public class IPAddress extends MoteInterface {
     };
 
     /* Determine IP version an add MemoryMonitors */
-    if (moteMem.variableExists("uip_hostaddr")) {
-      logger.debug("IPv4 detected");
-      ipVersion = IPv.IPv4;
-      moteMem.addVarMonitor(
-              SegmentMonitor.EventType.WRITE,
-              "uip_hostaddr",
-              memMonitor);
-    } else if (moteMem.variableExists("uip_ds6_netif_addr_list_offset")
+    if (moteMem.variableExists("uip_ds6_netif_addr_list_offset")
             && moteMem.variableExists("uip_ds6_addr_size")
             && moteMem.variableExists("uip_ds6_if")) {
       logger.debug("IPv6 detected");
@@ -190,8 +172,8 @@ public class IPAddress extends MoteInterface {
   }
 
   /**
-   * Returns true if any IP stack (Ipv4/6) is supported by mote
-   * @return true if either IPv4 or IPv6 was detected
+   * Returns true if IPv6 is supported by mote
+   * @return true if IPv6 was detected
    */
   public boolean hasIP() {
     return !(ipVersion == IPv.NONE);
@@ -207,7 +189,6 @@ public class IPAddress extends MoteInterface {
 
   /**
    * Returns IP address string.
-   * Supports both IPv4 and IPv6 addresses.
    *
    * @param idx
    * @return IP address string
@@ -226,11 +207,7 @@ public class IPAddress extends MoteInterface {
    */
   private void updateIPAddresses() {
     ipList.clear();
-    if (ipVersion == IPv.IPv4) {
-      addIPv4Addresses();
-      localIPAddr = ipList.get(0);
-    }
-    else if (ipVersion == IPv.IPv6) {
+    if (ipVersion == IPv.IPv6) {
       addIPv6Addresses();
       /* look for local ip addr */
       for (IPContainer c : ipList) {
@@ -239,13 +216,6 @@ public class IPAddress extends MoteInterface {
         }
       }
     }
-  }
-
-  /**
-   * Rereads IPv4 addresses from memory.
-   */
-  private void addIPv4Addresses() {
-    ipList.add(new IPContainer(0, moteMem.getByteArray("uip_hostaddr", 4), true));
   }
 
   /**
@@ -293,15 +263,10 @@ public class IPAddress extends MoteInterface {
   @Override
   public void removed() {
     super.removed();
-    if (memMonitor != null) {
-      if (ipVersion == IPv.IPv4) {
-        moteMem.removeVarMonitor("uip_hostaddr",memMonitor);
-      }
-      else if (ipVersion == IPv.IPv6) {
-        moteMem.removeVarMonitor("uip_ds6_netif_addr_list_offset", memMonitor);
-        moteMem.removeVarMonitor("uip_ds6_addr_size", memMonitor);
-        moteMem.removeVarMonitor("uip_ds6_if", memMonitor);
-      }
+    if (memMonitor != null && ipVersion == IPv.IPv6) {
+      moteMem.removeVarMonitor("uip_ds6_netif_addr_list_offset", memMonitor);
+      moteMem.removeVarMonitor("uip_ds6_addr_size", memMonitor);
+      moteMem.removeVarMonitor("uip_ds6_if", memMonitor);
     }
   }
 
@@ -317,12 +282,7 @@ public class IPAddress extends MoteInterface {
         StringBuilder ipStr = new StringBuilder();
         ipStr.append("<html>");
         for (IPContainer ipc: ipList) {
-          if (ipVersion == IPv.IPv4) {
-            ipStr.append("IPv4 address: ")
-                    .append(ipc.toString())
-                    .append("<br>");
-          }
-          else if (ipVersion == IPv.IPv6) {
+          if (ipVersion == IPv.IPv6) {
             ipStr.append(ipc.isGlobal() ? "Global" : "Local")
                     .append(" IPv6 address(#")
                     .append(ipc.getAddID())
@@ -356,18 +316,9 @@ public class IPAddress extends MoteInterface {
     this.deleteObserver(observer);
   }
 
-  @Override
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
-  }
-
   /**
    * Holds a single IP address.
-   * 
+   * <p>
    * Note: The compressed IP version is already computed in constructor
    */
   public class IPContainer {
@@ -381,14 +332,11 @@ public class IPAddress extends MoteInterface {
       this.addrIdx = addidx;
       this.ip = ip;
       this.isGlobal = global;
-      if (ipVersion == IPv.IPv4) {
-        cprString = IPUtils.getIPv4AddressString(ip);
-      } else if (ipVersion == IPv.IPv6) {
+      if (ipVersion == IPv.IPv6) {
         cprString = IPUtils.getCompressedIPv6AddressString(ip);
       } else {
         cprString = "";
       }
-      /* logger.info("Added new IP: " + cprString); */
     }
 
     public int getAddID() {
@@ -409,15 +357,10 @@ public class IPAddress extends MoteInterface {
     }
     
     public String toUncompressedString() {
-      if (ipVersion == IPv.IPv4) {
-        return cprString;
-      }
-      else if (ipVersion == IPv.IPv6) {
+      if (ipVersion == IPv.IPv6) {
         return IPUtils.getUncompressedIPv6AddressString(ip);
       }
-      else {
-        return "";
-      }
+      return "";
     }
   }
 }

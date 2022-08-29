@@ -30,10 +30,8 @@
 
 package org.contikios.cooja.contikimote.interfaces;
 
-import java.util.Collection;
 import javax.swing.JButton;
 import javax.swing.JPanel;
-import org.jdom.Element;
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.MoteInterface;
@@ -43,7 +41,7 @@ import org.contikios.cooja.mote.memory.VarMemory;
 
 /**
  * Vibration sensor mote interface.
- *
+ * <p>
  * Contiki variables:
  * <ul>
  * <li>char simVibChanged (1=changed, else not changed)
@@ -115,15 +113,6 @@ public class ContikiVib extends MoteInterface implements ContikiMoteInterface {
 
   @Override
   public void releaseInterfaceVisualizer(JPanel panel) {
-  }
-
-  @Override
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
 }

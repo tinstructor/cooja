@@ -334,7 +334,7 @@ class ObstacleWorld {
   
   /**
    * Returns true of given point is on a corner of
-   * any of the structures build from the obstacles.
+   * the structures built from the obstacles.
    * Internally this method checks how many of four point 
    * close to and located around given point (diagonally) are 
    * inside any obstacle.
@@ -409,7 +409,7 @@ class ObstacleWorld {
    * union area is equal to the area sum, they can be merged.
    * If a merge is performed, another may be made possible so this method
    * should be looped until returning null.
-   * 
+   * <p>
    * This method does not notify observers of changes made!
    * 
    * @return New object of a merge was performed, null otherwise

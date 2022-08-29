@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -41,8 +41,11 @@
 
 package se.sics.mspsim.chip;
 import java.io.IOException;
-import se.sics.mspsim.core.*;
 import se.sics.mspsim.core.EmulationLogger.WarningType;
+import se.sics.mspsim.core.MSP430Core;
+import se.sics.mspsim.core.TimeEvent;
+import se.sics.mspsim.core.USARTListener;
+import se.sics.mspsim.core.USARTSource;
 
 public class AT45DB extends ExternalFlash implements USARTListener {
 
@@ -77,9 +80,8 @@ public class AT45DB extends ExternalFlash implements USARTListener {
   public static final int CHIP_ERASE3 = 0x9A;
   public static final int PAGE_PROGRAM_THROUGH_BUFFER1 = 0x82;
   public static final int PAGE_PROGRAM_THROUGH_BUFFER2 = 0x85;
-  /** End of Program and Erase Command opcodes */
 
-  /** Protection and Security Commands - Datasheet Table 15-3 */
+  /* Protection and Security Commands - Datasheet Table 15-3 */
   /** Additional Commands - Datasheet Table 15-4 */
   public static final int PAGE_TO_BUFFER1 = 0x53;
   public static final int PAGE_TO_BUFFER2 = 0x55;
@@ -127,6 +129,7 @@ public class AT45DB extends ExternalFlash implements USARTListener {
   private byte[] buffer2 = new byte[PAGE_SIZE];
 
   private TimeEvent writeEvent = new TimeEvent(0) {
+    @Override
     public void execute(long t) {
       setReady(true);
     }};
@@ -142,6 +145,7 @@ public class AT45DB extends ExternalFlash implements USARTListener {
         status &= ~STATUS_RDY;
     }
 
+    @Override
     public void dataReceived(USARTSource source, int data) {
       int buf_num = 1;
 
@@ -358,6 +362,7 @@ public class AT45DB extends ExternalFlash implements USARTListener {
       }
     }
 
+    @Override
     public int getModeMax() {
       return 0;
     }

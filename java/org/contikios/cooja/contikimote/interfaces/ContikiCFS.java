@@ -37,7 +37,6 @@ import java.awt.event.ActionListener;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
 import javax.swing.BoxLayout;
@@ -50,7 +49,6 @@ import org.apache.logging.log4j.LogManager;
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.MoteInterface;
-import org.jdom.Element;
 
 import org.contikios.cooja.contikimote.ContikiMoteInterface;
 import org.contikios.cooja.interfaces.PolledAfterActiveTicks;
@@ -58,7 +56,7 @@ import org.contikios.cooja.mote.memory.VarMemory;
 
 /**
  * Contiki FileSystem (CFS) interface (such as external flash).
- *
+ * <p>
  * Contiki variables:
  * <ul>
  * <li>char[] simCFSData
@@ -217,15 +215,6 @@ public class ContikiCFS extends MoteInterface implements ContikiMoteInterface, P
     }
 
     this.deleteObserver(observer);
-  }
-
-  @Override
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
   /**

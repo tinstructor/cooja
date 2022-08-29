@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -42,7 +42,7 @@ package se.sics.mspsim.chip;
 
 public interface Memory {
 
-    public int readByte(int address);
-    public void writeByte(int dstAddress, int dst);
+    int readByte(int address);
+    void writeByte(int dstAddress, int dst);
 
 }

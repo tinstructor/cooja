@@ -34,7 +34,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 
-import java.io.BufferedWriter;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -43,7 +42,6 @@ import java.util.Observer;
 import java.util.concurrent.Semaphore;
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,6 +51,7 @@ import org.contikios.cooja.SimEventCentral.LogOutputEvent;
 import org.contikios.cooja.SimEventCentral.LogOutputListener;
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.TimeEvent;
+import org.openjdk.nashorn.api.scripting.NashornScriptEngineFactory;
 
 /**
  * Loads and executes a Contiki test script.
@@ -66,8 +65,7 @@ public class LogScriptEngine {
   private static final Logger logger = LogManager.getLogger(LogScriptEngine.class);
   private static final long DEFAULT_TIMEOUT = 20*60*1000*Simulation.MILLISECOND; /* 1200s = 20 minutes */
 
-  private final ScriptEngine engine =
-    new ScriptEngineManager().getEngineByName("JavaScript");
+  private final ScriptEngine engine = new NashornScriptEngineFactory().getScriptEngine();
 
   /* Log output listener */
   private final LogOutputListener logOutputListener = new LogOutputListener() {
@@ -79,12 +77,30 @@ public class LogScriptEngine {
     }
     @Override
     public void newLogOutput(LogOutputEvent ev) {
-      handleNewMoteOutput(
-          ev.getMote(),
-          ev.getMote().getID(),
-          ev.getTime(),
-          ev.msg
-      );
+      if (scriptThread == null || !scriptThread.isAlive()) {
+        logger.warn("No script thread, deactivate script.");
+        return;
+      }
+
+      // Only called from the simulation loop.
+      final var mote = ev.getMote();
+      try {
+        // Update script variables.
+        engine.put("mote", mote);
+        engine.put("id", mote.getID());
+        engine.put("time", ev.getTime());
+        engine.put("msg", ev.msg);
+
+        stepScript();
+      } catch (UndeclaredThrowableException e) {
+        logger.fatal("Exception: " + e.getMessage(), e);
+        if (Cooja.isVisualized()) {
+          Cooja.showErrorDialog(Cooja.getTopParentContainer(),
+              e.getMessage(),
+              e, false);
+        }
+        simulation.stopSimulation();
+      }
     }
     @Override
     public void removedLogOutput(LogOutputEvent ev) {
@@ -129,47 +145,21 @@ public class LogScriptEngine {
       semSim.acquire();
     } catch (InterruptedException e1) {
       e1.printStackTrace();
+      // FIXME: Something called interrupt() on this thread, computation should stop.
     }
 
     /* ... script is now again waiting for script semaphore ... */
 
     /* Check if test script requested us to stop */
     if (stopSimulation) {
-      stopSimulationRunnable.run();
-      stopSimulation = false;
-    }
-    if (quitCooja) {
-      quitRunnable.run();
-      quitCooja = false;
-    }
-  }
-
-  /* Only called from the simulation loop */
-  private void handleNewMoteOutput(Mote mote, int id, long time, String msg) {
-    try {
-      if (scriptThread == null ||
-          !scriptThread.isAlive()) {
-        logger.warn("No script thread, deactivate script.");
-        /*scriptThread.isInterrupted()*/
-        return;
-      }
-
-      /* Update script variables */
-      engine.put("mote", mote);
-      engine.put("id", id);
-      engine.put("time", time);
-      engine.put("msg", msg);
-
-      stepScript();
-    } catch (UndeclaredThrowableException e) {
-      logger.fatal("Exception: " + e.getMessage(), e);
-      if (Cooja.isVisualized()) {
-        Cooja.showErrorDialog(Cooja.getTopParentContainer(),
-            e.getMessage(),
-            e, false);
-      }
       simulation.stopSimulation();
     }
+    if (quitCooja) {
+      simulation.stopSimulation();
+      quitRunnable.run();
+    }
+    stopSimulation = false;
+    quitCooja = false;
   }
 
   public void setScriptLogObserver(Observer observer) {
@@ -215,6 +205,7 @@ public class LogScriptEngine {
         scriptThread.join();
       } catch (InterruptedException e) {
         e.printStackTrace();
+        // FIXME: Something called interrupt() on this thread, computation needs to stop.
       }
     }
     scriptThread = null;
@@ -264,6 +255,7 @@ public class LogScriptEngine {
       semaphoreScript.acquire();
     } catch (InterruptedException e) {
       logger.fatal("Error when creating engine: " + e.getMessage(), e);
+      // FIXME: should not proceed after this.
     }
     ThreadGroup group = new ThreadGroup("script") {
       @Override
@@ -310,13 +302,13 @@ public class LogScriptEngine {
           }
         }
       }
-    });
+    }, "script");
     scriptThread.start(); /* Starts by acquiring semaphore (blocks) */
     while (!semaphoreScript.hasQueuedThreads()) {
       try {
         Thread.sleep(50);
       } catch (InterruptedException e) {
-        // Does not matter, we are waiting.
+        // FIXME: Something called interrupt() on this thread, stop the computation.
       }
     }
 
@@ -381,31 +373,18 @@ public class LogScriptEngine {
     }
   };
 
-  private final Runnable stopSimulationRunnable = new Runnable() {
-    @Override
-    public void run() {
-      simulation.stopSimulation();
-    }
-  };
   private final Runnable quitRunnable = new Runnable() {
     @Override
     public void run() {
-      simulation.stopSimulation();
-      new Thread() {
-        @Override
-        public void run() {
-          try { Thread.sleep(500); } catch (InterruptedException e) { }
-          simulation.getCooja().doQuit(false, exitCode);
-        }
-      }.start();
-      new Thread() {
-        @Override
-        public void run() {
-          try { Thread.sleep(2000); } catch (InterruptedException e) { }
-          logger.warn("Killing Cooja");
-          System.exit(exitCode);
-        }
-      }.start();
+      new Thread(() -> {
+        try { Thread.sleep(500); } catch (InterruptedException e) { }
+        simulation.getCooja().doQuit(false, exitCode);
+      }, "Cooja.doQuit").start();
+      new Thread(() -> {
+        try { Thread.sleep(2000); } catch (InterruptedException e) { }
+        logger.warn("Killing Cooja");
+        System.exit(exitCode);
+      }, "System.exit").start();
     }
   };
 
@@ -453,9 +432,10 @@ public class LogScriptEngine {
       if (Cooja.isVisualized()) {
         log("[if test was run without visualization, Cooja would now have been terminated]\n");
         stopSimulation = true;
-        simulation.invokeSimulationThread(stopSimulationRunnable);
+        simulation.invokeSimulationThread(simulation::stopSimulation);
       } else {
         quitCooja = true;
+        simulation.invokeSimulationThread(simulation::stopSimulation);
         simulation.invokeSimulationThread(quitRunnable);
       }
 

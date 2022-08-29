@@ -29,13 +29,10 @@
 
 package org.contikios.cooja.contikimote.interfaces;
 
-import java.util.Collection;
-
 import javax.swing.JPanel;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.jdom.Element;
 
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.Simulation;
@@ -48,7 +45,7 @@ import org.contikios.cooja.mote.memory.VarMemory;
 
 /**
  * Clock mote interface. Controls Contiki time.
- *
+ * <p>
  * Contiki variables:
  * <ul>
  * <li>clock_time_t simCurrentTime
@@ -189,12 +186,4 @@ public class ContikiClock extends Clock implements ContikiMoteInterface, PolledB
   public void releaseInterfaceVisualizer(JPanel panel) {
   }
 
-  @Override
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
-  }
 }

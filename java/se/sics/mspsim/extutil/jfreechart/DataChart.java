@@ -24,7 +24,7 @@ import se.sics.mspsim.util.ServiceComponent.Status;
 @SuppressWarnings("serial")
 public class DataChart extends JPanel implements ServiceComponent {
 
-  private enum Mode {NONE, STACK, DUTY};
+  private enum Mode {NONE, STACK, DUTY}
   private Mode mode = Mode.NONE;
 
   private TimeSeriesCollection dataset;
@@ -122,15 +122,18 @@ public class DataChart extends JPanel implements ServiceComponent {
     dss.addDataSource(src, ts);
   }
 
+  @Override
   public Status getStatus() {
       return status;
   }
 
+  @Override
   public void init(String name, ComponentRegistry registry) {
       this.registry = registry;
       this.name = name;
   }
 
+  @Override
   public void start() {
       if (mode == Mode.STACK) {
           openStackFrame();
@@ -141,6 +144,7 @@ public class DataChart extends JPanel implements ServiceComponent {
       status = Status.STARTED;
   }
 
+  @Override
   public void stop() {
       jw.setVisible(false);
       if (mode == Mode.STACK) {
@@ -151,6 +155,7 @@ public class DataChart extends JPanel implements ServiceComponent {
       status = Status.STOPPED;
   }
 
+  @Override
   public String getName() {
       return name;
   }

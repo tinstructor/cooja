@@ -30,11 +30,7 @@
 
 package org.contikios.cooja.interfaces;
 
-import java.util.Collection;
-
 import javax.swing.JPanel;
-
-import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
@@ -58,13 +54,6 @@ public class Battery extends MoteInterface {
   public Battery(Mote mote) {
   }
 
-  @Override
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
-  }
   @Override
   public JPanel getInterfaceVisualizer() {
     return null;

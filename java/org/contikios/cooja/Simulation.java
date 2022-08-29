@@ -45,7 +45,7 @@ import org.contikios.cooja.dialogs.CreateSimDialog;
 
 /**
  * A simulation consists of a number of motes and mote types.
- *
+ * <p>
  * A simulation is observable:
  * changed simulation state, added or deleted motes etc. are observed.
  * To track mote changes, observe the mote (interfaces) itself.
@@ -127,13 +127,19 @@ public class Simulation extends Observable implements Runnable {
     }
   }
 
-  private Runnable popSimulationInvokes() {
-    Runnable r;
+  private void runSimulationInvokes() {
+    boolean more;
     synchronized (pollRequests) {
-      r = pollRequests.pop();
-      hasPollRequests = !pollRequests.isEmpty();
+      more = hasPollRequests;
     }
-    return r;
+    while (more) {
+      Runnable r;
+      synchronized (pollRequests) {
+        r = pollRequests.pop();
+        more = hasPollRequests = !pollRequests.isEmpty();
+      }
+      r.run();
+    }
   }
 
   /**
@@ -188,7 +194,7 @@ public class Simulation extends Observable implements Runnable {
   /**
    * Schedule simulation event for given time.
    * Already scheduled events must be removed before they are rescheduled.
-   *
+   * <p>
    * If the simulation is running, this method may only be called from the simulation thread.
    *
    * @see #invokeSimulationThread(Runnable)
@@ -273,11 +279,7 @@ public class Simulation extends Observable implements Runnable {
     EventQueue.Pair nextEvent = null;
     try {
       while (isRunning) {
-
-        /* Handle all poll requests */
-        while (hasPollRequests) {
-          popSimulationInvokes().run();
-        }
+        runSimulationInvokes();
 
         /* Handle one simulation event, and update simulation time */
         nextEvent = eventQueue.popFirst();
@@ -343,7 +345,7 @@ public class Simulation extends Observable implements Runnable {
   public void startSimulation() {
     if (!isRunning()) {
       isRunning = true;
-      simulationThread = new Thread(this);
+      simulationThread = new Thread(this, "sim");
       simulationThread.start();
     }
   }
@@ -568,19 +570,19 @@ public class Simulation extends Observable implements Runnable {
   /**
    * Sets the current simulation config depending on the given configuration.
    *
-   * @param configXML Simulation configuration
+   * @param root Simulation configuration
    * @param visAvailable True if simulation is allowed to show visualizers
    * @param manualRandomSeed Simulation random seed. May be null, in which case the configuration is used
    * @return True if simulation was configured successfully
    * @throws Exception If configuration could not be loaded
    */
-  public boolean setConfigXML(Collection<Element> configXML,
+  public boolean setConfigXML(Element root,
       boolean visAvailable, boolean quick, Long manualRandomSeed) throws Exception {
     this.quick = quick;
 
     // Parse elements
-    for (Element element : configXML) {
-
+    for (var child : root.getChildren()) {
+      Element element = (Element)child;
       // Title
       if (element.getName().equals("title")) {
         title = element.getText();
@@ -644,16 +646,11 @@ public class Simulation extends Observable implements Runnable {
         }
 
         // Show configure simulation dialog
-        boolean createdOK = false;
         if (visAvailable && !quick) {
-          createdOK = CreateSimDialog.showDialog(Cooja.getTopParentContainer(), this);
-        } else {
-          createdOK = true;
-        }
-
-        if (!createdOK) {
-          logger.debug("Simulation not created, aborting");
-          throw new Exception("Load aborted by user");
+          if (!CreateSimDialog.showDialog(Cooja.getTopParentContainer(), this)) {
+            logger.debug("Simulation not created, aborting");
+            throw new Exception("Load aborted by user");
+          }
         }
 
         // Check if radio medium specific config should be applied
@@ -678,9 +675,14 @@ public class Simulation extends Observable implements Runnable {
         	moteTypeClassName = moteTypeClassName.replaceFirst("se\\.sics", "org.contikios");
         }
 
+        var availableMoteTypesObjs = getCooja().getRegisteredMoteTypes();
+        String[] availableMoteTypes = new String[availableMoteTypesObjs.size()];
+        for (int i = 0; i < availableMoteTypes.length; i++) {
+          availableMoteTypes[i] = availableMoteTypesObjs.get(i).getName();
+        }
+
         /* Try to recreate simulation using a different mote type */
         if (visAvailable && !quick) {
-          String[] availableMoteTypes = getCooja().getProjectConfig().getStringArrayValue("org.contikios.cooja.Cooja.MOTETYPES");
           String newClass = (String) JOptionPane.showInputDialog(
               Cooja.getTopParentContainer(),
               "The simulation is about to load '" + moteTypeClassName + "'\n" +
@@ -700,23 +702,23 @@ public class Simulation extends Observable implements Runnable {
           }
         }
 
-        Class<? extends MoteType> moteTypeClass = cooja.tryLoadClass(this,
-            MoteType.class, moteTypeClassName);
-
-        if (moteTypeClass == null) {
-          logger.fatal("Could not load mote type class: " + moteTypeClassName);
-          throw new MoteType.MoteTypeCreationException("Could not load mote type class: " + moteTypeClassName);
+        Class<? extends MoteType> moteTypeClass = null;
+        for (int i = 0; i < availableMoteTypes.length; i++) {
+          if (moteTypeClassName.equals(availableMoteTypes[i])) {
+            moteTypeClass = availableMoteTypesObjs.get(i);
+            break;
+          }
         }
 
-        MoteType moteType = moteTypeClass.getConstructor((Class[]) null).newInstance();
+        assert moteTypeClass != null : "Selected MoteType class is null";
+        MoteType moteType = moteTypeClass.getConstructor((Class<? extends MoteType>[]) null).newInstance();
 
         boolean createdOK = moteType.setConfigXML(this, element.getChildren(),
             visAvailable);
         if (createdOK) {
           addMoteType(moteType);
         } else {
-          logger
-              .fatal("Mote type was not created: " + element.getText().trim());
+          logger.fatal("Mote type was not created: " + element.getText().trim());
           return false;
         }
       }
@@ -765,9 +767,7 @@ public class Simulation extends Observable implements Runnable {
     notifyObservers(this);
 
     /* Execute simulation thread events now, before simulation starts */
-    while (hasPollRequests) {
-      popSimulationInvokes().run();
-    }
+    runSimulationInvokes();
 
     return true;
   }
@@ -953,7 +953,7 @@ public class Simulation extends Observable implements Runnable {
    * @return Motes
    */
   public Mote[] getMotesUninit() {
-    return motesUninit.toArray(new Mote[motesUninit.size()]);
+    return motesUninit.toArray(new Mote[0]);
   }
 
 

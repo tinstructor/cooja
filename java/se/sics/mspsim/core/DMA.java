@@ -156,9 +156,11 @@ public class DMA extends IOUnit {
             }
         }
 
+        @Override
         public void interruptServiced(int vector) {
         }
 
+        @Override
         public String getName() {
             return "DMA Channel " + channelNo;
         }
@@ -174,7 +176,7 @@ public class DMA extends IOUnit {
         }
     }
 
-    private Channel channels[] = new Channel[3];
+    private Channel[] channels = new Channel[3];
     private int dmactl0;
     private int dmactl1;
 
@@ -211,9 +213,11 @@ public class DMA extends IOUnit {
         }
     }
 
+    @Override
     public void interruptServiced(int vector) {
     }
 
+    @Override
     public void write(int address, int value, boolean word, long cycles) {
         if (DEBUG) log("DMA write to: " + Utils.hex(address, 4) + ": " + value);
         switch (address) {
@@ -235,6 +239,7 @@ public class DMA extends IOUnit {
         }
     }
 
+    @Override
     public int read(int address, boolean word, long cycles) {
         switch (address) {
         case DMACTL0:
@@ -250,9 +255,10 @@ public class DMA extends IOUnit {
         }
     }
 
+    @Override
     public String info() {
         StringBuilder sb = new StringBuilder();
-        sb.append("  DMACTL0: 0x" + Utils.hex16(dmactl0) + "  DMACTL1: 0x" + Utils.hex16(dmactl1));
+        sb.append("  DMACTL0: 0x").append(Utils.hex16(dmactl0)).append("  DMACTL1: 0x").append(Utils.hex16(dmactl1));
         for (Channel c : channels) {
             sb.append("\n  ").append(c.info());
         }

@@ -30,11 +30,7 @@
 
 package org.contikios.cooja.mspmote.interfaces;
 
-import java.util.Collection;
-
 import javax.swing.JPanel;
-
-import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
@@ -57,16 +53,12 @@ public class SkyTemperature extends MoteInterface {
     skyMote.skyNode.sht11.setTemperature((int) ((temp+39.6)*100));
   }
 
+  @Override
   public JPanel getInterfaceVisualizer() {
     return null;
   }
+  @Override
   public void releaseInterfaceVisualizer(JPanel panel) {
-  }
-
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
 }

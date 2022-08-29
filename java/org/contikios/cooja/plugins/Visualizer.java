@@ -63,6 +63,7 @@ import java.awt.event.MouseWheelListener;
 import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -95,6 +96,9 @@ import javax.swing.plaf.basic.BasicInternalFrameUI;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.contikios.cooja.plugins.skins.DGRMVisualizerSkin;
+import org.contikios.cooja.plugins.skins.LogisticLossVisualizerSkin;
+import org.contikios.mrm.MRMVisualizerSkin;
 import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
@@ -125,9 +129,9 @@ import org.contikios.cooja.plugins.skins.UDGMVisualizerSkin;
 /**
  * Simulation visualizer supporting different visualizers
  * Motes are painted in the XY-plane, as seen from positive Z axis.
- *
+ * <p>
  * Supports drag-n-drop motes, right-click popup menu, and visualizers
- *
+ * <p>
  * Observes the simulation and all mote positions.
  *
  * @see #registerMoteMenuAction(Class)
@@ -184,7 +188,6 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
   /* Position where mouse button was pressed */
   Position pressedPos;
 
-  private final Set<Mote> movedMotes = null;
   private static final Cursor MOVE_CURSOR = new Cursor(Cursor.MOVE_CURSOR);
   private final Selection selection;
 
@@ -212,7 +215,6 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
   private Observer moteHighligtObserver = null;
   private final ArrayList<Mote> highlightedMotes = new ArrayList<>();
   private final static Color HIGHLIGHT_COLOR = Color.CYAN;
-  private final static Color MOVE_COLOR = Color.WHITE;
   private Observer moteRelationsObserver = null;
 
   /* Popup menu */
@@ -245,6 +247,7 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
     this.simulation = simulation;
 
     /* Register external visualizers */
+    registerVisualizerSkin(DGRMVisualizerSkin.class);
     String[] skins = gui.getProjectConfig().getStringArrayValue(Visualizer.class, "SKINS");
 
     for (String skinClass : skins) {
@@ -695,11 +698,11 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
 
     /* Create and activate new skin */
     try {
-      VisualizerSkin newSkin = skinClass.newInstance();
+      VisualizerSkin newSkin = skinClass.getDeclaredConstructor().newInstance();
       newSkin.setActive(Visualizer.this.simulation, Visualizer.this);
       currentSkins.add(0, newSkin);
     }
-    catch (InstantiationException | IllegalAccessException e1) {
+    catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e1) {
       e1.printStackTrace();
     }
     repaint();
@@ -712,7 +715,14 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
       return;
     }
 
-    /* Activate default skins */
+    // Activate default skins.
+    generateAndActivateSkin(IDVisualizerSkin.class);
+    generateAndActivateSkin(GridVisualizerSkin.class);
+    generateAndActivateSkin(DGRMVisualizerSkin.class);
+    generateAndActivateSkin(TrafficVisualizerSkin.class);
+    generateAndActivateSkin(UDGMVisualizerSkin.class);
+    generateAndActivateSkin(LogisticLossVisualizerSkin.class);
+    generateAndActivateSkin(MRMVisualizerSkin.class);
     String[] defaultSkins = Cooja.getExternalToolsSetting("VISUALIZER_DEFAULT_SKINS", "").split(";");
     for (String skin : defaultSkins) {
       if (skin.isEmpty()) {
@@ -790,7 +800,7 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
         menu.add(simulation.getCooja().createMotePluginsSubmenu(mote));
         for (Class<? extends MoteMenuAction> menuActionClass : moteMenuActions) {
           try {
-            final MoteMenuAction menuAction = menuActionClass.newInstance();
+            final MoteMenuAction menuAction = menuActionClass.getDeclaredConstructor().newInstance();
             if (menuAction.isEnabled(this, mote)) {
               JMenuItem menuItem = new JMenuItem(menuAction.getDescription(this, mote));
               menuItem.addActionListener(new ActionListener() {
@@ -802,7 +812,8 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
               menu.add(menuItem);
             }
           }
-          catch (InstantiationException | IllegalAccessException e1) {
+          catch (InvocationTargetException | NoSuchMethodException | InstantiationException |
+                 IllegalAccessException e1) {
             logger.fatal("Error: " + e1.getMessage(), e1);
           }
         }
@@ -813,7 +824,7 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
     menu.add(new JSeparator());
     for (Class<? extends SimulationMenuAction> menuActionClass : simulationMenuActions) {
       try {
-        final SimulationMenuAction menuAction = menuActionClass.newInstance();
+        final SimulationMenuAction menuAction = menuActionClass.getDeclaredConstructor().newInstance();
         if (menuAction.isEnabled(this, simulation)) {
           JMenuItem menuItem = new JMenuItem(menuAction.getDescription(this, simulation));
           menuItem.addActionListener(new ActionListener() {
@@ -825,7 +836,7 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
           menu.add(menuItem);
         }
       }
-      catch (InstantiationException | IllegalAccessException e1) {
+      catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e1) {
         logger.fatal("Error: " + e1.getMessage(), e1);
       }
     }
@@ -1184,7 +1195,7 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
 
   /**
    * Returns all motes at given position.
-   *
+   * <p>
    * If multiple motes were found at a position, the motes are returned
    * in the order they are painted on screen.
    * First mote in array is the bottom mote, last mote is the top mote.
@@ -1266,12 +1277,7 @@ public class Visualizer extends VisPlugin implements HasQuickHelp {
       int x = pixelCoord.x;
       int y = pixelCoord.y;
 
-      if (mote == movedMotes) {
-        g.setColor(MOVE_COLOR);
-        g.fillOval(x - MOTE_RADIUS, y - MOTE_RADIUS, 2 * MOTE_RADIUS,
-                   2 * MOTE_RADIUS);
-      }
-      else if (!highlightedMotes.isEmpty() && highlightedMotes.contains(mote)) {
+      if (!highlightedMotes.isEmpty() && highlightedMotes.contains(mote)) {
         g.setColor(HIGHLIGHT_COLOR);
         g.fillOval(x - MOTE_RADIUS, y - MOTE_RADIUS, 2 * MOTE_RADIUS,
                    2 * MOTE_RADIUS);

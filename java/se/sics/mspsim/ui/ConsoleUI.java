@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2011, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -54,7 +54,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayDeque;
 
@@ -97,7 +96,7 @@ public class ConsoleUI extends JComponent {
   /* size of lines */
   int lineWidth = 40;
 
-  private ArrayDeque<String> commands = new ArrayDeque<String>();
+  private final ArrayDeque<String> commands = new ArrayDeque<>();
 
   private int len = 0;
   private int back = 0;
@@ -134,6 +133,7 @@ public class ConsoleUI extends JComponent {
     setFocusTraversalKeysEnabled(false);
 
     MouseAdapter mouseHandler = new MouseAdapter() {
+      @Override
       public void mouseReleased(MouseEvent e) {
         if (e.getButton() == MouseEvent.BUTTON1) {
           selectActive = false;
@@ -143,6 +143,7 @@ public class ConsoleUI extends JComponent {
         }
       }
 
+      @Override
       public void mousePressed(MouseEvent e) {
         if (e.getButton() == MouseEvent.BUTTON1) {
           selectActive = true;
@@ -151,6 +152,7 @@ public class ConsoleUI extends JComponent {
         }
       }
 
+      @Override
       public void mouseDragged(MouseEvent e) {
         if (selectActive) {
           selectEndX = (e.getX() - 10) / charWidth;
@@ -162,6 +164,7 @@ public class ConsoleUI extends JComponent {
     addMouseListener(mouseHandler);
     addMouseMotionListener(mouseHandler);
     addKeyListener(new KeyListener() {
+      @Override
       public void keyTyped(KeyEvent e) {
         switch (e.getKeyChar()) {
         case 1: /* Ctrl-A */
@@ -227,9 +230,11 @@ public class ConsoleUI extends JComponent {
         }
       }
 
+      @Override
       public void keyReleased(KeyEvent e) {
       }
 
+      @Override
       public void keyPressed(KeyEvent e) {
         switch (e.getKeyCode()) {
         case KeyEvent.VK_RIGHT:
@@ -265,6 +270,7 @@ public class ConsoleUI extends JComponent {
     });
     output('>');
     timer = new Timer(500, new ActionListener() {
+      @Override
       public void actionPerformed(ActionEvent arg0) {
         flashCursor();
       }
@@ -463,6 +469,7 @@ public class ConsoleUI extends JComponent {
   StringBuffer currentOutput = new StringBuffer();
 
   int oldBottomLine = 0;
+  @Override
   protected void paintComponent(Graphics g) {
     int pos = 0;
     int w = getWidth() - 8;
@@ -548,7 +555,7 @@ public class ConsoleUI extends JComponent {
 
     if (editing != false && buffer.length() > 0) {
       /*
-       * set edit to false so we do not get here again before end of "printout".
+       * set edit to false, so we do not get here again before end of "printout".
        */
       editing = false;
       String s = buffer.toString();
@@ -593,7 +600,8 @@ public class ConsoleUI extends JComponent {
 
   public OutputStream getOutputStream() {
     return new OutputStream() {
-      public void write(int c) throws IOException {
+      @Override
+      public void write(int c) {
         output(c);
       }
     };
@@ -602,6 +610,7 @@ public class ConsoleUI extends JComponent {
   public void setCommandHandler(CommandHandler commandHandler) {
     this.commandHandler = commandHandler;
     new Thread(new Runnable() {
+      @Override
       public void run() {
         while (true) {
           String command = null;
@@ -623,6 +632,6 @@ public class ConsoleUI extends JComponent {
           }
         }
       }
-    }).start();
+    }, "setCommandHandler").start();
   }
 }

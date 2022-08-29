@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -106,6 +106,7 @@ public class DbgInstruction {
     return function;
   }
 
+  @Override
   public String toString() {
     return getASMLine();
   }

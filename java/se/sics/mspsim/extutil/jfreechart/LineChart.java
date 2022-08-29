@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2008, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -88,14 +88,17 @@ public class LineChart extends JFreeWindowDataHandler {
     panel.add(chartPanel, BorderLayout.CENTER);
   }
 
+  @Override
   public JComponent getComponent() {
     return panel;
   }
 
+  @Override
   public int getDataSeriesCount() {
     return dataset.getSeriesCount();
   }
 
+  @Override
   public Series getDataSeries(int index) {
     while (index >= dataset.getSeriesCount()) {
       addSeries();
@@ -103,6 +106,7 @@ public class LineChart extends JFreeWindowDataHandler {
     return dataset.getSeries(index);
   }
 
+  @Override
   public void setProperty(String param, String[] args) {
     if ("title".equals(param)) {
       chart.setTitle(args[0]);
@@ -118,8 +122,9 @@ public class LineChart extends JFreeWindowDataHandler {
   }
 
   int point = 0;
+  @Override
   public void lineRead(String line) {
-    String parts[] = line.trim().split(" ");
+    String[] parts = line.trim().split(" ");
     while (parts.length > getDataSeriesCount()) {
       addSeries();
     }

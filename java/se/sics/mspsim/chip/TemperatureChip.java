@@ -35,11 +35,11 @@ package se.sics.mspsim.chip;
 
 /**
  * Interface for a temperature chip.
- *
+ * <p>
  * Implementing this interface makes it compatible with the cooja-interfaces
  * and hence makes the peripheral implementation way easier
  *
- * @author Víctor Ariño <victor.arino@tado.com>
+ * @author Víctor Ariño (victor.arino@tado.com)
  */
 public interface TemperatureChip {
         /**
@@ -47,7 +47,7 @@ public interface TemperatureChip {
          *
          * @return
          */
-        public int getTemperature();
+        int getTemperature();
 
         /**
          * Set a new temperature on the chip
@@ -55,19 +55,19 @@ public interface TemperatureChip {
          * @param temp
          *              temperature to set in XXYY format where XX.YY°C
          */
-        public void setTemperature(int temp);
+        void setTemperature(int temp);
 
         /**
          * Get the maximum temperature allowed by the chipset
          *
          * @return
          */
-        public int getMaxTemperature();
+        int getMaxTemperature();
 
         /**
          * Get the minimum temperature allowed by the chipset
          *
          * @return
          */
-        public int getMinTemperature();
+        int getMinTemperature();
 }

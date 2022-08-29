@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2012, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -155,6 +155,7 @@ public class FileStorage implements Storage {
         write(pos, b, 0, b.length);
     }
 
+    @Override
     public void write(long pos, byte[] b, int offset, int len) throws IOException {
         if (maxSize > 0 && pos + len > maxSize) {
             throw new IOException("outside storage");

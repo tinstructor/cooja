@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -123,6 +123,7 @@ public class ESBNode extends GenericNode implements PortListener {
     cpu.setDebug(debug);
   }
 
+  @Override
   public void portWrite(IOPort source, int data) {
     //    System.out.println("ESB: Writing to port: " + data);
     if (source == port2) {
@@ -168,6 +169,7 @@ public class ESBNode extends GenericNode implements PortListener {
     }
   }
 
+  @Override
   public void setupNode() {
     setupNodePorts();
 
@@ -209,6 +211,7 @@ public class ESBNode extends GenericNode implements PortListener {
     }
   }
 
+  @Override
   public int getModeMax() {
     return 0;
   }

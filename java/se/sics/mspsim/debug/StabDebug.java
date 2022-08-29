@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -76,7 +76,7 @@ public class StabDebug implements ELFDebug {
       System.out.println("Number of stabs:" + count);
     }
     stabs = new Stab[count];
-    for (int i = 0, n = count; i < n; i++) {
+    for (int i = 0; i < count; i++) {
       elf.setPos(addr);
       int nI = elf.readElf32();
       String stabData = elf.dbgStabStr.getName(nI);
@@ -120,6 +120,7 @@ public class StabDebug implements ELFDebug {
 
 
   /* Just pick up file + some other things */
+  @Override
   public DebugInfo getDebugInfo(int address) {
     String currentPath = null;
     String currentFile = null;
@@ -183,6 +184,7 @@ public class StabDebug implements ELFDebug {
     return null;
   }
 
+  @Override
   public ArrayList<Integer> getExecutableAddresses() {
     ArrayList<Integer> allAddresses = new ArrayList<>();
 
@@ -255,6 +257,7 @@ public class StabDebug implements ELFDebug {
     return allAddresses;
 }
 
+  @Override
   public String[] getSourceFiles() {
     String currentPath = null;
     String currentFile = null;
@@ -302,6 +305,7 @@ public class StabDebug implements ELFDebug {
       this.value = value;
     }
 
+   @Override
    public String toString() {
         return "" + Integer.toHexString(type) + " " + data +
             "   [" + other + "," + desc + "," + value + "]";

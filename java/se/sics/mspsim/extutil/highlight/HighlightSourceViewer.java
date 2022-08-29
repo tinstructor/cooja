@@ -39,19 +39,20 @@
  */
 
 package se.sics.mspsim.extutil.highlight;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.awt.Color;
 import java.awt.Container;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Files;
 import java.util.ArrayList;
-
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
-
 import se.sics.mspsim.ui.SourceViewer;
 import se.sics.mspsim.ui.WindowUtils;
 
@@ -109,6 +110,7 @@ public class HighlightSourceViewer implements SourceViewer {
     }
   }
 
+  @Override
   public boolean isVisible() {
     return window != null && window.isVisible();
   }
@@ -118,6 +120,7 @@ public class HighlightSourceViewer implements SourceViewer {
     window.setVisible(isVisible);
   }
 
+  @Override
   public void viewFile(final String path, final String filename) {
     if (filename.equals(currentFile)) {
       // Already showing this file
@@ -126,13 +129,14 @@ public class HighlightSourceViewer implements SourceViewer {
     currentFile = filename;
 
     SwingUtilities.invokeLater(new Runnable() {
+      @Override
       public void run() {
         try {
           setup();
 
           File file = findSourceFile(path, filename);
           if (file != null) {
-            FileReader reader = new FileReader(file);
+            Reader reader = Files.newBufferedReader(file.toPath(), UTF_8);
             try {
               highlighter.read(reader, null);
               // Workaround for bug 4782232 in Java 1.4
@@ -155,9 +159,11 @@ public class HighlightSourceViewer implements SourceViewer {
     });
   }
 
+  @Override
   public void viewLine(final int line) {
     if (highlighter != null) {
       SwingUtilities.invokeLater(new Runnable() {
+        @Override
         public void run() {
           highlighter.viewLine(line - 1);
           if (!window.isVisible()) {

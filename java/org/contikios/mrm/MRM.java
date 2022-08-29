@@ -56,18 +56,18 @@ import org.contikios.mrm.ChannelModel.TxPair;
 
 /**
  * Multi-path Ray-tracing radio medium (MRM).
- *
+ * <p>
  * MRM is an alternative to the simpler radio mediums available in
  * COOJA. It is packet based and uses a 2D ray-tracing approach to approximate
  * signal strength attenuation between simulated radios. Currently, the
  * ray-tracing only supports reflections and refractions through homogeneous
  * obstacles.
- *
+ * <p>
  * MRM provides two plugins: one for visualizing the radio environment,
  * and one for configuring the radio medium parameters.
- *
+ * <p>
  * Future work includes adding support for diffraction and scattering.
- *
+ * <p>
  * MRM supports both noise source radios and directional antenna radios.
  * 
  * @see DirectionalAntennaRadio
@@ -106,6 +106,7 @@ public class MRM extends AbstractRadioMedium {
     CAPTURE_EFFECT_PREAMBLE_DURATION = currentChannelModel.getParameterDoubleValue(ChannelModel.Parameter.captureEffectPreambleDuration);
    
     currentChannelModel.addSettingsObserver(channelModelObserver = new Observer() {
+      @Override
       public void update(Observable o, Object arg) {
         WITH_CAPTURE_EFFECT = currentChannelModel.getParameterBooleanValue(ChannelModel.Parameter.captureEffect);
         CAPTURE_EFFECT_THRESHOLD = currentChannelModel.getParameterDoubleValue(ChannelModel.Parameter.captureEffectSignalTreshold);
@@ -122,6 +123,7 @@ public class MRM extends AbstractRadioMedium {
     Visualizer.registerVisualizerSkin(MRMVisualizerSkin.class);
   }
 
+  @Override
   public void removed() {
     super.removed();
 
@@ -134,10 +136,12 @@ public class MRM extends AbstractRadioMedium {
   }
   
   private final NoiseLevelListener noiseListener = new NoiseLevelListener() {
+        @Override
         public void noiseLevelChanged(NoiseSourceRadio radio, int signal) {
                 updateSignalStrengths();
         }
   };
+  @Override
   public void registerRadioInterface(Radio radio, Simulation sim) {
         super.registerRadioInterface(radio, sim);
         
@@ -148,6 +152,7 @@ public class MRM extends AbstractRadioMedium {
                 ((NoiseSourceRadio)radio).addNoiseLevelListener(noiseListener);
         }
   }
+  @Override
   public void unregisterRadioInterface(Radio radio, Simulation sim) {
         super.unregisterRadioInterface(radio, sim);
 
@@ -159,6 +164,7 @@ public class MRM extends AbstractRadioMedium {
         }
   }
   
+  @Override
   public MRMRadioConnection createConnections(final Radio sender) {
     MRMRadioConnection newConnection = new MRMRadioConnection(sender);
     final Position senderPos = sender.getPosition();
@@ -181,9 +187,11 @@ public class MRM extends AbstractRadioMedium {
 
       /* Calculate receive probability */
       TxPair txPair = new RadioPair() {
+        @Override
         public Radio getFromRadio() {
           return sender;
         }
+        @Override
         public Radio getToRadio() {
           return recvFinal;
         }
@@ -291,6 +299,7 @@ public class MRM extends AbstractRadioMedium {
     return newConnection;
   }
 
+  @Override
   public void updateSignalStrengths() {
 
     /* Reset: Background noise */
@@ -358,9 +367,11 @@ public class MRM extends AbstractRadioMedium {
         /* Update noise levels */
         final Radio toRadio = affectedRadio;
         TxPair txPair = new RadioPair() {
+          @Override
           public Radio getFromRadio() {
             return fromRadio;
           }
+          @Override
           public Radio getToRadio() {
             return toRadio;
           }
@@ -395,10 +406,12 @@ public class MRM extends AbstractRadioMedium {
     }
   }
 
+  @Override
   public Collection<Element> getConfigXML() {
     return currentChannelModel.getConfigXML();
   }
 
+  @Override
   public boolean setConfigXML(Collection<Element> configXML,
       boolean visAvailable) {
     return currentChannelModel.setConfigXML(configXML);

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2008, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -42,5 +42,5 @@
 package se.sics.mspsim.util;
 
 public interface PluginBundle {
-  public void init(ComponentRegistry registry);
+  void init(ComponentRegistry registry);
 }

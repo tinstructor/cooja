@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -187,7 +187,7 @@ public class DwarfReader implements ELFDebug {
                   sb.append((char) c);
                 }
 
-                if (DEBUG) System.out.println("Line: include file: " + sb.toString());
+                if (DEBUG) System.out.println("Line: include file: " + sb);
                 directories.add(sb.toString());
                 sb.setLength(0);
             }
@@ -206,8 +206,8 @@ public class DwarfReader implements ELFDebug {
                 time = sec.readLEB128();
                 size = sec.readLEB128();
 
-                if (DEBUG) System.out.println("Line: source file: " + sb.toString() + "  dir: " + dirIndex + " size: " + size);
-                files.add(directories.get((int) dirIndex) + "/" + sb.toString());
+                if (DEBUG) System.out.println("Line: source file: " + sb + "  dir: " + dirIndex + " size: " + size);
+                files.add(directories.get((int) dirIndex) + "/" + sb);
                 sb.setLength(0);
             }
 
@@ -438,6 +438,7 @@ public class DwarfReader implements ELFDebug {
     }
 
     /* Access methods for data... */
+    @Override
     public DebugInfo getDebugInfo(int address) {
         for (int i = 0; i < lineInfo.size(); i++) {
             LineData data = lineInfo.get(i);
@@ -467,6 +468,7 @@ public class DwarfReader implements ELFDebug {
         return null;
     }
 
+    @Override
     public ArrayList<Integer> getExecutableAddresses() {
         ArrayList<Integer> executableAddresses = new ArrayList<Integer>();
         for (LineData data: lineInfo) {
@@ -477,6 +479,7 @@ public class DwarfReader implements ELFDebug {
         return executableAddresses;
     }
 
+    @Override
     public String[] getSourceFiles() {
         String[] sourceFilesArray = new String[lineInfo.size()];
         for (int i = 0; i < lineInfo.size(); i++) {

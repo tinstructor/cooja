@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -55,6 +55,7 @@ public class DoubleBarChart extends DoubleSerieChart {
     setName(name);
   }
 
+  @Override
   public void drawChart(Graphics2D g, double xfac, double yfac,
       int width, int height)
   {

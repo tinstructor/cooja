@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -43,8 +43,13 @@ package se.sics.mspsim.chip;
 import java.io.IOException;
 import java.util.Arrays;
 
-import se.sics.mspsim.core.*;
 import se.sics.mspsim.core.EmulationLogger.WarningType;
+import se.sics.mspsim.core.IOPort;
+import se.sics.mspsim.core.MSP430Core;
+import se.sics.mspsim.core.PortListener;
+import se.sics.mspsim.core.TimeEvent;
+import se.sics.mspsim.core.USARTListener;
+import se.sics.mspsim.core.USARTSource;
 import se.sics.mspsim.util.Utils;
 
 public class M25P80 extends ExternalFlash implements USARTListener, PortListener, Memory {
@@ -92,6 +97,7 @@ public class M25P80 extends ExternalFlash implements USARTListener, PortListener
   private byte[] buffer = new byte[256];
 
   private TimeEvent writeEvent = new TimeEvent(0, "M25P80 Writing") {
+    @Override
     public void execute(long t) {
       writing = false;
     }};
@@ -113,9 +119,11 @@ public class M25P80 extends ExternalFlash implements USARTListener, PortListener
     return status | (writeEnable ? 0x02 : 0x00) | (writing ? 0x01 : 0x00);
   }
 
+  @Override
   public void stateChanged(int state) {
   }
 
+  @Override
   public void dataReceived(USARTSource source, int data) {
     if (chipSelect) {
       if (DEBUG) {
@@ -251,6 +259,7 @@ public class M25P80 extends ExternalFlash implements USARTListener, PortListener
   /***********************************************
    * Memory interface methods
    ***********************************************/
+  @Override
   public int readByte(int address) {
     byte[] data = new byte[256];
     try {
@@ -261,6 +270,7 @@ public class M25P80 extends ExternalFlash implements USARTListener, PortListener
     return ~data[address & 0xff];
   }
 
+  @Override
   public void writeByte(int address, int data) {
     byte[] mem = new byte[256];
     try {
@@ -316,10 +326,12 @@ public class M25P80 extends ExternalFlash implements USARTListener, PortListener
     }
   }
 
+  @Override
   public boolean getChipSelect() {
     return chipSelect;
   }
 
+  @Override
   public void portWrite(IOPort source, int data) {
     // Chip select = active low...
     if (chipSelect && (data & CHIP_SELECT) != 0) {

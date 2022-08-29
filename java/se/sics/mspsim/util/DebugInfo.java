@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -69,6 +69,7 @@ public class DebugInfo {
     return lineNo;
   }
 
+  @Override
   public String toString() {
     return "Line: " + lineNo + " in file: " + file + " (function: " + function + ")";
   }

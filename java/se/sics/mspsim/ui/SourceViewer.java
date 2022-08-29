@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -43,8 +43,8 @@ package se.sics.mspsim.ui;
 
 public interface SourceViewer {
 
-  public boolean isVisible();
-  public void viewFile(String path, String file);
-  public void viewLine(int line);
+  boolean isVisible();
+  void viewFile(String path, String file);
+  void viewLine(int line);
 
 }

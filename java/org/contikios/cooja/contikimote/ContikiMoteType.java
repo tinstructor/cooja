@@ -71,7 +71,6 @@ import org.contikios.cooja.mote.memory.MemoryInterface.Symbol;
 import org.contikios.cooja.mote.memory.MemoryLayout;
 import org.contikios.cooja.mote.memory.SectionMoteMemory;
 import org.contikios.cooja.mote.memory.VarMemory;
-import org.contikios.cooja.util.StringUtils;
 import org.jdom.Element;
 
 /**
@@ -114,6 +113,11 @@ public class ContikiMoteType implements MoteType {
    */
   private static final File tempOutputDirectory = new File(
       Cooja.getExternalToolsSetting("PATH_CONTIKI_NG_BUILD_DIR", "build/cooja"));
+
+  /**
+   * Random generator for generating a unique mote ID.
+   */
+  private static final Random rnd = new Random();
 
   /**
    * Communication stacks in Contiki.
@@ -376,7 +380,7 @@ public class ContikiMoteType implements MoteType {
 
   /**
    * For internal use.
-   *
+   * <p>
    * This method creates a core communicator linking a Contiki library and a
    * Java class.
    * It furthermore parses library Contiki memory addresses and creates the
@@ -393,18 +397,14 @@ public class ContikiMoteType implements MoteType {
               "Core communicator already used: " + myCoreComm.getClass().getName());
     }
 
-    if (getContikiFirmwareFile() == null
-            || !getContikiFirmwareFile().exists()) {
-      throw new MoteTypeCreationException("Library file could not be found: " + getContikiFirmwareFile());
-    }
-
-    if (javaClassName == null) {
-      throw new MoteTypeCreationException("Unknown Java class library");
+    final var firmwareFile = getContikiFirmwareFile();
+    if (firmwareFile == null || !firmwareFile.exists()) {
+      throw new MoteTypeCreationException("Library file could not be found: " + firmwareFile);
     }
 
     // Allocate core communicator class
-    logger.debug("Creating core communicator between Java class " + javaClassName + " and Contiki library '" + getContikiFirmwareFile().getPath() + "'");
-    myCoreComm = CoreComm.createCoreComm(tempDir, this.javaClassName, getContikiFirmwareFile());
+    logger.debug("Creating core communicator between Java class " + javaClassName + " and Contiki library '" + firmwareFile.getPath() + "'");
+    myCoreComm = CoreComm.createCoreComm(tempDir, javaClassName, firmwareFile);
 
     /* Parse addresses using map file
      * or output of command specified in external tools settings (e.g. nm -a )
@@ -413,7 +413,7 @@ public class ContikiMoteType implements MoteType {
 
     SectionParser dataSecParser;
     SectionParser bssSecParser;
-    SectionParser commonSecParser;
+    SectionParser commonSecParser = null;
 
     if (useCommand) {
       /* Parse command output */
@@ -436,16 +436,25 @@ public class ContikiMoteType implements MoteType {
               Cooja.getExternalToolsSetting("COMMAND_VAR_SEC_COMMON"));
     } else {
       /* Parse map file */
-      if (mapFile == null
-              || !mapFile.exists()) {
+      if (mapFile == null || !mapFile.exists()) {
         throw new MoteTypeCreationException("Map file " + mapFile + " could not be found");
       }
-      String[] mapData = loadMapFile(mapFile);
-      if (mapData == null) {
+      // The map file for 02-ringbufindex.csc is 2779 lines long, add some margin beyond that.
+      var lines = new ArrayList<String>(4000);
+      try (var reader = Files.newBufferedReader(mapFile.toPath(), UTF_8)) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          lines.add(line);
+        }
+      } catch (IOException e) {
         logger.fatal("No map data could be loaded");
-        throw new MoteTypeCreationException("No map data could be loaded: " + mapFile);
+        lines.clear();
       }
 
+      if (lines.isEmpty()) {
+        throw new MoteTypeCreationException("No map data could be loaded: " + mapFile);
+      }
+      String[] mapData = lines.toArray(new String[0]);
       dataSecParser = new MapSectionParser(
               mapData,
               Cooja.getExternalToolsSetting("MAPFILE_DATA_START"),
@@ -454,10 +463,6 @@ public class ContikiMoteType implements MoteType {
               mapData,
               Cooja.getExternalToolsSetting("MAPFILE_BSS_START"),
               Cooja.getExternalToolsSetting("MAPFILE_BSS_SIZE"));
-      commonSecParser = new MapSectionParser(
-              mapData,
-              Cooja.getExternalToolsSetting("MAPFILE_COMMON_START"),
-              Cooja.getExternalToolsSetting("MAPFILE_COMMON_SIZE"));
     }
 
     /* We first need the value of Contiki's referenceVar, which tells us the
@@ -472,7 +477,9 @@ public class ContikiMoteType implements MoteType {
       VarMemory varMem = new VarMemory(tmp);
       tmp.addMemorySection("tmp.data", dataSecParser.parse(0));
       tmp.addMemorySection("tmp.bss", bssSecParser.parse(0));
-      tmp.addMemorySection("tmp.common", commonSecParser.parse(0));
+      if (commonSecParser != null) {
+        tmp.addMemorySection("tmp.common", commonSecParser.parse(0));
+      }
 
       try {
         long referenceVar = varMem.getVariable("referenceVar").addr;
@@ -484,7 +491,7 @@ public class ContikiMoteType implements MoteType {
       getCoreMemory(tmp);
 
       offset = varMem.getAddrValueOf("referenceVar");
-      logger.debug(getContikiFirmwareFile().getName()
+      logger.debug(firmwareFile.getName()
               + ": offsetting Cooja mote address space: 0x" + Long.toHexString(offset));
     }
 
@@ -495,7 +502,9 @@ public class ContikiMoteType implements MoteType {
 
     initialMemory.addMemorySection("bss", bssSecParser.parse(offset));
 
-    initialMemory.addMemorySection("common", commonSecParser.parse(offset));
+    if (commonSecParser != null) {
+      initialMemory.addMemorySection("common", commonSecParser.parse(offset));
+    }
 
     getCoreMemory(initialMemory);
   }
@@ -530,40 +539,22 @@ public class ContikiMoteType implements MoteType {
       return variables;
     }
 
-    protected abstract void parseStartAddr();
-
-    protected abstract void parseSize();
+    protected abstract boolean parseStartAddrAndSize();
 
     abstract Map<String, Symbol> parseSymbols(long offset);
 
-    protected static long parseFirstHexLong(String regexp, String[] data) {
-      String retString = getFirstMatchGroup(data, regexp);
-
-      if (retString == null || retString.equals("")) {
-        return -1;
-      }
-
-      return Long.parseUnsignedLong(retString.trim(), 16);
-    }
-
     public MemoryInterface parse(long offset) {
-
-      /* Parse start address and size of section */
-      parseStartAddr();
-      parseSize();
-
-      if (getStartAddr() < 0 || getSize() <= 0) {
+      if (!parseStartAddrAndSize()) {
         return null;
       }
 
       variables = parseSymbols(offset);
 
-      logger.debug(String.format("Parsed section at 0x%x ( %d == 0x%x bytes)",
+      if (logger.isDebugEnabled()) {
+        logger.debug(String.format("Parsed section at 0x%x ( %d == 0x%x bytes)",
                                  getStartAddr() + offset,
                                  getSize(),
                                  getSize()));
-
-      if (logger.isDebugEnabled()) {
         for (Map.Entry<String, Symbol> entry : variables.entrySet()) {
           logger.debug(String.format("Found Symbol: %s, 0x%x, %d",
                   entry.getKey(),
@@ -591,26 +582,35 @@ public class ContikiMoteType implements MoteType {
 
     public MapSectionParser(String[] mapFileData, String startRegExp, String sizeRegExp) {
       super(mapFileData);
+      assert startRegExp != null : "Section start regexp must be specified";
+      assert !startRegExp.isEmpty() : "Section start regexp must contain characters";
+      assert sizeRegExp != null : "Section size regexp must be specified";
+      assert !sizeRegExp.isEmpty() : "Section size regexp must contain characters";
       this.startRegExp = startRegExp;
       this.sizeRegExp = sizeRegExp;
     }
 
     @Override
-    protected void parseStartAddr() {
-      if (startRegExp == null || startRegExp.equals("")) {
-        startAddr = -1;
-        return;
+    protected boolean parseStartAddrAndSize() {
+      startAddr = -1;
+      size = -1;
+      Pattern varPattern = Pattern.compile(startRegExp);
+      Pattern sizePattern = Pattern.compile(sizeRegExp);
+      for (var line : getData()) {
+        Matcher varMatcher = varPattern.matcher(line);
+        if (varMatcher.find()) {
+          startAddr = Long.parseUnsignedLong(varMatcher.group(1).trim(), 16);
+        }
+        // TODO: size is on the same line as the section address in the docker image,
+        //       put the size matcher inside the varMatcher.find() block once this has
+        //       had more testing.
+        Matcher sizeMatcher = sizePattern.matcher(line);
+        if (sizeMatcher.find()) {
+          size = (int) Long.parseUnsignedLong(sizeMatcher.group(1).trim(), 16);
+          break;
+        }
       }
-      startAddr = parseFirstHexLong(startRegExp, getData());
-    }
-
-    @Override
-    protected void parseSize() {
-      if (sizeRegExp == null || sizeRegExp.equals("")) {
-        size = -1;
-        return;
-      }
-      size = (int) parseFirstHexLong(sizeRegExp, getData());
+      return startAddr >= 0 && size > 0;
     }
 
     @Override
@@ -618,66 +618,60 @@ public class ContikiMoteType implements MoteType {
       Map<String, Symbol> varNames = new HashMap<>();
 
       Pattern pattern = Pattern.compile(Cooja.getExternalToolsSetting("MAPFILE_VAR_NAME"));
-
-      for (String line : getData()) {
+      final var secStart = getStartAddr();
+      final var secSize = getSize();
+      final var varAddrRegexp1 = Cooja.getExternalToolsSetting("MAPFILE_VAR_ADDRESS_1");
+      final var varAddrRegexp2 = Cooja.getExternalToolsSetting("MAPFILE_VAR_ADDRESS_2");
+      final var varSizeRegexp1 = Cooja.getExternalToolsSetting("MAPFILE_VAR_SIZE_1");
+      final var varSizeRegexp2 = Cooja.getExternalToolsSetting("MAPFILE_VAR_SIZE_2");
+      final String[] mapFileData = getData();
+      for (String line : mapFileData) {
         Matcher matcher = pattern.matcher(line);
         if (matcher.find()) {
-          if (Long.decode(matcher.group(1)) >= getStartAddr() &&
-              Long.decode(matcher.group(1)) <= getStartAddr() + getSize()) {
+          final long varAddr = Long.decode(matcher.group(1));
+          if (varAddr >= secStart && varAddr <= secStart + secSize) {
             String varName = matcher.group(2);
+            String regExp = varAddrRegexp1 + varName + varAddrRegexp2;
+            String retString = null;
+            Pattern pattern2 = Pattern.compile(regExp);
+            for (String line1 : mapFileData) {
+              Matcher matcher2 = pattern2.matcher(line1);
+              if (matcher2.find()) {
+                retString = matcher2.group(1);
+                break;
+              }
+            }
+            long mapFileVarAddress = retString == null ? -1 : Long.parseUnsignedLong(retString.trim(), 16);
+            int mapFileVarSize = -1;
+            Pattern pattern1 = Pattern.compile(varSizeRegexp1 + varName + varSizeRegexp2);
+            for (int idx = 0; idx < mapFileData.length; idx++) {
+              String parseString = mapFileData[idx];
+              Matcher matcher1 = pattern1.matcher(parseString);
+              if (matcher1.find()) {
+                mapFileVarSize = Integer.decode(matcher1.group(1));
+                break;
+              }
+              // second approach with lines joined
+              if (idx < mapFileData.length - 1) {
+                parseString += mapFileData[idx + 1];
+              }
+              matcher1 = pattern1.matcher(parseString);
+              if (matcher1.find()) {
+                mapFileVarSize = Integer.decode(matcher1.group(1));
+                break;
+              }
+            }
             varNames.put(varName, new Symbol(
                     Symbol.Type.VARIABLE,
                     varName,
-                    getMapFileVarAddress(getData(), varName) + offset,
-                    getMapFileVarSize(getData(), varName)));
+                    mapFileVarAddress + offset,
+                    mapFileVarSize));
           }
         }
       }
       return varNames;
     }
 
-    /**
-     * Get relative address of variable with given name.
-     *
-     * @param varName Name of variable
-     * @return Relative memory address of variable or -1 if not found
-     */
-    private static long getMapFileVarAddress(String[] mapFileData, String varName) {
-
-      String regExp = Cooja.getExternalToolsSetting("MAPFILE_VAR_ADDRESS_1")
-              + varName
-              + Cooja.getExternalToolsSetting("MAPFILE_VAR_ADDRESS_2");
-      String retString = getFirstMatchGroup(mapFileData, regExp);
-
-      if (retString != null) {
-        return Long.parseUnsignedLong(retString.trim(), 16);
-      } else {
-        return -1;
-      }
-    }
-
-    private static int getMapFileVarSize(String[] mapFileData, String varName) {
-      Pattern pattern = Pattern.compile(
-              Cooja.getExternalToolsSetting("MAPFILE_VAR_SIZE_1")
-              + varName
-              + Cooja.getExternalToolsSetting("MAPFILE_VAR_SIZE_2"));
-      for (int idx = 0; idx < mapFileData.length; idx++) {
-        String parseString = mapFileData[idx];
-        Matcher matcher = pattern.matcher(parseString);
-        if (matcher.find()) {
-          return Integer.decode(matcher.group(1));
-        }
-        // second approach with lines joined
-        if (idx < mapFileData.length - 1) {
-          parseString += mapFileData[idx + 1];
-        }
-        matcher = pattern.matcher(parseString);
-        if (matcher.find()) {
-          return Integer.decode(matcher.group(1));
-        }
-      }
-      return -1;
-    }
   }
 
   /**
@@ -706,32 +700,59 @@ public class ContikiMoteType implements MoteType {
     }
 
     @Override
-    protected void parseStartAddr() {
+    protected boolean parseStartAddrAndSize() {
+      // FIXME: Adjust this code to mirror the optimized method in MapSectionParser.
       if (startRegExp == null || startRegExp.equals("")) {
         startAddr = -1;
-        return;
-      }
-      startAddr = parseFirstHexLong(startRegExp, getData());
-    }
+      } else {
+        long result;
+        String retString = null;
+        Pattern pattern = Pattern.compile(startRegExp);
+        for (String line : getData()) {
+          Matcher matcher = pattern.matcher(line);
+          if (matcher.find()) {
+            retString = matcher.group(1);
+            break;
+          }
+        }
 
-    @Override
-    public void parseSize() {
-      if (endRegExp == null || endRegExp.equals("")) {
+        if (retString == null || retString.equals("")) {
+          result = -1;
+        } else {
+          result = Long.parseUnsignedLong(retString.trim(), 16);
+        }
+
+        startAddr = result;
+      }
+
+      if (startAddr < 0 || endRegExp == null || endRegExp.equals("")) {
         size = -1;
-        return;
+        return false;
       }
 
-      if (getStartAddr() < 0) {
-        size = -1;
-        return;
+      long end;
+      String retString = null;
+      Pattern pattern = Pattern.compile(endRegExp);
+      for (String line : getData()) {
+        Matcher matcher = pattern.matcher(line);
+        if (matcher.find()) {
+          retString = matcher.group(1);
+          break;
+        }
       }
 
-      long end = parseFirstHexLong(endRegExp, getData());
+      if (retString == null || retString.equals("")) {
+        end = -1;
+      } else {
+        end = Long.parseUnsignedLong(retString.trim(), 16);
+      }
+
       if (end < 0) {
         size = -1;
-        return;
+        return false;
       }
       size = (int) (end - getStartAddr());
+      return startAddr >= 0 && size > 0;
     }
 
     @Override
@@ -880,28 +901,6 @@ public class ContikiMoteType implements MoteType {
     return netStack;
   }
 
-  private static String getFirstMatchGroup(String[] lines, String regexp) {
-    if (regexp == null) {
-      return null;
-    }
-    Pattern pattern = Pattern.compile(regexp);
-    for (String line : lines) {
-      Matcher matcher = pattern.matcher(line);
-      if (matcher.find()) {
-        return matcher.group(1);
-      }
-    }
-    return null;
-  }
-
-  private static String[] loadMapFile(File mapFile) {
-    String contents = StringUtils.loadFromFile(mapFile);
-    if (contents == null) {
-      return null;
-    }
-    return contents.split("\n");
-  }
-
   /**
    * Executes configured command on given file and returns the result.
    *
@@ -942,7 +941,7 @@ public class ContikiMoteType implements MoteType {
           commandOutput.addMessage("Error reading from command stderr: "
                                            + e.getMessage(), MessageList.ERROR);
         }
-      });
+      }, "read command output");
       readThread.setDaemon(true);
       readThread.start();
 
@@ -1033,7 +1032,7 @@ public class ContikiMoteType implements MoteType {
     boolean available = false;
 
     while (!available) {
-      testID = "mtype" + new Random().nextInt(1000000000);
+      testID = "mtype" + rnd.nextInt(1000000000);
       available = !reservedIdentifiers.contains(testID);
       // FIXME: add check that the library name is not already used.
     }

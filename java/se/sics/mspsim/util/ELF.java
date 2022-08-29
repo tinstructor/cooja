@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -75,8 +75,8 @@ public class ELF {
   byte[] elfData;
   private int pos = 0;
 
-  private ELFSection sections[];
-  private ELFProgram programs[];
+  private ELFSection[] sections;
+  private ELFProgram[] programs;
   private ArrayList<FileInfo> files = new ArrayList<FileInfo>();
 
   ELFSection strTable;
@@ -330,7 +330,7 @@ public class ELF {
       System.out.println("Loading " + len + " bytes into " +
              Integer.toString(addr, 16) + " fill " + fill);
     }
-    for (int i = 0, n = len; i < n; i++) {
+    for (int i = 0; i < len; i++) {
       memory[addr++] = elfData[offset++] & 0xff;
     }
     if (fill > len) {
@@ -385,7 +385,7 @@ public class ELF {
       System.out.println("Number of symbols:" + count);
     }
     int currentAddress = 0;
-    for (int i = 0, n = count; i < n; i++) {
+    for (int i = 0; i < count; i++) {
       setPos(addr);
       int nI = readElf32();
       String sn = name.getName(nI);
@@ -417,7 +417,6 @@ public class ELF {
       }
 
       if (sAddr > 0 && sAddr < 0x100000) {
-        String symbolName = sn;
 
         if (sAddr < 0x5c00 && sAddr > sAddrHighest && !sn.equals("__stack")) {
           sAddrHighest = sAddr;
@@ -425,10 +424,10 @@ public class ELF {
 //	if (bind == ELFSection.SYMBIND_LOCAL) {
 //	  symbolName += " (" + currentFile + ')';
 //	}
-        if ("_end".equals(symbolName)) {
+        if ("_end".equals(sn)) {
       foundEnd = true;
           map.setHeapStart(sAddr);
-        } else if ("__stack".equals(symbolName)){
+        } else if ("__stack".equals(sn)){
           map.setStackStart(sAddr);
         }
 
@@ -438,18 +437,18 @@ public class ELF {
           if (file == null) {
             file = currentFile;
           }
-          map.setEntry(new MapEntry(MapEntry.TYPE.function, sAddr, 0, symbolName, file,
+          map.setEntry(new MapEntry(MapEntry.TYPE.function, sAddr, 0, sn, file,
               bind == ELFSection.SYMBIND_LOCAL));
         } else if (type == ELFSection.SYMTYPE_OBJECT) {
           String file = lookupFile(sAddr);
           if (file == null) {
             file = currentFile;
           }
-          map.setEntry(new MapEntry(MapEntry.TYPE.variable, sAddr, size, symbolName, file,
+          map.setEntry(new MapEntry(MapEntry.TYPE.variable, sAddr, size, sn, file,
               bind == ELFSection.SYMBIND_LOCAL));
         } else {
           if (DEBUG) {
-            System.out.println("Skipping entry: '" + symbolName + "' @ 0x" + Integer.toString(sAddr, 16) + " (" + currentFile + ")");
+            System.out.println("Skipping entry: '" + sn + "' @ 0x" + Integer.toString(sAddr, 16) + " (" + currentFile + ")");
           }
         }
 
@@ -470,7 +469,6 @@ public class ELF {
     ByteArrayOutputStream baous = new ByteArrayOutputStream();
     byte[] buf = new byte[2048];
     for(int read; (read = input.read(buf)) != -1; baous.write(buf, 0, read)) {
-      ;
     }
     input.close();
     buf = null;

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2012, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -37,20 +37,20 @@ import java.io.IOException;
  */
 public interface Storage {
 
-    public int read(long pos, byte[] buffer) throws IOException;
+    int read(long pos, byte[] buffer) throws IOException;
 
-    public int read(long pos, byte[] buffer, int offset, int len) throws IOException;
+    int read(long pos, byte[] buffer, int offset, int len) throws IOException;
 
-    public void write(long pos, byte[] buffer) throws IOException;
+    void write(long pos, byte[] buffer) throws IOException;
 
-    public void write(long pos, byte[] buffer, int offset, int len) throws IOException;
+    void write(long pos, byte[] buffer, int offset, int len) throws IOException;
 
-    public long getMaxSize();
+    long getMaxSize();
 
-    public void setMaxSize(long size);
+    void setMaxSize(long size);
 
-    public void close();
+    void close();
 
-    public String info();
+    String info();
 
 }

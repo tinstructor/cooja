@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -54,7 +54,6 @@ import se.sics.mspsim.core.EventListener;
 import se.sics.mspsim.core.EventSource;
 import se.sics.mspsim.core.MSP430Core;
 import se.sics.mspsim.core.Profiler;
-import se.sics.mspsim.profiler.CallEntry;
 import se.sics.mspsim.profiler.CallEntry.CallCounter;
 import se.sics.mspsim.util.ArrayUtils;
 import se.sics.mspsim.util.MapEntry;
@@ -97,6 +96,7 @@ public class SimpleProfiler implements Profiler, EventListener {
     servicedInterrupt = -1;
   }
 
+  @Override
   public void setCPU(MSP430Core cpu) {
     this.cpu = cpu;
   }
@@ -113,6 +113,7 @@ public class SimpleProfiler implements Profiler, EventListener {
     ignoreFunctions.put(function, function);
   }
 
+  @Override
   public void profileCall(MapEntry entry, long cycles, int from) {
     if (cSP == callStack.length) {
       CallEntry[] tmp = new CallEntry[cSP + 64];
@@ -169,6 +170,7 @@ public class SimpleProfiler implements Profiler, EventListener {
     }
   }
 
+  @Override
   public void profileReturn(long cycles) {
     if (cSP <= 0) {
       /* the stack pointer might have been messed with? */
@@ -245,6 +247,7 @@ public class SimpleProfiler implements Profiler, EventListener {
     newIRQ = false;
   }
 
+  @Override
   public void profileInterrupt(int vector, long cycles) {
     servicedInterrupt = vector;
     interruptFrom = cpu.getPC();
@@ -258,6 +261,7 @@ public class SimpleProfiler implements Profiler, EventListener {
     }
   }
 
+  @Override
   public void profileRETI(long cycles) {
     if (servicedInterrupt > -1) {
       interruptTime[servicedInterrupt] += cycles - lastInterruptTime[servicedInterrupt];
@@ -276,16 +280,18 @@ public class SimpleProfiler implements Profiler, EventListener {
     servicedInterrupt = -1;
   }
 
+  @Override
   public void resetProfile() {
     clearProfile();
     cSP = 0;
     servicedInterrupt = -1;
   }
 
+  @Override
   public void clearProfile() {
     if (profileData != null) {
       CallEntry[] entries =
-        profileData.values().toArray(new CallEntry[profileData.size()]);
+        profileData.values().toArray(new CallEntry[0]);
       for (int i = 0, n = entries.length; i < n; i++) {
         entries[i].cycles = 0;
         entries[i].calls = 0;
@@ -299,16 +305,18 @@ public class SimpleProfiler implements Profiler, EventListener {
     }
   }
 
+  @Override
   public void printProfile(PrintStream out) {
     printProfile(out, new Properties());
   }
 
+  @Override
   public void printProfile(PrintStream out, Properties parameters) {
     String functionNameRegexp = parameters.getProperty(PARAM_FUNCTION_NAME_REGEXP);
     String profSort = parameters.getProperty(PARAM_SORT_MODE);
     boolean profCallers = parameters.getProperty(PARAM_PROFILE_CALLERS) != null;
     Pattern pattern = null;
-    CallEntry[] entries = profileData.values().toArray(new CallEntry[profileData.size()]);
+    CallEntry[] entries = profileData.values().toArray(new CallEntry[0]);
 
     Arrays.sort(entries, new CallEntryComparator(profSort));
 
@@ -360,6 +368,7 @@ public class SimpleProfiler implements Profiler, EventListener {
     HashMap<MapEntry,CallCounter> callers = callEntry.callers;
     List<Entry<MapEntry,CallCounter>> list = new ArrayList<Entry<MapEntry,CallCounter>>(callers.entrySet());
     Collections.sort(list, new Comparator<Entry<MapEntry,CallCounter>>() {
+        @Override
         public int compare(Entry<MapEntry,CallCounter> o1, Entry<MapEntry,CallCounter> o2) {
           return o2.getValue().compareTo(o1.getValue());
         }
@@ -381,6 +390,7 @@ public class SimpleProfiler implements Profiler, EventListener {
     }
   }
 
+  @Override
   public void printStackTrace(PrintStream out) {
     int stackCount = cSP;
     out.println("Stack Trace: number of calls: " + stackCount
@@ -413,6 +423,7 @@ public class SimpleProfiler implements Profiler, EventListener {
       }
     }
 
+    @Override
     public int compare(CallEntry o1, CallEntry o2) {
       long diff;
       switch (mode) {
@@ -448,6 +459,7 @@ public class SimpleProfiler implements Profiler, EventListener {
         this.tag = tag;
     }
 
+    @Override
     public int compareTo(TagEntry o) {
       long diff = o.cycles - cycles;
       if (diff > 0) return 1;
@@ -458,6 +470,7 @@ public class SimpleProfiler implements Profiler, EventListener {
 
 
 
+  @Override
   public void setLogger(PrintStream out) {
     logger = out;
   }
@@ -489,7 +502,7 @@ public class SimpleProfiler implements Profiler, EventListener {
   }
 
   public void printTagProfile(PrintStream out) {
-    TagEntry[] entries = tagProfiles.values().toArray(new TagEntry[tagProfiles.size()]);
+    TagEntry[] entries = tagProfiles.values().toArray(new TagEntry[0]);
     Arrays.sort(entries);
     for (TagEntry entry : entries) {
       out.println(entry.tag + "\t" + entry.calls + "\t" + entry.cycles);
@@ -508,6 +521,7 @@ public class SimpleProfiler implements Profiler, EventListener {
     chip2.addEventListener(this);
   }
 
+  @Override
   public void event(EventSource source, String event, Object data) {
     TagEntry tagEntry = null;
     if ((tagEntry = startTags.get(event)) != null) {
@@ -524,14 +538,17 @@ public class SimpleProfiler implements Profiler, EventListener {
     }
   }
 
+  @Override
   public synchronized void addCallListener(CallListener listener) {
     callListeners = ArrayUtils.add(CallListener.class, callListeners, listener);
   }
 
+  @Override
   public synchronized void removeCallListener(CallListener listener) {
     callListeners = ArrayUtils.remove(callListeners, listener);
   }
 
+  @Override
   public String getCall(int i) {
     return callStack[cSP - i - 1].function.getInfo();
   }

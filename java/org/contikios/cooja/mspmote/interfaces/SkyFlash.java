@@ -38,7 +38,6 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
 import javax.swing.JButton;
@@ -51,7 +50,6 @@ import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Cooja;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.MoteInterface;
-import org.jdom.Element;
 import org.contikios.cooja.mspmote.MspMote;
 
 /**
@@ -86,6 +84,7 @@ public class SkyFlash extends MoteInterface {
     m24p80.write(idHeader);
   }
 
+  @Override
   public JPanel getInterfaceVisualizer() {
     JPanel panel = new JPanel();
 
@@ -95,6 +94,7 @@ public class SkyFlash extends MoteInterface {
     panel.add(downloadButton);
 
     uploadButton.addActionListener(new ActionListener() {
+      @Override
       public void actionPerformed(ActionEvent e) {
         byte[] fileData = readDialogFileBytes(Cooja.getTopParentContainer());
 
@@ -111,6 +111,7 @@ public class SkyFlash extends MoteInterface {
     });
 
     downloadButton.addActionListener(new ActionListener() {
+      @Override
       public void actionPerformed(ActionEvent e) {
         byte[] data = new byte[CoojaM25P80.SIZE];
         m24p80.seek(0);
@@ -122,6 +123,7 @@ public class SkyFlash extends MoteInterface {
 
     Observer observer;
     this.addObserver(observer = new Observer() {
+      @Override
       public void update(Observable obs, Object obj) {
       }
     });
@@ -132,6 +134,7 @@ public class SkyFlash extends MoteInterface {
     return panel;
   }
 
+  @Override
   public void releaseInterfaceVisualizer(JPanel panel) {
     Observer observer = (Observer) panel.getClientProperty("intf_obs");
     if (observer == null) {
@@ -140,13 +143,6 @@ public class SkyFlash extends MoteInterface {
     }
 
     this.deleteObserver(observer);
-  }
-
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
   public static void writeDialogFileBytes(Component parent, byte[] data) {

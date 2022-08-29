@@ -30,13 +30,10 @@
 
 package org.contikios.cooja.mspmote.interfaces;
 
-import java.util.Collection;
-
 import javax.swing.JPanel;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
@@ -51,7 +48,7 @@ import se.sics.mspsim.core.MemoryMonitor;
  * Observes writes to a special (hardcoded) Contiki variable: cooja_debug_ptr.
  * When the pointer is changed, the string that the pointer points to 
  * is outputted as log output from this mote interface.
- * 
+ * <p>
  * Contiki code example:
  *  cooja_debug_ptr = "Almost non-intrusive debug output";
  * or simply:
@@ -115,25 +112,21 @@ public class MspDebugOutput extends Log {
     return mote;
   }
 
+  @Override
   public String getLastLogMessage() {
     return lastLog;
   }
 
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
-    /* Observed Contiki pointer is hardcoded */
-  }
-
+  @Override
   public JPanel getInterfaceVisualizer() {
     return null;
   }
 
+  @Override
   public void releaseInterfaceVisualizer(JPanel panel) {
   }
 
+  @Override
   public void removed() {
     super.removed();
 

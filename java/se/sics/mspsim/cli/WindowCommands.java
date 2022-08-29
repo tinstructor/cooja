@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -51,11 +51,13 @@ public class WindowCommands implements CommandBundle {
     private ComponentRegistry registry;
     private final Hashtable<String,Target> windowTargets = new Hashtable<String,Target>();
 
+    @Override
     public void setupCommands(ComponentRegistry registry, CommandHandler handler) {
         this.registry = registry;
         handler.registerCommand("window", new BasicLineCommand("redirect input to a window", "[-close|-clear|-list] [windowname]") {
             Target wt;
             CommandContext context;
+            @Override
             public int executeCommand(CommandContext context) {
                 boolean close = false;
                 boolean clear = false;
@@ -79,9 +81,9 @@ public class WindowCommands implements CommandBundle {
                     }
                 }
                 if (list || windowName == null) {
-                    Target tgts[];
+                    Target[] tgts;
                     synchronized (windowTargets) {
-                        tgts = windowTargets.values().toArray(new Target[windowTargets.size()]);
+                        tgts = windowTargets.values().toArray(new Target[0]);
                     }
                     if (tgts.length == 0) {
                         context.out.println("There are no open windows.");
@@ -110,10 +112,12 @@ public class WindowCommands implements CommandBundle {
                 return 0;
             }
 
+            @Override
             public void lineRead(String line) {
                 wt.lineRead(context, line);
             }
 
+            @Override
             public void stopCommand(CommandContext context) {
                 if (wt != null) {
                     wt.removeContext(context);
@@ -122,6 +126,7 @@ public class WindowCommands implements CommandBundle {
         });
 
         handler.registerCommand("wclear", new BasicCommand("resets stored window positions", "") {
+            @Override
             public int executeCommand(CommandContext context) {
                 WindowUtils.clearState();
                 return 0;

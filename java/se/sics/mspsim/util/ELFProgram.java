@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -52,6 +52,7 @@ public class ELFProgram {
   int flags;
   int align;
 
+  @Override
   public String toString() {
     return "type: " + Integer.toString(type, 16) +
       "\noffset: " + Integer.toString(offset, 16) +

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -36,6 +36,6 @@
 package se.sics.mspsim.util;
 
 public interface DataSource {
-  public double getDoubleValue();
-  public int getValue();
+  double getDoubleValue();
+  int getValue();
 }

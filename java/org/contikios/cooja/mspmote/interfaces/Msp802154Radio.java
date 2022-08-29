@@ -30,11 +30,8 @@
 
 package org.contikios.cooja.mspmote.interfaces;
 
-import java.util.Collection;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Mote;
@@ -97,6 +94,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
       final byte[] buffer = new byte[127 + 6];
       final private byte[] syncSeq = {0,0,0,0,0x7A};
       
+      @Override
       public void receivedByte(byte data) {
         if (!isTransmitting()) {
           lastEvent = RadioEvent.TRANSMISSION_STARTED;
@@ -153,6 +151,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     }); /* addRFListener */
 
     radio.addOperatingModeListener(new OperatingModeListener() {
+      @Override
       public void modeChanged(Chip source, int mode) {
         if (radio.isReadyToReceive()) {
           lastEvent = RadioEvent.HW_ON;
@@ -165,6 +164,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     });
 
     radio.addChannelListener(new ChannelListener() {
+      @Override
       public void channelChanged(int channel) {
         /* XXX Currently assumes zero channel switch time */
         lastEvent = RadioEvent.UNKNOWN;
@@ -197,14 +197,17 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
   }
 
   /* Packet radio support */
+  @Override
   public RadioPacket getLastPacketTransmitted() {
     return lastOutgoingPacket;
   }
 
+  @Override
   public RadioPacket getLastPacketReceived() {
     return lastIncomingPacket;
   }
 
+  @Override
   public void setReceivedPacket(RadioPacket packet) {
     /* Note:
      * Only nodes at other abstraction levels deliver full packets.
@@ -227,6 +230,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
 
       final byte byteToDeliver = b;
       getMote().getSimulation().scheduleEvent(new MspMoteTimeEvent(mote) {
+        @Override
         public void execute(long t) {
           super.execute(t);
           radio.receivedByte(byteToDeliver);
@@ -238,14 +242,17 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
   }
 
   /* Custom data radio support */
+  @Override
   public Object getLastCustomDataTransmitted() {
     return lastOutgoingByte;
   }
 
+  @Override
   public Object getLastCustomDataReceived() {
     return lastIncomingByte;
   }
 
+  @Override
   public void receiveCustomData(Object data) {
     if (!(data instanceof Byte)) {
       logger.fatal("Bad custom data: " + data);
@@ -260,6 +267,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
       inputByte = lastIncomingByte;
     }
     mote.getSimulation().scheduleEvent(new MspMoteTimeEvent(mote) {
+      @Override
       public void execute(long t) {
         super.execute(t);
         radio.receivedByte(inputByte);
@@ -270,18 +278,22 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
   }
 
   /* General radio support */
+  @Override
   public boolean isTransmitting() {
     return isTransmitting;
   }
 
+  @Override
   public boolean isReceiving() {
     return isReceiving;
   }
 
+  @Override
   public boolean isInterfered() {
     return isInterfered;
   }
 
+  @Override
   public int getChannel() {
     return radio.getActiveChannel();
   }
@@ -290,6 +302,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     return radio.getActiveFrequency();
   }
 
+  @Override
   public void signalReceptionStart(Radio sender) {
     isReceiving = true;
 
@@ -299,6 +312,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     notifyObservers();
   }
 
+  @Override
   public void signalReceptionEnd(Radio sender) {
     /* Deliver packet data */
     isReceiving = false;
@@ -310,10 +324,12 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     notifyObservers();
   }
 
+  @Override
   public RadioEvent getLastEvent() {
     return lastEvent;
   }
 
+  @Override
   public void interfereAnyReception() {
     isInterfered = true;
     isReceiving = false;
@@ -325,14 +341,17 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     notifyObservers();
   }
 
+  @Override
   public double getCurrentOutputPower() {
     return radio.getOutputPower();
   }
 
+  @Override
   public int getCurrentOutputPowerIndicator() {
     return radio.getOutputPowerIndicator();
   }
 
+  @Override
   public int getOutputPowerIndicatorMax() {
     return radio.getOutputPowerIndicatorMax();
   }
@@ -349,10 +368,12 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
   private final double[] rssiLast = new double[8];
   private int rssiLastCounter = 0;
 
+  @Override
   public double getCurrentSignalStrength() {
     return currentSignalStrength;
   }
 
+  @Override
   public void setCurrentSignalStrength(final double signalStrength) {
     if (signalStrength == currentSignalStrength) {
       return; /* ignored */
@@ -360,6 +381,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     currentSignalStrength = signalStrength;
     if (rssiLastCounter == 0) {
       getMote().getSimulation().scheduleEvent(new MspMoteTimeEvent(mote) {
+        @Override
         public void execute(long t) {
           super.execute(t);
 
@@ -389,30 +411,28 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
    * 
    * @see org.contikios.cooja.interfaces.Radio#setLQI(int)
    */
+  @Override
   public void setLQI(int lqi){
 	  radio.setLQI(lqi);
   }
 
+  @Override
   public int getLQI(){
 	  return radio.getLQI();
   }
   
   
+  @Override
   public Mote getMote() {
     return mote;
   }
 
+  @Override
   public Position getPosition() {
     return mote.getInterfaces().getPosition();
   }
 
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
-  }
-
+  @Override
   public boolean isRadioOn() {
     if (radio.isReadyToReceive()) {
       return true;
@@ -423,6 +443,7 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     return radio.getMode() != CC2420.MODE_TXRX_OFF;
   }
   
+  @Override
   public boolean canReceiveFrom(CustomDataRadio radio) {
     return radio.getClass().equals(this.getClass());
   }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -145,6 +145,7 @@ public class ChartPanel extends JComponent {
   // Paint handling
   // -------------------------------------------------------------------
 
+  @Override
   protected void paintComponent(Graphics g) {
     Graphics2D g2d = (Graphics2D) g.create();
     try {

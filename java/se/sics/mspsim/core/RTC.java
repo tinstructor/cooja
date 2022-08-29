@@ -40,10 +40,10 @@ import se.sics.mspsim.core.EmulationLogger.WarningType;
 
 /**
  * RTC module for the MSP430
- *
+ * <p>
  * TODO: alarm mode not implemented
  *
- * @author Víctor Ariño <victor.arino@tado.com>
+ * @author Víctor Ariño (victor.arino@tado.com)
  */
 public class RTC extends IOUnit {
 
@@ -93,7 +93,7 @@ public class RTC extends IOUnit {
         private static final int RTCEVIFG = (1 << 2);
 
         /* Possible types of RTC */
-        public static enum RtcType {
+        public enum RtcType {
                 TYPE_A, TYPE_D,
         }
 
@@ -117,6 +117,7 @@ public class RTC extends IOUnit {
         /**
          * Clear everything when reset
          */
+        @Override
         public void reset(int type) {
                 oscFaultInterruptEnable = false;
                 eventInterruptEnable = false;
@@ -247,6 +248,7 @@ public class RTC extends IOUnit {
          */
         private TimeEvent rtcTimer = new TimeEvent(0) {
 
+                @Override
                 public void execute(long t) {
                         if (!rtcHold) {
                                 updateCounters();
@@ -423,7 +425,7 @@ public class RTC extends IOUnit {
 
         /**
          * Parses a calendar input
-         *
+         * <p>
          * This processes the registers written in BCD or hex format
          *
          * @param calField
@@ -476,6 +478,7 @@ public class RTC extends IOUnit {
         /**
          * The registers are written
          */
+        @Override
         public void write(int address, int value, boolean word, long cycles) {
                 /*
                  * XXX: this assumes always word access
@@ -605,6 +608,7 @@ public class RTC extends IOUnit {
         /**
          * Registers are read
          */
+        @Override
         public int read(int address, boolean word, long cycles) {
 
                 if (!word) {
@@ -680,6 +684,7 @@ public class RTC extends IOUnit {
                 return 0;
         }
 
+        @Override
         public void interruptServiced(int vector) {
                 /*
                  * NOTE this function is called BEFORE the interrupt is actually

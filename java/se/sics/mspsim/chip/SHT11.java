@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, 2008, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -77,7 +77,7 @@ public class SHT11 extends Chip {
   private int bitCnt = 0;
   private int temp = 3960 + 2400;
   private int humid = 0x1040;
-  private int output[] = new int[3];
+  private int[] output = new int[3];
   private int writePos = 0;
   private int writeLen = 0;
   private int writeData = 0;
@@ -110,6 +110,7 @@ public class SHT11 extends Chip {
 
 
   private TimeEvent measureEvent = new TimeEvent(0) {
+    @Override
     public void execute(long t) {
       if (readData == CMD_MEASURE_TEMP) {
         output[0] = (temp >> 8) & 0xff;
@@ -283,11 +284,13 @@ public class SHT11 extends Chip {
   }
 
 
+  @Override
   public int getModeMax() {
     return 0;
   }
 
   /* no configuration for the SHT11 ? */
+  @Override
   public int getConfiguration(int parameter) {
       return 0;
   }

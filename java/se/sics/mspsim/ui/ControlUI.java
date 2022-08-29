@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -47,8 +47,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
-import javax.swing.*;
-
+import javax.swing.AbstractAction;
+import javax.swing.Action;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.KeyStroke;
+import javax.swing.SpinnerNumberModel;
 import se.sics.mspsim.core.MSP430;
 import se.sics.mspsim.core.SimEvent;
 import se.sics.mspsim.core.SimEventListener;
@@ -120,6 +127,7 @@ public class ControlUI extends JPanel implements ActionListener, SimEventListene
     stepAction = new AbstractAction("Step") {
       private static final long serialVersionUID = 1L;
 
+      @Override
       public void actionPerformed(ActionEvent e) {
         stepButton.setEnabled(false);
         int steps = (int)stepsSpinner.getValue();
@@ -186,6 +194,7 @@ public class ControlUI extends JPanel implements ActionListener, SimEventListene
     window.setTitle(TITLE + "  CPU On: " + cpu.getCPUPercent() + "%");
   }
 
+  @Override
   public void actionPerformed(ActionEvent ae) {
     String cmd = ae.getActionCommand();
     updateCPUPercent();
@@ -236,6 +245,7 @@ public class ControlUI extends JPanel implements ActionListener, SimEventListene
     dui.updateRegs();
   }
 
+  @Override
   public void simChanged(SimEvent event) {
     switch (event.getType()) {
     case START:
@@ -253,25 +263,30 @@ public class ControlUI extends JPanel implements ActionListener, SimEventListene
     }
   }
 
+  @Override
   public Status getStatus() {
       return status;
   }
 
+  @Override
   public String getName() {
       return name;
   }
 
+  @Override
   public void init(String name, ComponentRegistry registry) {
       this.name = name;
       this.registry = registry;
   }
 
+  @Override
   public void start() {
       setup();
       status = Status.STARTED;
       window.setVisible(true);
   }
 
+  @Override
   public void stop() {
       status = Status.STOPPED;
       window.setVisible(false);

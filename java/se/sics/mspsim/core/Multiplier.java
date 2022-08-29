@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -72,10 +72,11 @@ public class Multiplier extends IOUnit {
    * Creates a new <code>Multiplier</code> instance.
    *
    */
-  public Multiplier(MSP430Core cpu, int memory[], int offset) {
+  public Multiplier(MSP430Core cpu, int[] memory, int offset) {
     super("Multiplier", "Hardware Multiplier", cpu, memory, offset);
   }
 
+  @Override
   public int read(int address, boolean word, long cycles) {
     switch (address) {
     case MPY:
@@ -103,6 +104,7 @@ public class Multiplier extends IOUnit {
     }
   }
 
+  @Override
   public void write(int address, int data, boolean word, long cycles) {
     if (DEBUG) {
       log("write to: $" + Utils.hex(address, 4) + " data = " + data + " word = " + word);

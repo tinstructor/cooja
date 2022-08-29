@@ -37,7 +37,6 @@ import de.sciss.syntaxpane.actions.ScriptRunnerAction;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -85,13 +84,6 @@ public class ScriptRunner implements Plugin {
   private static final Logger logger = LogManager.getLogger(ScriptRunner.class);
 
   private final Cooja gui;
-  static boolean headless;
-  {
-    headless = GraphicsEnvironment.isHeadless();
-    if (!headless) {
-      DefaultSyntaxKit.initKit();
-    }
-  }
 
   final String[] EXAMPLE_SCRIPTS = new String[] {
       "basic.js", "Various commands",
@@ -127,6 +119,7 @@ public class ScriptRunner implements Plugin {
       return;
     }
 
+    DefaultSyntaxKit.initKit();
     frame = new VisPlugin("Simulation script editor", gui, this);
 
     /* Menus */
@@ -218,9 +211,6 @@ public class ScriptRunner implements Plugin {
     if (p != null) {
       for (Component c: p.getComponents()) {
         if (!(c instanceof JMenuItem)) {
-          continue;
-        }
-        if (((JMenuItem) c).getAction() == null) {
           continue;
         }
         Action a = ((JMenuItem) c).getAction();
@@ -414,7 +404,7 @@ public class ScriptRunner implements Plugin {
         logWriter = null;
       }
 
-      if (!headless) {
+      if (Cooja.isVisualized()) {
         if (actionLinkFile != null) {
           actionLinkFile.setEnabled(true);
         }

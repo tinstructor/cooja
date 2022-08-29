@@ -44,7 +44,7 @@ import org.contikios.cooja.mspmote.MspMoteTimeEvent;
 
 /**
  * Extension of MSPSim 802.15.4 radio wrapper with bit-level errors.
- *
+ * <p>
  * Only errors due to signal fading are supported (as opposed to errors to interference).
  * Interesting modelling effects can be obtained if this is used together with a dynamic
  * channel fading model.
@@ -328,6 +328,7 @@ public class Msp802154BitErrorRadio extends Msp802154Radio {
     }
   }
 
+  @Override
   public void receiveCustomData(Object data) {
     if (!(data instanceof Byte)) {
       logger.fatal("Bad custom data: " + data);
@@ -358,6 +359,7 @@ public class Msp802154BitErrorRadio extends Msp802154Radio {
     }
 
     mote.getSimulation().scheduleEvent(new MspMoteTimeEvent(mote) {
+      @Override
       public void execute(long t) {
         super.execute(t);
         radio.receivedByte(inputByte);

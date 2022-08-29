@@ -9,12 +9,11 @@ import javax.swing.border.AbstractBorder;
 
 /**
  * Draws line numbers next to each line, in the same font as the text.
- * Currently, this can only be used with a <tt>SyntaxHighlighter</tt> , since it
- * relies on the <tt>getRows()</tt> and <tt>getLineCount()</tt> methods. A
+ * Currently, this can only be used with a <code>SyntaxHighlighter</code> , since it
+ * relies on the <code>getRows()</code> and <code>getLineCount()</code> methods. A
  * possible extension, create an interface to return this rows/linecount.
  *
  * @author Paul Durbin (McDurby@yahoo.com)
- * @created January 29, 2002
  */
 public class LineNumberedBorder extends AbstractBorder {
 
@@ -57,6 +56,7 @@ public class LineNumberedBorder extends AbstractBorder {
     setLineNumberJustification(justify);
   }
 
+  @Override
   public Insets getBorderInsets(Component c) {
     return getBorderInsets(c, new Insets(0, 0, 0, 0));
   }
@@ -71,6 +71,7 @@ public class LineNumberedBorder extends AbstractBorder {
    *                Description of the Parameter
    * @return The borderInsets value
    */
+  @Override
   public Insets getBorderInsets(Component c, Insets insets) {
     // if c is not a SyntaxHighlighter...nothing is done...
     if (c instanceof SyntaxHighlighter) {
@@ -135,6 +136,7 @@ public class LineNumberedBorder extends AbstractBorder {
   // NOTE: This method is called every time the cursor blinks...
   // so...optimize (later and if possible) for speed...
   //
+  @Override
   public void paintBorder(Component c, Graphics g, int x, int y, int width,
       int height) {
 

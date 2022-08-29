@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -42,7 +42,11 @@ package se.sics.mspsim.util;
 import java.io.IOException;
 
 import se.sics.mspsim.config.MSP430f1611Config;
-import se.sics.mspsim.core.*;
+import se.sics.mspsim.core.IOUnit;
+import se.sics.mspsim.core.MSP430;
+import se.sics.mspsim.core.USART;
+import se.sics.mspsim.core.USARTListener;
+import se.sics.mspsim.core.USARTSource;
 
 /**
  * Test - tests a firmware file and exits when reporting "FAIL:" first
@@ -61,6 +65,7 @@ public class Test implements USARTListener {
     }
   }
 
+  @Override
   public void dataReceived(USARTSource source, int data) {
     if (data == '\n') {
       String line = lineBuffer.toString();

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -57,6 +57,7 @@ public class ConstantLineChart extends AbstractChart {
     updateMinMax();
   }
 
+  @Override
   public void drawChart(Graphics2D g, double xfac, double yfac, int width, int height) {
     int zero = height;
     if (getMinY() < 0) {

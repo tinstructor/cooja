@@ -33,14 +33,12 @@ package org.contikios.cooja.contikimote.interfaces;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
 import javax.swing.JPanel;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.contikios.cooja.Mote;
-import org.jdom.Element;
 
 import org.contikios.cooja.contikimote.ContikiMoteInterface;
 import org.contikios.cooja.interfaces.LED;
@@ -49,7 +47,7 @@ import org.contikios.cooja.mote.memory.VarMemory;
 
 /**
  * LEDs mote interface.
- *
+ * <p>
  * Contiki variables:
  * <ul>
  * <li>char simLedsValue
@@ -211,15 +209,6 @@ public class ContikiLED extends LED implements ContikiMoteInterface, PolledAfter
     }
 
     this.deleteObserver(observer);
-  }
-
-  @Override
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -49,7 +49,7 @@ import se.sics.mspsim.util.ArgumentManager;
 
 /**
  * Emulation of Telos Mote (old version of Sky Node)
- *
+ * <p>
  * TODO: Cleanup the MoteIVNode, SkyNode and TelosNode
  */
 public class TelosNode extends MoteIVNode {
@@ -83,11 +83,13 @@ public class TelosNode extends MoteIVNode {
   }
 
   // USART Listener
+  @Override
   public void dataReceived(USARTSource source, int data) {
     radio.dataReceived(source, data);
     flash.dataReceived(source, data);
   }
 
+  @Override
   public void setupNodePorts() {
     super.setupNodePorts();
     if (getFlash() == null) {

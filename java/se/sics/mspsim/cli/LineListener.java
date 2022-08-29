@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -46,6 +46,6 @@ package se.sics.mspsim.cli;
  */
 public interface LineListener {
 
-  public void lineRead(String line);
+  void lineRead(String line);
 
 }

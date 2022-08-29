@@ -30,8 +30,6 @@
 
 package org.contikios.cooja.contikimote.interfaces;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
 import javax.swing.JLabel;
@@ -39,7 +37,6 @@ import javax.swing.JPanel;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.contikios.cooja.Mote;
-import org.jdom.Element;
 
 import org.contikios.cooja.contikimote.ContikiMoteInterface;
 import org.contikios.cooja.interfaces.MoteID;
@@ -47,7 +44,7 @@ import org.contikios.cooja.mote.memory.VarMemory;
 
 /**
  * Mote ID interface: 'node_id'.
- *
+ * <p>
  * Contiki variables:
  * <ul>
  * <li>int simMoteID
@@ -55,7 +52,7 @@ import org.contikios.cooja.mote.memory.VarMemory;
  * </ul>
  *
  * This interface also seeds the Contiki random generator: 'random_init()'.
- *
+ * <p>
  * Core interface:
  * <ul>
  * <li>moteid_interface
@@ -137,27 +134,6 @@ public class ContikiMoteID extends MoteID implements ContikiMoteInterface {
     }
 
     this.deleteObserver(observer);
-  }
-
-  @Override
-  public Collection<Element> getConfigXML() {
-    var config = new ArrayList<Element>();
-
-    // Infinite boolean
-    var element = new Element("id");
-    element.setText(Integer.toString(moteID));
-    config.add(element);
-
-    return config;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
-    for (Element element : configXML) {
-      if (element.getName().equals("id")) {
-        setMoteID(Integer.parseInt(element.getText()));
-      }
-    }
   }
 
 }

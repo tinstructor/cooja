@@ -34,7 +34,7 @@ import org.jdom.Element;
 
 /**
  * A simulated mote.
- *
+ * <p>
  * All motes have an interface handler, a mote type and a mote memory.
  *
  * @see org.contikios.cooja.MoteInterfaceHandler
@@ -69,7 +69,6 @@ public interface Mote {
   /**
    * Returns mote type.
    *
-   * @see org.contikios.cooja.contikimote.ContikiMote#setType(MoteType)
    * @return Mote type
    */
   MoteType getType();

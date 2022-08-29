@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -50,6 +50,7 @@ public abstract class BasicAsyncCommand extends BasicCommand implements AsyncCom
     super(cmdHelp, argHelp);
   }
 
+  @Override
   public Command getInstance() {
       try {
           return (Command) this.clone();

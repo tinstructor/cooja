@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007-2012, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -36,33 +36,34 @@
  */
 
 package se.sics.mspsim.core;
+import java.util.Arrays;
 import se.sics.mspsim.core.EmulationLogger.WarningType;
 import se.sics.mspsim.util.Utils;
 
 /**
  * Timer.java
- *
+ * <p>
  * How should ports be connected to clock capture???
  * E.g. if port 1.2 give a signal then a capture is made on T_A[2]?!
  * (if it is configured to do that).
- * => some kind of listener on the ports ???
- *
- * ===> how do we capture the internal clocks
- * TACTL2 => ACLK if configured for that
+ * =&gt; some kind of listener on the ports ???
+ * <p>
+ * ===&gt; how do we capture the internal clocks
+ * TACTL2 =&gt; ACLK if configured for that
  * - same as any port - some kind of listener that we add when
  *   the configuration is in that way.?!
  * All low-level clocks should probably be ticked by the "cpu"-loop in
  * some way, but configured by the BasicClockModule, otherwise it will
- * be too time consuming (probably).
+ * be too time-consuming (probably).
  * CLCK Capture needs to be moved into the CPU since it is "time-critical"...
- * Other captures (ports, etc) could be handled separately (i think)
- *
+ * Other captures (ports, etc.) could be handled separately (i think)
+ * <p>
  * Several capturers can be "looking" at the same signal
  * and capture at different edges - how implement that efficiently?
- *
+ * <p>
  * ___---___---___
- *
- * ==> Reads might be another problem. If a loop is just checking the
+ * <p>
+ * ==&gt; Reads might be another problem. If a loop is just checking the
  * counter it will be reading same value for a long time. Needs to "capture"
  * reads to Timers by some simple means...
  */
@@ -197,7 +198,7 @@ public class Timer extends IOUnit {
 
   // Support variables Max 7 compare regs for now (timer b)
   private final int noCompare;
-  private final CCR ccr[];
+  private final CCR[] ccr;
 
   /* this is class represents a capture and compare register */
   private class CCR extends TimeEvent {
@@ -229,6 +230,7 @@ public class Timer extends IOUnit {
           return "CCR " + index;
       }
 
+      @Override
       public void execute(long t) {
           if (mode == STOP) {
               //System.out.println("**** IGNORING EXECUTION OF CCR - timer stopped!!!");
@@ -385,6 +387,7 @@ public class Timer extends IOUnit {
   }
 
   private TimeEvent counterTrigger = new TimeEvent(0, "Timer Counter Trigger") {
+      @Override
       public void execute(long t) {
           interruptPending = true;
           /* and can be something else if mode is another... */
@@ -419,7 +422,7 @@ public class Timer extends IOUnit {
     this.srcMap = config.srcMap;
     // noCompare = (srcMap.length / 4) - 1;
     noCompare = config.ccrCount;
-    if (srcMap == TIMER_Ax149) {
+    if (Arrays.equals(srcMap, TIMER_Ax149)) {
       timerOverflow = 0x0a;
     } else {
       timerOverflow = 0x0e;
@@ -438,10 +441,11 @@ public class Timer extends IOUnit {
     reset(0);
   }
 
+  @Override
   public void reset(int type) {
 
       /* reset the capture and compare registers */
-      for (int i = 0, n = noCompare; i < n; i++) {
+      for (int i = 0; i < noCompare; i++) {
           CCR reg = ccr[i];
           reg.expCompare = -1;
           reg.expCaptureTime = -1;
@@ -471,6 +475,7 @@ public class Timer extends IOUnit {
   }
 
   // Should handle read of byte also (currently ignores that...)
+  @Override
   public int read(int address, boolean word, long cycles) {
 
 //      if (DEBUG) log("read from: $" + Utils.hex(address, 4));
@@ -559,7 +564,7 @@ public class Timer extends IOUnit {
       int aTicks = clockSpeed / cpu.aclkFrq;
       updateCounter(cycles);
 
-      /* only calculate this if clock runs faster then ACLK - otherwise it
+      /* only calculate this if clock runs faster than ACLK - otherwise it
        * this will be dividing by zero...
        */
       if (aTicks > 0 && counter % aTicks > aTicks / 2) {
@@ -598,6 +603,7 @@ public class Timer extends IOUnit {
     }
   }
 
+  @Override
   public void write(int address, int data, boolean word, long cycles) {
     // This does not handle word/byte difference yet... assumes it gets
     // all 16 bits when called!!!
@@ -681,7 +687,7 @@ public class Timer extends IOUnit {
 
       // Write to the tctl.
       tctl = data;
-      // Clear clear bit
+      // Clear bit
       tctl &= ~0x04;
 
       // Clear interrupt pending if so requested...
@@ -939,6 +945,7 @@ public class Timer extends IOUnit {
 
   // The interrupt has been serviced...
   // Some flags should be cleared (the highest priority flags)?
+  @Override
   public void interruptServiced(int vector) {
     if (vector == ccr0Vector) {
       // Reset the interrupt trigger in "core".
@@ -970,10 +977,10 @@ public class Timer extends IOUnit {
   @Override
   public String info() {
       StringBuilder sb = new StringBuilder();
-      sb.append("  Source: " + getSourceName(clockSource) + "  Speed: " + clockSpeed
-              + " Hz  inDiv: " + inputDivider + "  Multiplier: " + cyclesMultiplicator + '\n'
-              + "  Mode: " + modeNames[mode] + "  IEn: " + interruptEnable
-              + "  IFG: " + interruptPending + "  TR: " + updateCounter(cpu.cycles) + '\n');
+      sb.append("  Source: ").append(getSourceName(clockSource)).append("  Speed: ").append(clockSpeed)
+        .append(" Hz  inDiv: ").append(inputDivider).append("  Multiplier: ").append(cyclesMultiplicator).append('\n')
+        .append("  Mode: ").append(modeNames[mode]).append("  IEn: ").append(interruptEnable)
+        .append("  IFG: ").append(interruptPending).append("  TR: ").append(updateCounter(cpu.cycles)).append('\n');
       for (CCR reg : ccr) {
           sb.append("  ").append(reg.info()).append('\n');
       }

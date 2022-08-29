@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -36,6 +36,8 @@
  */
 
 package se.sics.mspsim.util;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -49,7 +51,7 @@ import java.util.regex.Pattern;
  * The map reader reads the map file with memory map and
  * other information about the binary/firmware to load into the
  * node.
- *
+ * <p>
  * Format of the map file must be:
  * .text WS Adress WS Size WS file
  * WS Adress WS function_name
@@ -60,7 +62,7 @@ public class MapTable {
 
   private final static boolean DEBUG = false;
 
-  private enum Mode {NONE,CODE,DATA,BSS};
+  private enum Mode {NONE,CODE,DATA,BSS}
   private Mode mode;
 
   public int heapStartAddress = -1;
@@ -98,7 +100,7 @@ public class MapTable {
    * @param line a <code>String</code> value
    */
   private void parseMapLine(HashMap<String,MapEntry> moduleTable, String line) {
-    String parts[] = line.split("\\s+");
+    String[] parts = line.split("\\s+");
     if (line.startsWith(".text")) {
       mode = Mode.CODE;
       if (DEBUG) {
@@ -189,7 +191,7 @@ public class MapTable {
 
   public void loadMap(String file) throws IOException {
     FileInputStream fInput = new FileInputStream(file);
-    BufferedReader bInput = new BufferedReader(new InputStreamReader(fInput));
+    BufferedReader bInput = new BufferedReader(new InputStreamReader(fInput, UTF_8));
     HashMap<String,MapEntry> moduleTable = new HashMap<String,MapEntry>();
     String line;
     while ((line = bInput.readLine()) != null) {
@@ -213,7 +215,7 @@ public class MapTable {
   }
 
   public MapEntry[] getAllEntries() {
-    return entries.toArray(new MapEntry[entries.size()]);
+    return entries.toArray(new MapEntry[0]);
   }
 
   public MapEntry[] getEntries(String regexp) {
@@ -224,7 +226,7 @@ public class MapTable {
             allEntries.add(entry);
         }
     }
-    return allEntries.toArray(new MapEntry[allEntries.size()]);
+    return allEntries.toArray(new MapEntry[0]);
   }
 
   // Should be any symbol... not just function...

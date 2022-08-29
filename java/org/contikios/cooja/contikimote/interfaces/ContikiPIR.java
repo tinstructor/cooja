@@ -30,10 +30,8 @@
 
 package org.contikios.cooja.contikimote.interfaces;
 
-import java.util.Collection;
 import javax.swing.JButton;
 import javax.swing.JPanel;
-import org.jdom.Element;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.contikimote.ContikiMote;
 import org.contikios.cooja.contikimote.ContikiMoteInterface;
@@ -42,7 +40,7 @@ import org.contikios.cooja.mote.memory.VarMemory;
 
 /**
  * Passive IR sensor mote interface.
- *
+ * <p>
  * Contiki variables:
  * <ul>
  * <li>char simPirChanged (1=changed, else not changed)
@@ -112,15 +110,6 @@ public class ContikiPIR extends PIR implements ContikiMoteInterface {
 
   @Override
   public void releaseInterfaceVisualizer(JPanel panel) {
-  }
-
-  @Override
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
 }

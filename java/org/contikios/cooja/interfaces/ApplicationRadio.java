@@ -36,7 +36,6 @@ import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -49,7 +48,6 @@ import javax.swing.JPanel;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.jdom.Element;
 
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.MoteTimeEvent;
@@ -58,7 +56,7 @@ import org.contikios.cooja.Simulation;
 
 /**
  * Application radio.
- * 
+ * <p>
  * May be used by Java-based mote to implement radio functionality.
  * Supports radio channels and output power functionality.
  * The mote itself should observe the radio for incoming radio packet data.
@@ -389,17 +387,6 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
     panel.add(BorderLayout.NORTH, box);
     panel.putClientProperty("intf_obs", observer);
     return panel;
-  }
-
-  @Override
-  public Collection<Element> getConfigXML() {
-    /* TODO Save channel info? */
-    /* TODO Save output power? */
-    return null;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
   @Override

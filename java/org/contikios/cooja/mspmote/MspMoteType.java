@@ -31,7 +31,6 @@ package org.contikios.cooja.mspmote;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -78,54 +77,67 @@ public abstract class MspMoteType implements MoteType {
 
   private Class<? extends MoteInterface>[] moteInterfaceClasses = null;
 
+  @Override
   public String getIdentifier() {
     return identifier;
   }
 
+  @Override
   public void setIdentifier(String identifier) {
     this.identifier = identifier;
   }
 
+  @Override
   public String getDescription() {
     return description;
   }
 
+  @Override
   public void setDescription(String description) {
     this.description = description;
   }
 
+  @Override
   public String getCompileCommands() {
     return compileCommands;
   }
 
+  @Override
   public void setCompileCommands(String commands) {
     this.compileCommands = commands;
   }
 
+  @Override
   public File getContikiSourceFile() {
     return fileSource;
   }
 
+  @Override
   public File getContikiFirmwareFile() {
     return fileFirmware;
   }
 
+  @Override
   public void setContikiSourceFile(File file) {
     fileSource = file;
   }
 
+  @Override
   public void setContikiFirmwareFile(File file) {
     this.fileFirmware = file;
   }
 
+  @Override
   public Class<? extends MoteInterface>[] getMoteInterfaceClasses() {
     return moteInterfaceClasses;
   }
 
+  @Override
   public void setMoteInterfaceClasses(Class<? extends MoteInterface>[] classes) {
     moteInterfaceClasses = classes;
   }
 
+  @Override
   public final Mote generateMote(Simulation simulation) throws MoteTypeCreationException {
     MspMote mote = createMote(simulation);
     mote.initMote();
@@ -178,11 +190,13 @@ public abstract class MspMoteType implements MoteType {
 
   public abstract Icon getMoteTypeIcon();
 
+  @Override
   public ProjectConfig getConfig() {
     logger.warn("Msp mote type project config not implemented");
     return null;
   }
 
+  @Override
   public Collection<Element> getConfigXML(Simulation simulation) {
     ArrayList<Element> config = new ArrayList<>();
 
@@ -228,6 +242,7 @@ public abstract class MspMoteType implements MoteType {
     return config;
   }
 
+  @Override
   public boolean setConfigXML(Simulation simulation,
       Collection<Element> configXML, boolean visAvailable)
       throws MoteTypeCreationException {
@@ -383,7 +398,7 @@ public abstract class MspMoteType implements MoteType {
       }
       try {
         file = file.getCanonicalFile();
-      } catch (IOException | AccessControlException e) {
+      } catch (IOException e) {
       }
 
       HashMap<Integer, Integer> lineToAddrHash = fileToLineHash.get(file);

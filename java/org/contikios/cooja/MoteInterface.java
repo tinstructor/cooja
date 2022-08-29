@@ -47,10 +47,10 @@ import org.contikios.cooja.interfaces.PolledBeforeAllTicks;
  * hardware peripheral such as a button or LEDs. This may also be a property
  * that the mote itself is unaware of, for example the current position of
  * the mote.
- *
+ * <p>
  * Interfaces are the main way for the simulator to interact with a simulated
  * mote.
- *
+ * <p>
  * Each interface can be polled before and after mote ticks.
  * This is controlled by implementing the correct Java interfaces,
  * such as PolledBeforeActiveTicks.
@@ -79,7 +79,7 @@ public abstract class MoteInterface extends Observable {
   public static MoteInterface generateInterface(
       Class<? extends MoteInterface> interfaceClass, Mote mote) throws MoteType.MoteTypeCreationException {
     try {
-      return interfaceClass.getConstructor(new Class[] { Mote.class }).newInstance(mote);
+      return interfaceClass.getConstructor(Mote.class).newInstance(mote);
     } catch (Exception e) {
       logger.fatal("Exception when calling constructor of " + interfaceClass, e);
       throw new MoteType.MoteTypeCreationException("Exception when calling constructor of " + interfaceClass, e);
@@ -90,10 +90,10 @@ public abstract class MoteInterface extends Observable {
    * Returns a panel visualizing this interface. This could for
    * example show last messages sent/received for a radio interface, or logged
    * message for a log interface.
-   *
+   * <p>
    * All panels returned from this method must later be released for memory
    * reasons.
-   *
+   * <p>
    * This method may return null.
    *
    * @see #releaseInterfaceVisualizer(JPanel)
@@ -124,7 +124,9 @@ public abstract class MoteInterface extends Observable {
    * @see #setConfigXML(Collection, boolean)
    * @return XML elements representing the current interface config
    */
-  public abstract Collection<Element> getConfigXML();
+  public Collection<Element> getConfigXML() {
+    return null;
+  }
 
   /**
    * Sets the current mote interface config depending on the given XML elements.
@@ -135,8 +137,8 @@ public abstract class MoteInterface extends Observable {
    * @param visAvailable
    *          Is this object allowed to show a visualizer?
    */
-  public abstract void setConfigXML(Collection<Element> configXML,
-      boolean visAvailable);
+  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
+  }
   
   /**
    * Called to free resources used by the mote interface.

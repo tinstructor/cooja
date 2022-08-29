@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, 2008, 2009, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -73,12 +73,12 @@ public class MSP430Core extends Chip implements MSP430Constants {
   // true => breakpoints can occur!
   boolean breakpointActive = true;
 
-  public final int memory[];
+  public final int[] memory;
   private final Flash flash;
   boolean isFlashBusy;
   boolean isStopping = false;
 
-  private final Memory memorySegments[];
+  private final Memory[] memorySegments;
   Memory currentSegment;
 
   public long cycles = 0;
@@ -94,7 +94,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
 
   // From the possible interrupt sources - to be able to indicate is serviced.
   // NOTE: 64 since more modern MSP430's have more than 16 vectors (5xxx has 64).
-  private InterruptHandler interruptSource[] = new InterruptHandler[64];
+  private InterruptHandler[] interruptSource = new InterruptHandler[64];
   public int MAX_INTERRUPT;
 
   protected int interruptMax = -1;
@@ -191,11 +191,14 @@ public class MSP430Core extends Chip implements MSP430Constants {
 
     /* this is for detecting writes/read to/from non-existing IO */
     IOUnit voidIO = new IOUnit("void", this, memory, 0) {
+        @Override
         public void interruptServiced(int vector) {
         }
+        @Override
         public void write(int address, int value, boolean word, long cycles) {
             cpu.logw(WarningType.VOID_IO_WRITE, "*** IOUnit write to non-existent IO at $" + Utils.hex(address, 4));
         }
+        @Override
         public int read(int address, boolean word, long cycles) {
             cpu.logw(WarningType.VOID_IO_READ, "*** IOUnit read from non-existent IO at $" + Utils.hex(address, 4));
             return 0;
@@ -358,7 +361,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
   }
 
   public Chip[] getChips() {
-      return chips.toArray(new Chip[chips.size()]);
+      return chips.toArray(new Chip[0]);
   }
 
   public <T extends Chip> T[] getChips(Class<T> type) {
@@ -609,9 +612,8 @@ public class MSP430Core extends Chip implements MSP430Constants {
   // Converts a virtual time to a cycles time according to the current
   // cycle speed
   private long convertVTime(long vTime) {
-    long tmpTime = lastCyclesTime + (long) ((vTime - lastVTime) / currentDCOFactor);
-//    System.out.println("ConvertVTime: vTime=" + vTime + " => " + tmpTime);
-    return tmpTime;
+    //    System.out.println("ConvertVTime: vTime=" + vTime + " => " + tmpTime);
+    return lastCyclesTime + (long) ((vTime - lastVTime) / currentDCOFactor);
   }
 
   // get elapsed time in seconds
@@ -653,7 +655,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
       }
     }
 
-    // Pick the one with shortest time in the future.
+    // Pick the one with the shortest time in the future.
     nextEventCycles = nextCycleEventCycles < nextVTimeEventCycles ?
         nextCycleEventCycles : nextVTimeEventCycles;
   }
@@ -685,7 +687,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
     vTimeEventQueue.addEvent(event, time);
     if (currentNext != vTimeEventQueue.nextTime) {
       // This is only valid when not having a cycle event queue also...
-      // if we have it needs to be checked also!
+      // if we have it, it needs to be checked also!
       nextVTimeEventCycles = convertVTime(vTimeEventQueue.nextTime);
       if (nextEventCycles > nextVTimeEventCycles) {
         nextEventCycles = nextVTimeEventCycles;
@@ -839,7 +841,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
   // This will be called after an interrupt have been handled
   // In the main-CPU loop
   public void handlePendingInterrupts() {
-    // By default no int. left to process...
+    // By default, no int. left to process...
 
     reevaluateInterrupts();
 
@@ -1028,7 +1030,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
         if ((instruction & 0x80) == 0x80) {
             repeatsInDstReg = true;
         }
-        // Bit 6 indicates whether or not the data length mode should
+        // Bit 6 indicates whether the data length mode should
         // be 20 bits. A one means traditional MSP430 mode; a zero
         // indicates 20 bit mode. (XXX: there is a reserved data
         // length mode if this bit is zero and the MSP430 instruction
@@ -2192,6 +2194,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
           return index;
   }
 
+  @Override
   public int getModeMax() {
     return MODE_MAX;
   }
@@ -2227,23 +2230,25 @@ public class MSP430Core extends Chip implements MSP430Constants {
       return config.getAddressAsString(addr);
   }
 
+  @Override
   public int getConfiguration(int parameter) {
       return 0;
   }
 
+  @Override
   public String info() {
       StringBuilder buf = new StringBuilder();
-      buf.append(" Mode: " + getModeName(getMode())
-              + "  ACLK: " + aclkFrq + " Hz  SMCLK: " + smclkFrq + " Hz\n"
-              + " Cycles: " + cycles + "  CPU Cycles: " + cpuCycles
-              + "  Time: " + (long)getTimeMillis() + " msec\n");
-      buf.append(" Interrupt enabled: " + interruptsEnabled +  " HighestInterrupt: " + interruptMax);
+      buf.append(" Mode: ").append(getModeName(getMode()))
+         .append("  ACLK: ").append(aclkFrq).append(" Hz  SMCLK: ").append(smclkFrq).append(" Hz\n")
+         .append(" Cycles: ").append(cycles).append("  CPU Cycles: ").append(cpuCycles)
+         .append("  Time: ").append((long)getTimeMillis()).append(" msec\n");
+      buf.append(" Interrupt enabled: ").append(interruptsEnabled).append(" HighestInterrupt: ").append(interruptMax);
       for (int i = 0; i < MAX_INTERRUPT; i++) {
           int value = currentSegment.get(0xfffe - i * 2, AccessMode.WORD);
           if (value != 0xffff) {
-              buf.append(" Vector " + (MAX_INTERRUPT - i) + " at $"
-                      + Utils.hex16(0xfffe - i * 2) + " -> $"
-                      + Utils.hex16(value) + "\n");
+              buf.append(" Vector ").append(MAX_INTERRUPT - i).append(" at $")
+                 .append(Utils.hex16(0xfffe - i * 2)).append(" -> $")
+                 .append(Utils.hex16(value)).append("\n");
           }
       }
       return buf.toString();

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2012 Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -35,8 +35,12 @@
  */
 
 package se.sics.mspsim.chip;
-import se.sics.mspsim.core.*;
 import se.sics.mspsim.core.EmulationLogger.WarningType;
+import se.sics.mspsim.core.IOPort;
+import se.sics.mspsim.core.MSP430Core;
+import se.sics.mspsim.core.TimeEvent;
+import se.sics.mspsim.core.USARTListener;
+import se.sics.mspsim.core.USARTSource;
 import se.sics.mspsim.util.ArrayFIFO;
 import se.sics.mspsim.util.CCITT_CRC;
 import se.sics.mspsim.util.Utils;
@@ -312,7 +316,7 @@ public class CC2520 extends Radio802154 implements USARTListener, SPIData {
         public int getFSMState() {
             return state;
         }
-    };
+    }
 
     // FCF High
     public static final int FRAME_TYPE        = 0x07;
@@ -408,6 +412,7 @@ public class CC2520 extends Radio802154 implements USARTListener, SPIData {
     private boolean isRadioOn;
 
     private TimeEvent oscillatorEvent = new TimeEvent(0, "CC2520 OSC") {
+        @Override
         public void execute(long t) {
             status |= STATUS_XOSC16M_STABLE;
             if(DEBUG) log("Oscillator Stable Event.");
@@ -417,6 +422,7 @@ public class CC2520 extends Radio802154 implements USARTListener, SPIData {
     };
 
     private TimeEvent vregEvent = new TimeEvent(0, "CC2520 VREG") {
+        @Override
         public void execute(long t) {
             if(DEBUG) log("VREG Started at: " + t + " cyc: " +
                     cpu.cycles + " " + getTime());
@@ -427,24 +433,28 @@ public class CC2520 extends Radio802154 implements USARTListener, SPIData {
     };
 
     private TimeEvent sendEvent = new TimeEvent(0, "CC2520 Send") {
+        @Override
         public void execute(long t) {
             txNext();
         }
     };
 
     private TimeEvent ackEvent = new TimeEvent(0, "CC2520 Ack") {
+        @Override
         public void execute(long t) {
             ackNext();
         }
     };
 
     private TimeEvent shrEvent = new TimeEvent(0, "CC2520 SHR") {
+        @Override
         public void execute(long t) {
             shrNext();
         }
     };
 
     private TimeEvent symbolEvent = new TimeEvent(0, "CC2520 Symbol") {
+        @Override
         public void execute(long t) {
             switch(stateMachine) {
             case RX_CALIBRATE:
@@ -646,7 +656,7 @@ public class CC2520 extends Radio802154 implements USARTListener, SPIData {
             break;
 
         case TX_ACK_CALIBRATE:
-            /* TX active during ACK + NOTE: we ignore the SFD when receiving full packets so
+            /* TX active during ACK + NOTE: we ignore the SFD when receiving full packets, so
              * we need to add another extra 2 symbols here to get a correct timing */
             status |= STATUS_TX_ACTIVE;
             memory[REG_FSMSTAT1] |= (1 << 1);
@@ -707,6 +717,7 @@ public class CC2520 extends Radio802154 implements USARTListener, SPIData {
     /* Receive a byte from the radio medium
      * @see se.sics.mspsim.chip.RFListener#receivedByte(byte)
      */
+    @Override
     public void receivedByte(byte data) {
         // Received a byte from the "air"
 
@@ -1341,7 +1352,7 @@ public class CC2520 extends Radio802154 implements USARTListener, SPIData {
     /**
      * This is actually the "CORR" value.
      * @param lqi The Corr-val
-     * @sa CC2520 Datasheet
+     * @see "CC2520 Datasheet"
      */
     @Override
     public void setLQI(int lqi){
@@ -1521,6 +1532,7 @@ public class CC2520 extends Radio802154 implements USARTListener, SPIData {
         }
     }
 
+    @Override
     public boolean getChipSelect() {
         return chipSelect;
     }

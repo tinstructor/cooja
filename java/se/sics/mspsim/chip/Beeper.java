@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007-2010, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -89,7 +89,7 @@ public class Beeper extends Chip {
         if (buffer == null) {
             byte[] buf = new byte[WAVE_LEN];
             double f1 = 0;
-            for (int i = 0, n = WAVE_LEN; i < n; i++) {
+            for (int i = 0; i < WAVE_LEN; i++) {
                 f1 = Math.sin(i * 3.141592 * 2 / WAVE_LEN) * 40;
                 f1 += Math.sin(i * 3.141592 * 4 / WAVE_LEN) * 30;
                 buf[i] = (byte) (f1);
@@ -98,6 +98,7 @@ public class Beeper extends Chip {
         }
         if (soundEvent == null) {
             soundEvent = new TimeEvent(0, "Beeper") {
+                @Override
                 public void execute(long t) {
                     if (isSoundEnabled) {
                         ioTick(t);
@@ -188,16 +189,19 @@ public class Beeper extends Chip {
         }
     }
 
+    @Override
     public int getModeMax() {
         return MODE_MAX;
     }
 
+    @Override
     public String info() {
         return "Volume: " + getVolume() + " Beep: " + (beepOn ? "on" : "off")
         + " Sound Enabled: " + isSoundEnabled;
     }
 
     /* just return some value */
+    @Override
     public int getConfiguration(int parameter) {
         return beepOn ? 1 : 0;
     }

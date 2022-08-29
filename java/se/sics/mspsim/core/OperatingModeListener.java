@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -45,5 +45,5 @@ package se.sics.mspsim.core;
  *
  */
 public interface OperatingModeListener {
-  public void modeChanged(Chip source, int mode);
+  void modeChanged(Chip source, int mode);
 }

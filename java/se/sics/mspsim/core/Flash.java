@@ -30,10 +30,6 @@
  * This file is part of mspsim.
  *
  */
-/**
- * @author Klaus Stengel <siklsten@informatik.stud.uni-erlangen.de>
- * @author Víctor Ariño <victor.arino@tado.com>
- */
 package se.sics.mspsim.core;
 
 import java.util.Arrays;
@@ -42,6 +38,10 @@ import se.sics.mspsim.core.EmulationLogger.WarningType;
 import se.sics.mspsim.core.Memory.AccessMode;
 import se.sics.mspsim.util.Utils;
 
+/**
+ * @author Klaus Stengel (siklsten@informatik.stud.uni-erlangen.de)
+ * @author Víctor Ariño (victor.arino@tado.com)
+ */
 public class Flash extends IOUnit {
 
   private static final int FCTL1 = 0x00;
@@ -92,7 +92,7 @@ public class Flash extends IOUnit {
     ACLK,
     MCLK,
     SMCLK
-  };
+  }
 
   private static final int MASS_ERASE_TIME = 5297;
   private static final int SEGMENT_ERASE_TIME = 4819;
@@ -130,6 +130,7 @@ public class Flash extends IOUnit {
   private boolean lockInfo = true;
 
   private TimeEvent end_process = new TimeEvent(0) {
+    @Override
     public void execute(long t) {
       blocked_cpu = false;
 
@@ -195,6 +196,7 @@ public class Flash extends IOUnit {
     return blocked_cpu;
   }
 
+  @Override
   public void interruptServiced(int vector) {
     cpu.flagInterrupt(vector, this, false);
   }
@@ -281,8 +283,8 @@ public class Flash extends IOUnit {
 
     switch(currentWriteMode) {
     case ERASE_SEGMENT:
-      int a_area_start[] = new int[1];
-      int a_area_end[] = new int[1];
+      int[] a_area_start = new int[1];
+      int[] a_area_end = new int[1];
       getSegmentRange(address, a_area_start, a_area_end);
       int area_start = a_area_start[0];
       int area_end = a_area_end[0];
@@ -397,6 +399,7 @@ public class Flash extends IOUnit {
     end[0] = start[0] + segsize;
   }
 
+  @Override
   public int read(int address, boolean word, long cycles) {
     address = address - offset;
 
@@ -512,6 +515,7 @@ public class Flash extends IOUnit {
     waitFlashProcess(BLOCKWRITE_END_TIME);
   }
 
+  @Override
   public void write(int address, int value, boolean word, long cycles) {
     address = address - offset;
     if (!word) {
@@ -605,6 +609,7 @@ public class Flash extends IOUnit {
     }
   }
 
+  @Override
   public void reset(int type) {
     if (DEBUG) {
       log("Got reset!");

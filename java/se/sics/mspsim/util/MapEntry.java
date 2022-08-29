@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -43,7 +43,7 @@ package se.sics.mspsim.util;
 
 public class MapEntry {
 
-  public static enum TYPE {function, variable, module}
+  public enum TYPE {function, variable, module}
 
   private final TYPE type;
   private final int address;
@@ -132,6 +132,7 @@ public class MapEntry {
     return sb.toString();
   }
 
+  @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append('$').append(Utils.hex(address, 4)).append(' ').append(type).append(' ').append(name);

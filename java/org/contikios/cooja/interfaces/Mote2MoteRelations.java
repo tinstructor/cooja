@@ -32,7 +32,6 @@ package org.contikios.cooja.interfaces;
 
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -42,7 +41,6 @@ import javax.swing.JPanel;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Cooja;
@@ -53,22 +51,22 @@ import org.contikios.cooja.SimEventCentral.MoteCountListener;
 /**
  * Mote2Mote Relations is used to show mote relations in simulated
  * applications, typically for debugging or visualization purposes.
- *
+ * <p>
  * The interface is write-only: the simulated Contiki has no knowledge of current relations
  * with other motes. The Contiki application can, however, add and remove relations.
- *
+ * <p>
  * A Contiki application adds/removes a relation by outputting a simple messages on its log interface,
  * typically via printf()'s of the serial port.
- *
+ * <p>
  * Syntax:
  * "&lt;relation identifier #L&gt; &lt;destination mote ID&gt; &lt;add/remove&gt;"
- *
+ * <p>
  * Example, add relation between this mote and mote with ID 1
  * "#L 1 1"
- *
+ * <p>
  * Example, remove relation between this mote and mote with ID 1
  * "#L 1 0"
- *
+ * <p>
  * Example, remove relation between this mote and mote with ID 2
  * "#L 2 0"
  *
@@ -275,15 +273,6 @@ public class Mote2MoteRelations extends MoteInterface {
       return;
     }
     this.deleteObserver(observer);
-  }
-
-  @Override
-  public Collection<Element> getConfigXML() {
-    return null;
-  }
-
-  @Override
-  public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
   }
 
 }

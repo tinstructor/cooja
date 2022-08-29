@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2007, Swedish Institute of Computer Science.
  * All rights reserved.
  *
@@ -42,5 +42,5 @@
 package se.sics.mspsim.core;
 
 public interface PortListener {
-  public void portWrite(IOPort source, int data);
+  void portWrite(IOPort source, int data);
 }

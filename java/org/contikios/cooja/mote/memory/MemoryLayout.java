@@ -64,7 +64,7 @@ public class MemoryLayout {
     INT64(8),
     FLOAT(4),
     DOUBLE(8),
-    POINTER(4);
+    POINTER(8);
 
     private int size;
 
@@ -131,7 +131,7 @@ public class MemoryLayout {
 
   /**
    * Enable/Disable data alignment.
-   *
+   * <p>
    * Determines whether data alignemnt is used for packing structs.
    * Default is enabled.
    *
