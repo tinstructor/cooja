@@ -64,6 +64,7 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
      * Project default transmission bitrate (kbps).
      */
     private final double RADIO_TRANSMISSION_RATE_KBPS;
+    private final CCITT_CRC txCrc = new CCITT_CRC();
 
     /**
      * Configured transmission bitrate (kbps).
@@ -74,7 +75,7 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
 
     private RadioPacket packetFromMote = null;
 
-    private boolean radioOn = true;
+    private boolean radioOn;
 
     private boolean isTransmitting = false;
 
@@ -206,7 +207,6 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
             }
 
             byte[] data = packetFromMote.getPacketData();
-            CCITT_CRC txCrc = new CCITT_CRC();
             txCrc.setCRC(0);
             for (int i = 0; i < size; i++) {
                 txCrc.addBitrev(data[i]);
