@@ -205,11 +205,7 @@ public class Flash extends IOUnit {
     if (main_range.isInRange(address)) {
       return true;
     }
-    if (info_range.isInRange(address)) {
-      return true;
-    }
-
-    return false;
+    return info_range.isInRange(address);
   }
 
   private int getFlashClockDiv() {
@@ -237,7 +233,6 @@ public class Flash extends IOUnit {
       break;
 
     case SMCLK:
-      myfreq = cpu.smclkFrq / freqdiv;
       finish_msec = ((double)time * freqdiv * 1000) / cpu.smclkFrq;
       /* if (DEBUG)
         System.out.println("Flash: Using SMCLK source with f=" + myfreq
@@ -259,7 +254,7 @@ public class Flash extends IOUnit {
   }
 
   public void flashWrite(int address, int data, AccessMode dataMode) {
-    int wait_time = -1;
+    int wait_time;
 
     if (locked) {
       if (DEBUG) {
@@ -274,7 +269,7 @@ public class Flash extends IOUnit {
       }
     }
 
-    if (cpu.isFlashBusy || wait == false) {
+    if (cpu.isFlashBusy || !wait) {
       if (!((mode & BLKWRT) != 0 && wait)) {
         triggerAccessViolation("Flash write prohbited while BUSY=1 or WAIT=0");
         return;
@@ -363,7 +358,7 @@ public class Flash extends IOUnit {
       return;
     }
     if (DEBUG) {
-      if (wait == false && currentWriteMode == WriteMode.WRITE_BLOCK) {
+      if (!wait && currentWriteMode == WriteMode.WRITE_BLOCK) {
         log("Reading flash prohibited. Would read 0x3fff!!!");
         log("CPU PC=$" + Utils.hex(cpu.getPC(), 4)
             + " read address $" + Utils.hex(address, 4));
@@ -538,7 +533,7 @@ public class Flash extends IOUnit {
       // access violation while erase/write in progress
       // exception: block write mode and WAIT==1
 //      if ((mode & ERASE_MASK) != 0 || (mode & WRT) != 0) {
-      if (cpu.isFlashBusy && ((mode & BLKWRT) == 0 || wait == false)) {
+      if (cpu.isFlashBusy && ((mode & BLKWRT) == 0 || !wait)) {
           //	if (!((mode & BLKWRT) != 0 && wait)) {
         triggerAccessViolation("FCTL1 write not allowed while erase/write active");
         return;

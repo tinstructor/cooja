@@ -81,7 +81,7 @@ public class GDBStubs implements Runnable {
                 DataInputStream input = new DataInputStream(s.getInputStream());
                 output = s.getOutputStream();
 
-                String cmd = "";
+                StringBuilder cmd = new StringBuilder();
                 boolean readCmd = false;
                 int c;
                 while (s != null && ((c = input.read()) != -1)) {
@@ -91,21 +91,19 @@ public class GDBStubs implements Runnable {
                         readCmd = false;
                         /* ack the message */
                         output.write('+');
-                        handleCmd(cmd, buffer, len);
-                        cmd = "";
+                        handleCmd(cmd.toString(), buffer, len);
+                        cmd = new StringBuilder();
                         len = 0;
                     }
                     if (readCmd) {
-                        cmd += (char) c;
+                        cmd.append((char) c);
                         buffer[len++] = (c & 0xff);
                     }
                     if (c == '$') {
                         readCmd = true;
                     }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (EmulationException e) {
+            } catch (IOException | EmulationException e) {
                 e.printStackTrace();
             }
         }
@@ -160,16 +158,16 @@ public class GDBStubs implements Runnable {
             String[] parts = cmd2.split(",");
             int addr = Integer.decode("0x" + parts[0]);
             int len = Integer.decode("0x" + parts[1]);
-            String data = "";
+            StringBuilder data = new StringBuilder();
             Memory mem = cpu.getMemory();
             if (c == 'm') {
                 System.out.println("Returning memory from: " + addr + " len = "
                         + len);
                 /* This might be wrong - which is the correct byte order? */
                 for (int i = 0; i < len; i++) {
-                    data += Utils.hex8(mem.get(addr++, Memory.AccessMode.BYTE));
+                    data.append(Utils.hex8(mem.get(addr++, Memory.AccessMode.BYTE)));
                 }
-                sendResponse(data);
+                sendResponse(data.toString());
             } else {
                 System.out.println("Writing to memory at: " + addr + " len = "
                         + len + " with: "
@@ -193,11 +191,11 @@ public class GDBStubs implements Runnable {
     }
 
     private void readRegisters() throws IOException {
-        String regs = "";
+        StringBuilder regs = new StringBuilder();
         for (int i = 0; i < 16; i++) {
-            regs += Utils.hex8(cpu.reg[i] & 0xff) + Utils.hex8(cpu.reg[i] >> 8);
+            regs.append(Utils.hex8(cpu.reg[i] & 0xff)).append(Utils.hex8(cpu.reg[i] >> 8));
         }
-        sendResponse(regs);
+        sendResponse(regs.toString());
     }
 
     public static String stringToHex(String base)
@@ -208,7 +206,7 @@ public class GDBStubs implements Runnable {
         {
             int cursor = 0;
             intValue = base.charAt(x);
-            String binaryChar = new String(Integer.toBinaryString(base.charAt(x)));
+            String binaryChar = Integer.toBinaryString(base.charAt(x));
             for(int i = 0; i < binaryChar.length(); i++) {
                 if(binaryChar.charAt(i) == '1') {
                     cursor += 1;

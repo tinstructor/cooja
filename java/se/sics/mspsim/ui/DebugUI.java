@@ -77,7 +77,7 @@ public class DebugUI extends JPanel {
     disAsm = cpu.getDisAsm();
 
     listModel = new DbgListModel();
-    disList = new JList<DbgInstruction>(listModel);
+    disList = new JList<>(listModel);
     disList.setFont(new Font("courier", Font.PLAIN, 12));
     disList.setCellRenderer(new MyCellRenderer());
     disList.setPreferredSize(new Dimension(500, 350));
@@ -127,7 +127,7 @@ public class DebugUI extends JPanel {
         startPos = pc;
         // recalculate index!!! with PC at the top of the "page"
         int currentPos = pc;
-        for (int i = 0, n = size; i < n; i++) {
+        for (int i = 0; i < size; i++) {
 //        if (cpu.getExecCount(currentPos) == 0) {
 //	    inst = new DbgInstruction();
 //	    inst.setInstruction(cpu.memory[currentPos] + (cpu.memory[currentPos + 1] << 8), 2);

@@ -57,7 +57,7 @@ public class OperatingModeStatistics {
   public static final int OP_INVERT = 1;
 
   private final MSP430Core cpu;
-  private ArrayList<StatEntry> statistics = new ArrayList<StatEntry>();
+  private final ArrayList<StatEntry> statistics = new ArrayList<>();
 
   public OperatingModeStatistics(MSP430Core cpu) {
     this.cpu = cpu;
@@ -172,8 +172,8 @@ public class OperatingModeStatistics {
   private class StatMultiDataSource implements MultiDataSource {
 
     private final StatEntry entry;
-    private long[] lastValue;
-    private long[] lastCycles;
+    private final long[] lastValue;
+    private final long[] lastCycles;
 
     public StatMultiDataSource(StatEntry entry) {
       this.entry = entry;
@@ -216,7 +216,7 @@ public class OperatingModeStatistics {
     final Chip chip;
     long startTime;
     int mode;
-    long[] elapsed;
+    final long[] elapsed;
 
     StatEntry(Chip chip) {
       this.chip = chip;
@@ -243,7 +243,7 @@ public class OperatingModeStatistics {
     void printStat(PrintStream out) {
       out.println("Stat for: " + chip.getID());
       for (int i = 0; i < elapsed.length; i++) {
-        out.println("" + (i + 1) + " = " + elapsed[i]);
+        out.println((i + 1) + " = " + elapsed[i]);
       }
     }
   }

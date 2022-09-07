@@ -41,7 +41,6 @@ package se.sics.mspsim.profiler;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -62,11 +61,11 @@ import se.sics.mspsim.util.Utils;
 
 public class SimpleProfiler implements Profiler, EventListener {
 
-  private HashMap<MapEntry,CallEntry> profileData;
-  private HashMap<String, TagEntry> tagProfiles;
-  private HashMap<String, TagEntry> startTags;
-  private HashMap<String, TagEntry> endTags;
-  private HashMap<String, String> ignoreFunctions;
+  private final HashMap<MapEntry,CallEntry> profileData;
+  private final HashMap<String, TagEntry> tagProfiles;
+  private final HashMap<String, TagEntry> startTags;
+  private final HashMap<String, TagEntry> endTags;
+  private final HashMap<String, String> ignoreFunctions;
   private CallEntry[] callStack;
   private int cSP = 0;
   private MSP430Core cpu;
@@ -76,9 +75,9 @@ public class SimpleProfiler implements Profiler, EventListener {
   private CallListener[] callListeners;
 
   /* statistics for interrupts */
-  private long[] lastInterruptTime = new long[64];
-  private long[] interruptTime = new long[64];
-  private long[] interruptCount = new long[64];
+  private final long[] lastInterruptTime = new long[64];
+  private final long[] interruptTime = new long[64];
+  private final long[] interruptCount = new long[64];
   private int servicedInterrupt;
   private int interruptLevel;
   private int interruptFrom;
@@ -87,11 +86,11 @@ public class SimpleProfiler implements Profiler, EventListener {
   private StackMonitor stackMonitor;
 
   public SimpleProfiler() {
-    profileData = new HashMap<MapEntry, CallEntry>();
-    tagProfiles = new HashMap<String, TagEntry>();
-    startTags = new HashMap<String, TagEntry>();
-    endTags = new HashMap<String, TagEntry>();
-    ignoreFunctions = new HashMap<String, String>();
+    profileData = new HashMap<>();
+    tagProfiles = new HashMap<>();
+    startTags = new HashMap<>();
+    endTags = new HashMap<>();
+    ignoreFunctions = new HashMap<>();
     callStack = new CallEntry[64];
     servicedInterrupt = -1;
   }
@@ -164,8 +163,8 @@ public class SimpleProfiler implements Profiler, EventListener {
 
     CallListener[] listeners = callListeners;
     if (listeners != null) {
-      for (int i = 0, n = listeners.length; i < n; i++) {
-        listeners[i].functionCall(this, ce);
+      for (CallListener listener : listeners) {
+        listener.functionCall(this, ce);
       }
     }
   }
@@ -239,8 +238,8 @@ public class SimpleProfiler implements Profiler, EventListener {
 
       CallListener[] listeners = callListeners;
       if (listeners != null) {
-        for (int i = 0, n = listeners.length; i < n; i++) {
-          listeners[i].functionReturn(this, cspEntry);
+        for (CallListener listener : listeners) {
+          listener.functionReturn(this, cspEntry);
         }
       }
     }
@@ -292,12 +291,11 @@ public class SimpleProfiler implements Profiler, EventListener {
     if (profileData != null) {
       CallEntry[] entries =
         profileData.values().toArray(new CallEntry[0]);
-      for (int i = 0, n = entries.length; i < n; i++) {
-        entries[i].cycles = 0;
-        entries[i].calls = 0;
+      for (CallEntry entry : entries) {
+        entry.cycles = 0;
+        entry.calls = 0;
       }
-      for (int i = 0, n = callStack.length; i < n; i++) {
-        CallEntry e = callStack[i];
+      for (CallEntry e : callStack) {
         if (e != null) {
           e.calls = -1;
         }
@@ -326,15 +324,15 @@ public class SimpleProfiler implements Profiler, EventListener {
     if (functionNameRegexp != null && functionNameRegexp.length() > 0) {
       pattern = Pattern.compile(functionNameRegexp);
     }
-    for (int i = 0, n = entries.length; i < n; i++) {
-      int c = entries[i].calls;
+    for (CallEntry entry : entries) {
+      int c = entry.calls;
       if (c > 0) {
-        String functionName = entries[i].function.getName();
+        String functionName = entry.function.getName();
         if (pattern == null || pattern.matcher(functionName).find()) {
-          String cyclesS = "" + entries[i].cycles;
-          String exCyclesS = "" + entries[i].exclusiveCycles;
-          String callS = "" + c;
-          String avgS = "" + (c > 0 ? (entries[i].cycles / c) : 0);
+          String cyclesS = String.valueOf(entry.cycles);
+          String exCyclesS = String.valueOf(entry.exclusiveCycles);
+          String callS = String.valueOf(c);
+          String avgS = String.valueOf(c > 0 ? (entry.cycles / c) : 0);
           out.print(functionName);
           printSpace(out, 43 - functionName.length() - callS.length());
           out.print(callS);
@@ -347,7 +345,7 @@ public class SimpleProfiler implements Profiler, EventListener {
           printSpace(out, 11 - exCyclesS.length());
           out.println(exCyclesS);
           if (profCallers) {
-            printCallers(entries[i], out);
+            printCallers(entry, out);
           }
         }
       }
@@ -366,16 +364,16 @@ public class SimpleProfiler implements Profiler, EventListener {
 
   private void printCallers(CallEntry callEntry, PrintStream out) {
     HashMap<MapEntry,CallCounter> callers = callEntry.callers;
-    List<Entry<MapEntry,CallCounter>> list = new ArrayList<Entry<MapEntry,CallCounter>>(callers.entrySet());
-    Collections.sort(list, new Comparator<Entry<MapEntry,CallCounter>>() {
-        @Override
-        public int compare(Entry<MapEntry,CallCounter> o1, Entry<MapEntry,CallCounter> o2) {
-          return o2.getValue().compareTo(o1.getValue());
-        }
+    List<Entry<MapEntry,CallCounter>> list = new ArrayList<>(callers.entrySet());
+    list.sort(new Comparator<>() {
+      @Override
+      public int compare(Entry<MapEntry, CallCounter> o1, Entry<MapEntry, CallCounter> o2) {
+        return o2.getValue().compareTo(o1.getValue());
+      }
     });
     for (Entry<MapEntry,CallCounter> entry : list) {
       String functionName = entry.getKey().getName();
-      String callS = "" + entry.getValue().count;
+      String callS = String.valueOf(entry.getValue().count);
       printSpace(out, 12 - callS.length());
       out.print(callS);
       printSpace(out, 2);
@@ -407,7 +405,7 @@ public class SimpleProfiler implements Profiler, EventListener {
   }
 
   private static class CallEntryComparator implements Comparator<CallEntry> {
-    private int mode;
+    private final int mode;
 
     public CallEntryComparator(String modeS) {
       if ("exclusive".equalsIgnoreCase(modeS)) {
@@ -431,7 +429,7 @@ public class SimpleProfiler implements Profiler, EventListener {
         diff = o2.exclusiveCycles - o1.exclusiveCycles;
         break;
       case 2:
-        diff = o2.calls - o1.calls;
+        diff = (long)o2.calls - o1.calls;
         break;
       case 3:
         diff = (o2.calls > 0 ? (o2.cycles / o2.calls) : 0) -
@@ -523,7 +521,7 @@ public class SimpleProfiler implements Profiler, EventListener {
 
   @Override
   public void event(EventSource source, String event, Object data) {
-    TagEntry tagEntry = null;
+    TagEntry tagEntry;
     if ((tagEntry = startTags.get(event)) != null) {
       /* only the first occurrence of event will set the lastCycles */
       if (tagEntry.lastCycles == 0) {

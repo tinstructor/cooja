@@ -95,7 +95,7 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
 
   private CommandHandler commandHandler;
   private MSP430 myCpu = null;
-  private MspMoteType myMoteType = null;
+  private MspMoteType myMoteType;
   private MspMoteMemory myMemory = null;
   private MoteInterfaceHandler myMoteInterfaceHandler = null;
   public ComponentRegistry registry = null;
@@ -106,7 +106,7 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
   public GenericNode mspNode = null;
 
   public MspMote(MspMoteType moteType, Simulation simulation) {
-    this.simulation = simulation;
+    setSimulation(simulation);
     myMoteType = moteType;
 
     /* Schedule us immediately */
@@ -316,7 +316,7 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
   }
 
   private void regularExecute(MspClock clock, long t, int duration) {
-    long nextExecute = 0;
+    long nextExecute;
     long drift = clock.getDrift();
 
     /* Wait until mote boots */
@@ -474,7 +474,6 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
 
   @Override
   public boolean setConfigXML(Simulation simulation, Collection<Element> configXML, boolean visAvailable) throws MoteType.MoteTypeCreationException {
-    setSimulation(simulation);
     if (myMoteInterfaceHandler == null) {
       myMoteInterfaceHandler = createMoteInterfaceHandler();
     }

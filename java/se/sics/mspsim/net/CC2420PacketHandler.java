@@ -61,13 +61,13 @@ public class CC2420PacketHandler extends AbstractPacketHandler implements RFList
 
   private PrintStream out;
 
-  byte[] packetBuffer = new byte[256];
+  final byte[] packetBuffer = new byte[256];
   int mode = SFD_SEARCH;
   int pos;
   int packetLen;
   int sfdSearch = 0;
 
-  MSP430Core cpu;
+  final MSP430Core cpu;
   public CC2420PacketHandler(MSP430Core cpu) {
     this.cpu = cpu;
   }
@@ -139,9 +139,9 @@ public class CC2420PacketHandler extends AbstractPacketHandler implements RFList
       public void execute(long t) {
         System.out.println("CC2420: Packet to send: ");
         byte[] buffer = sendPacket.getBytes();
-        for (int i = 0; i < buffer.length; i++) {
-          System.out.print(Utils.hex8(buffer[i]));
-          out.print(Utils.hex8(buffer[i]));
+        for (byte b : buffer) {
+          System.out.print(Utils.hex8(b));
+          out.print(Utils.hex8(b));
         }
         /* send to output + two additional bytes...! */
         out.println();

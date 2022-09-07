@@ -119,7 +119,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
   private static final int PAINT_MIN_WIDTH_EVENTS = 5;
   private static final int TIMELINE_UPDATE_INTERVAL = 100;
 
-  private double currentPixelDivisor = 200;
+  private double currentPixelDivisor;
 
   private static final long[] ZOOM_LEVELS = {
   	1, 2, 5, 10,
@@ -146,7 +146,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
   private final MoteRuler timelineMoteRuler;
   private final JComponent timeline;
 
-  private Observer moteHighlightObserver = null;
+  private final Observer moteHighlightObserver;
   private final ArrayList<Mote> highlightedMotes = new ArrayList<>();
   private final static Color HIGHLIGHT_COLOR = Color.CYAN;
 
@@ -467,7 +467,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
       for (MoteEvents me: allMoteEvents.toArray(new MoteEvents[0])) {
         double d = me.mote.getInterfaces().getPosition().getDistanceTo(m);
 
-        int i=0;
+        int i;
         for (i=0; i < sortedMoteEvents.size(); i++) {
           double d2 = m.getInterfaces().getPosition().getDistanceTo(sortedMoteEvents.get(i).mote);
           if (d < d2) {
@@ -616,21 +616,19 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
     zoomFinish(cpd, focusTime, focusCenter);
   }
 
-  private void zoomIn (final long focusTime,
-                       final double focusCenter) {
-    zoomFinishLevel(zoomGetLevel()-1, focusTime, focusCenter);
+  private void zoomIn(final long focusTime) {
+    zoomFinishLevel(zoomGetLevel()-1, focusTime, 0.5);
   }
 
-  private void zoomOut (final long focusTime,
-                        final double focusCenter) {
-    zoomFinishLevel(zoomGetLevel()+1, focusTime, focusCenter);
+  private void zoomOut(final long focusTime) {
+    zoomFinishLevel(zoomGetLevel()+1, focusTime, 0.5);
   }
 
   private final Action zoomInAction = new AbstractAction("Zoom in (Ctrl+)") {
     @Override
     public void actionPerformed(ActionEvent e) {
       final long centerTime = getCenterPointTime(); 
-      zoomIn(centerTime, 0.5);
+      zoomIn(centerTime);
     }
   };
 
@@ -638,7 +636,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
     @Override
     public void actionPerformed(ActionEvent e) {
       final long centerTime = getCenterPointTime(); 
-      zoomOut(centerTime, 0.5);
+      zoomOut(centerTime);
     }
   };
 
@@ -826,9 +824,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
   private final Action statisticsAction = new AbstractAction("Print statistics to console") {
     @Override
     public void actionPerformed(ActionEvent e) {
-      if (simulation.isRunning()) {
-        simulation.stopSimulation();
-      }
+      simulation.stopSimulation();
       logger.info(extractStatistics());
     }
   };
@@ -2099,7 +2095,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
     IDLE, RECEIVING, TRANSMITTING, INTERFERED
   }
   class RadioRXTXEvent extends MoteEvent {
-    RXTXRadioEvent state = null;
+    final RXTXRadioEvent state;
     public RadioRXTXEvent(long time, RXTXRadioEvent ev) {
       super(time);
       this.state = ev;

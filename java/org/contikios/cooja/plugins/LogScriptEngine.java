@@ -112,7 +112,7 @@ public class LogScriptEngine {
   private Thread scriptThread = null; /* Script thread */
   private Observer scriptLogObserver = null;
 
-  private boolean stopSimulation = false, quitCooja = false;
+  private boolean quitCooja = false;
 
   private final Simulation simulation;
 
@@ -150,15 +150,15 @@ public class LogScriptEngine {
 
     /* ... script is now again waiting for script semaphore ... */
 
-    /* Check if test script requested us to stop */
-    if (stopSimulation) {
-      simulation.stopSimulation();
-    }
+    // Check if testOK()/testFailed() were called from the script in headless mode.
     if (quitCooja) {
-      simulation.stopSimulation();
-      quitRunnable.run();
+      new Thread(() -> simulation.getCooja().doQuit(false, exitCode), "Cooja.doQuit").start();
+      new Thread(() -> {
+        try { Thread.sleep(2000); } catch (InterruptedException e) {}
+        logger.warn("Killing Cooja");
+        System.exit(exitCode);
+      }, "System.exit").start();
     }
-    stopSimulation = false;
     quitCooja = false;
   }
 
@@ -211,9 +211,9 @@ public class LogScriptEngine {
     scriptThread = null;
   }
 
-  public void activateScript(String scriptCode) throws ScriptException {
+  public boolean activateScript(String scriptCode) throws ScriptException {
     if (scriptActive) {
-      return;
+      return false;
     }
     scriptActive = true;
 
@@ -255,7 +255,8 @@ public class LogScriptEngine {
       semaphoreScript.acquire();
     } catch (InterruptedException e) {
       logger.fatal("Error when creating engine: " + e.getMessage(), e);
-      // FIXME: should not proceed after this.
+      scriptActive = false;
+      return false;
     }
     ThreadGroup group = new ThreadGroup("script") {
       @Override
@@ -304,13 +305,6 @@ public class LogScriptEngine {
       }
     }, "script");
     scriptThread.start(); /* Starts by acquiring semaphore (blocks) */
-    while (!semaphoreScript.hasQueuedThreads()) {
-      try {
-        Thread.sleep(50);
-      } catch (InterruptedException e) {
-        // FIXME: Something called interrupt() on this thread, stop the computation.
-      }
-    }
 
     /* Setup simulation observers */
     simulation.getEventCentral().addLogOutputListener(logOutputListener);
@@ -323,8 +317,7 @@ public class LogScriptEngine {
     engine.put("gui", simulation.getCooja());
     engine.put("msg", "");
 
-    var scriptMote = new ScriptMote();
-    engine.put("node", scriptMote);
+    engine.put("node", new ScriptMote());
 
     Runnable activate = new Runnable() {
       @Override
@@ -340,11 +333,20 @@ public class LogScriptEngine {
         simulation.scheduleEvent(timeoutEvent, endTime);
       }
     };
+    // Wait for script thread to reach barrier in the beginning of the JavaScript run function.
+    while (!semaphoreScript.hasQueuedThreads()) {
+      try {
+        Thread.sleep(50);
+      } catch (InterruptedException e) {
+        // FIXME: Something called interrupt() on this thread, stop the computation.
+      }
+    }
     if (simulation.isRunning()) {
       simulation.invokeSimulationThread(activate);
     } else {
       activate.run();
     }
+    return true;
   }
 
   private final TimeEvent timeoutEvent = new TimeEvent() {
@@ -369,22 +371,7 @@ public class LogScriptEngine {
       long realDuration = System.currentTimeMillis()-startRealTime;
       double estimatedLeft = 1.0*realDuration/progress - realDuration;
       if (estimatedLeft == 0) estimatedLeft = 1;
-      logger.info(String.format("Test script at %2.2f%%, done in %2.1f sec", 100*progress, estimatedLeft/1000));
-    }
-  };
-
-  private final Runnable quitRunnable = new Runnable() {
-    @Override
-    public void run() {
-      new Thread(() -> {
-        try { Thread.sleep(500); } catch (InterruptedException e) { }
-        simulation.getCooja().doQuit(false, exitCode);
-      }, "Cooja.doQuit").start();
-      new Thread(() -> {
-        try { Thread.sleep(2000); } catch (InterruptedException e) { }
-        logger.warn("Killing Cooja");
-        System.exit(exitCode);
-      }, "System.exit").start();
+      logger.info(String.format("%2.0f%% completed, %2.1f sec remaining", 100*progress, estimatedLeft/1000));
     }
   };
 
@@ -431,13 +418,10 @@ public class LogScriptEngine {
 
       if (Cooja.isVisualized()) {
         log("[if test was run without visualization, Cooja would now have been terminated]\n");
-        stopSimulation = true;
-        simulation.invokeSimulationThread(simulation::stopSimulation);
       } else {
         quitCooja = true;
-        simulation.invokeSimulationThread(simulation::stopSimulation);
-        simulation.invokeSimulationThread(quitRunnable);
       }
+      simulation.stopSimulation(false);
 
       throw new RuntimeException("test script killed");
     }

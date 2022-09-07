@@ -67,8 +67,8 @@ public class CommandParser {
       return null;
     }
 
-    ArrayList<String[]> list = new ArrayList<String[]>();
-    ArrayList<String> args = new ArrayList<String>();
+    ArrayList<String[]> list = new ArrayList<>();
+    ArrayList<String> args = new ArrayList<>();
     StringBuilder sb = null;
     String redirectCommand = null;
     int redirectFile = -1;
@@ -84,7 +84,7 @@ public class CommandParser {
           if (sb == null) {
             args.add(line.substring(index, i));
           } else {
-            args.add(sb.append(line.substring(index, i)).toString());
+            args.add(sb.append(line, index, i).toString());
             sb = null;
           }
           state = TEXT;
@@ -103,7 +103,7 @@ public class CommandParser {
             if (sb == null) {
               sb = new StringBuilder();
             }
-            sb.append(line.substring(index, i - 1));
+            sb.append(line, index, i - 1);
           }
           index = i;
           break;
@@ -115,7 +115,7 @@ public class CommandParser {
               if (sb == null) {
                 args.add(line.substring(index, i));
               } else {
-                args.add(sb.append(line.substring(index, i)).toString());
+                args.add(sb.append(line, index, i).toString());
                 sb = null;
               }
               state = TEXT;
@@ -126,7 +126,7 @@ public class CommandParser {
               if (sb == null) {
                 args.add(line.substring(index, i));
               } else {
-                args.add(sb.append(line.substring(index, i)).toString());
+                args.add(sb.append(line, index, i).toString());
                 sb = null;
               }
             }
@@ -161,7 +161,7 @@ public class CommandParser {
               if (sb == null) {
                 args.add(line.substring(index, i));
               } else {
-                args.add(sb.append(line.substring(index, i)).toString());
+                args.add(sb.append(line, index, i).toString());
                 sb = null;
               }
               state = TEXT;
@@ -191,7 +191,7 @@ public class CommandParser {
               if (sb == null) {
                 args.add(line.substring(index, i));
               } else {
-                args.add(sb.append(line.substring(index, i)).toString());
+                args.add(sb.append(line, index, i).toString());
                 sb = null;
               }
             }

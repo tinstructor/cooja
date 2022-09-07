@@ -129,7 +129,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
   private EventQueue cycleEventQueue = new EventQueue();
   private long nextCycleEventCycles;
 
-  private ArrayList<Chip> chips = new ArrayList<Chip>();
+  private ArrayList<Chip> chips = new ArrayList<>();
 
   final ComponentRegistry registry;
   Profiler profiler;
@@ -244,7 +244,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
     setModeNames(MODE_NAMES);
     // IOUnits should likely be placed in a hashtable?
     // Maybe for debugging purposes...
-    ioUnits = new ArrayList<IOUnit>();
+    ioUnits = new ArrayList<>();
 
     ioSegment.setIORange(config.flashControllerOffset, Flash.SIZE, flash);
 
@@ -365,7 +365,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
   }
 
   public <T extends Chip> T[] getChips(Class<T> type) {
-      ArrayList<T> list = new ArrayList<T>();
+      ArrayList<T> list = new ArrayList<>();
       for(Chip chip : chips) {
           if (type.isInstance(chip)) {
               list.add(type.cast(chip));
@@ -491,7 +491,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
 
 //      if (debugInterrupts) System.out.println("Wrote to InterruptEnabled: " + interruptsEnabled + " was: " + oldIE);
 
-      if (oldIE == false && interruptsEnabled && servicedInterrupt >= 0) {
+      if (!oldIE && interruptsEnabled && servicedInterrupt >= 0) {
 //          System.out.println("*** Interrupts enabled while in interrupt : " +
 //                  servicedInterrupt + " PC: $" + getAddressAsString(reg[PC]));
           /* must handle pending immediately */
@@ -656,8 +656,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
     }
 
     // Pick the one with the shortest time in the future.
-    nextEventCycles = nextCycleEventCycles < nextVTimeEventCycles ?
-        nextCycleEventCycles : nextVTimeEventCycles;
+    nextEventCycles = Math.min(nextCycleEventCycles, nextVTimeEventCycles);
   }
 
   /**
@@ -892,7 +891,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
   private int serviceInterrupt(int pc) {
     int pcBefore = pc;
     int spBefore = readRegister(SP);
-    int sp = spBefore;
+    int sp;
     int sr = readRegister(SR);
 
     if (profiler != null) {
@@ -993,7 +992,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
 
       if (maxCycles >= 0 && maxCycles < nextEventCycles) {
         // Should it just freeze or take on extra cycle step if cycles > max?
-        cycles = cycles < maxCycles ? maxCycles : cycles;
+        cycles = Math.max(cycles, maxCycles);
       } else {
         cycles = nextEventCycles;
       }
@@ -1007,7 +1006,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
         return -2;
     }
     int ext3_0 = 0;
-    int ext10_7 = 0;
+    int ext10_7;
     int extSrc = 0;
     int extDst = 0;
     boolean repeatsInDstReg = false;
@@ -1047,8 +1046,8 @@ public class MSP430Core extends Chip implements MSP430Constants {
 
     op = instruction >> 12;
     int sp = 0;
-    int sr = 0;
-    int rval = 0; /* register value */
+    int sr;
+    int rval; /* register value */
     int repeats = 1; /* msp430X can repeat some instructions in some cases */
     boolean zeroCarry = false; /* msp430X can zero carry in repeats */
     boolean word = (instruction & 0x40) == 0;
@@ -1080,7 +1079,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
             throw new EmulationException("Executing MSP430X instruction but MCU is not a MSP430X");
 //        System.out.println("Executing MSP430X instruction op:" + Utils.hex16(op) +
 //                " ins:" + Utils.hex16(instruction) + " PC = $" + getAddressAsString(pc - 2));
-        int src = 0;
+        int src;
         /* data is either bit 19-16 or src register */
         int srcData = (instruction & 0x0f00) >> 8;
         int dstData = (instruction & 0x000f);
@@ -1520,7 +1519,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
       } else {
           // Address mode of destination...
           int ad = (instruction >> 4) & 3;
-          int nxtCarry = 0;
+          int nxtCarry;
           op = instruction & 0xff80;
           if (op == PUSH || op == CALL) {
               // The PUSH and CALL operations increase the SP before
@@ -1903,12 +1902,11 @@ public class MSP430Core extends Chip implements MSP430Constants {
 
                         pc += 2;
                         writeRegister(PC, pc);
-                        cycles += dstRegMode ? 2 : 5;
                 } else {
                         srcAddress = readRegister(srcRegister);
                         incRegister(srcRegister, mode.bytes);
-                        cycles += dstRegMode ? 2 : 5;
                 }
+          cycles += dstRegMode ? 2 : 5;
 
                 /* If destination register is PC another cycle is consumed */
                 if (dstRegister == PC) {
@@ -2009,7 +2007,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
               //System.out.println("*** Repeat: " + repeats);
           }
 
-          int tmp = 0;
+          int tmp;
           int tmpAdd = 0;
           switch (op) {
           case MOV: // MOV
@@ -2133,7 +2131,7 @@ public class MSP430Core extends Chip implements MSP430Constants {
                       "DoubleOperand not implemented: op = " + Integer.toHexString(op) + " at " + address);
               if (EXCEPTION_ON_BAD_OPERATION) {
                   EmulationException ex = new EmulationException("Bad operation: $" + Integer.toHexString(op) + " at $" + address);
-                  ex.initCause(new Throwable("" + pc));
+                  ex.initCause(new Throwable(String.valueOf(pc)));
                   throw ex;
               }
           } /* after switch(op) */

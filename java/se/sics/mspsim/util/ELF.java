@@ -77,7 +77,7 @@ public class ELF {
 
   private ELFSection[] sections;
   private ELFProgram[] programs;
-  private ArrayList<FileInfo> files = new ArrayList<FileInfo>();
+  private ArrayList<FileInfo> files = new ArrayList<>();
 
   ELFSection strTable;
   ELFSection symTable;
@@ -95,8 +95,8 @@ public class ELF {
   public static boolean isELF(File file) {
     try {
       InputStream input = new BufferedInputStream(new FileInputStream(file));
-      for (int i = 0; i < MAGIC.length; i++) {
-        if (MAGIC[i] != input.read()) {
+      for (int j : MAGIC) {
+        if (j != input.read()) {
           input.close();
           return false;
         }
@@ -217,7 +217,7 @@ public class ELF {
   }
 
   int readElf32(int pos) {
-    int b = 0;
+    int b;
     if (encMSB) {
       b = (elfData[pos++] & 0xff) << 24 |
         ((elfData[pos++] & 0xff) << 16) |
@@ -233,7 +233,7 @@ public class ELF {
   }
 
   int readElf16(int pos) {
-    int b = 0;
+    int b;
     if (encMSB) {
       b = ((elfData[pos++] & 0xff) << 8) |
         (elfData[pos++] & 0xff);
@@ -251,9 +251,9 @@ public class ELF {
   public static void printBytes(String name, byte[] data) {
     System.out.print(name + " ");
     for (byte element : data) {
-      System.out.print("" + (char) element);
+      System.out.print((char) element);
     }
-    System.out.println("");
+    System.out.println();
   }
 
   private void readSections() {
@@ -362,8 +362,7 @@ public class ELF {
             return di.getFile();
         }
     }
-    for (int i = 0; i < files.size(); i++) {
-      FileInfo fi = files.get(i);
+    for (FileInfo fi : files) {
       if (address >= fi.start && address <= fi.end) {
         return fi.name;
       }
@@ -471,7 +470,6 @@ public class ELF {
     for(int read; (read = input.read(buf)) != -1; baous.write(buf, 0, read)) {
     }
     input.close();
-    buf = null;
     byte[] data = baous.toByteArray();
     if (DEBUG) {
       System.out.println("Length of data: " + data.length);

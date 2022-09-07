@@ -9,7 +9,7 @@ public class CallEntry {
 
         @Override
         public int compareTo(CallCounter o) {
-            return (count < o.count ? -1 : (count == o.count ? 0 : 1));
+            return Integer.compare(count, o.count);
         }
     }
 
@@ -23,10 +23,10 @@ public class CallEntry {
     int stackStart;
     int currentStackMax;
 
-    HashMap<MapEntry,CallCounter> callers;
+    final HashMap<MapEntry,CallCounter> callers;
 
     public CallEntry() {
-      callers = new HashMap<MapEntry,CallCounter>();
+      callers = new HashMap<>();
     }
 
     public MapEntry getFunction() {

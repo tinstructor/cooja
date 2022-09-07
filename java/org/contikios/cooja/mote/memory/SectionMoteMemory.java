@@ -140,21 +140,6 @@ public class SectionMoteMemory implements MemoryInterface {
     return sections;
   }
 
-  /**
-   * True if the whole address range specified by address and size
-   * lies inside this memory section.
-   *
-   * @param intf
-   * @param addr Start address of segment to check
-   * @param size Size of segment to check
-   *
-   * @return True if given address range lies inside address range of this
-   * section
-   */
-  public static boolean inSection(MemoryInterface intf, long addr, int size) {
-    return addr >= intf.getStartAddr() && addr + size <= intf.getStartAddr() + intf.getTotalSize();
-  }
-
   @Override
   public void clearMemory() {
     sections.clear();
@@ -178,7 +163,7 @@ public class SectionMoteMemory implements MemoryInterface {
   /**
    * Returns memory segment from section matching segment given by address and size
    * @param address start address of segment to get
-   * @param size size of segmetn to get
+   * @param size size of segment to get
    * @return Array containing data of segment
    * @throws MoteMemoryException if no single section containing the given address range was found
    */
@@ -208,7 +193,8 @@ public class SectionMoteMemory implements MemoryInterface {
   public void setMemorySegment(long address, byte[] data) throws MoteMemoryException {
 
     for (MemoryInterface section : sections.values()) {
-      if (inSection(section, address, data.length)) {
+      final var secStart = section.getStartAddr();
+      if (address >= secStart && address + data.length <= secStart + section.getTotalSize()) {
         section.setMemorySegment(address, data);
         if (DEBUG) {
           logger.debug(String.format(

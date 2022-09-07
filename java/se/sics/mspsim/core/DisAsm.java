@@ -55,7 +55,7 @@ public class DisAsm implements MSP430Constants {
   private MapTable map;
 
   // Idiots solution to single stepping...
-  private BufferedReader input =
+  private final BufferedReader input =
     new BufferedReader(new InputStreamReader(System.in, UTF_8));
 
 
@@ -110,7 +110,7 @@ public class DisAsm implements MSP430Constants {
       output = "I:" + interrupt + ' ';
     }
 
-    String regs = "";
+    String regs;
 
 
     if (pc < 0x0010) {
@@ -267,14 +267,13 @@ public class DisAsm implements MSP430Constants {
             output += dumpMem(startPC, size, memory);
             output += opstr + " ";
             regs = "R" + dst + "=" + Utils.hex16(reg[dst]);
-            regs += " SP=" + Utils.hex16(reg[SP]);
         } else {
             // Register
             int register = instruction & 0xf;
             // Adress mode of destination...
             int ad = (instruction >> 4) & 3;
             // Pick up the destination address based on ad more and regs...
-            int dstAddress = 0;
+            int dstAddress;
             String adr = "";
             switch(ad) {
             // Operand in register!
@@ -352,8 +351,8 @@ public class DisAsm implements MSP430Constants {
             output += dumpMem(startPC, size, memory);
             output += opstr + " " + adr;
             regs = "R" + register + "=" + Utils.hex16(reg[register]);
-            regs += " SP=" + Utils.hex16(reg[SP]);
         }
+      regs += " SP=" + Utils.hex16(reg[SP]);
     }
     break;
     // Jump instructions
@@ -407,12 +406,12 @@ public class DisAsm implements MSP430Constants {
 
       // AD: 0 => register direct, 1 => register index, e.g. X(Rn)
       boolean dstRegMode = ((instruction >> 7) & 1) == 0;
-      int dstAddress = 0;
+      int dstAddress;
       int srcAddress = 0;
       int src = 0;
       int dst = 0;
       String srcadr = "";
-      String dstadr = "";
+      String dstadr;
       switch(as) {
         // Operand in register!
       case AM_REG:
@@ -618,11 +617,11 @@ public class DisAsm implements MSP430Constants {
   }
 
   private static String dumpSR(int sr) {
-    return "" +
-      (((sr & OVERFLOW) != 0) ? 'V' : '-') +
-      (((sr & NEGATIVE) != 0) ? 'N' : '-') +
-      (((sr & ZERO) != 0) ? 'Z' : '-') +
-      (((sr & CARRY) != 0) ? 'C' : '-');
+    return
+      (((sr & OVERFLOW) != 0) ? "V" : "-") +
+      (((sr & NEGATIVE) != 0) ? "N" : "-") +
+      (((sr & ZERO) != 0) ? "Z" : "-") +
+      (((sr & CARRY) != 0) ? "C" : "-");
   }
 
   private static String dumpMem(int pc, int size, int[] memory) {

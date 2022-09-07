@@ -45,7 +45,6 @@ import java.awt.Color;
 import java.awt.Container;
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import javax.swing.JFileChooser;
@@ -104,8 +103,8 @@ public class HighlightSourceViewer implements SourceViewer {
   private void addEnvPath(String searchPath) {
     String[] p = searchPath.split(File.pathSeparator);
     if (p != null) {
-      for (int i = 0, n = p.length; i < n; i++) {
-        addSearchPath(new File(p[i]));
+      for (String s : p) {
+        addSearchPath(new File(s));
       }
     }
   }
@@ -136,8 +135,7 @@ public class HighlightSourceViewer implements SourceViewer {
 
           File file = findSourceFile(path, filename);
           if (file != null) {
-            Reader reader = Files.newBufferedReader(file.toPath(), UTF_8);
-            try {
+            try (var reader = Files.newBufferedReader(file.toPath(), UTF_8)) {
               highlighter.read(reader, null);
               // Workaround for bug 4782232 in Java 1.4
               highlighter.setCaretPosition(1);
@@ -147,8 +145,6 @@ public class HighlightSourceViewer implements SourceViewer {
               if (!window.isVisible()) {
                 window.setVisible(true);
               }
-            } finally {
-              reader.close();
             }
           }
         } catch (IOException err) {
@@ -176,7 +172,7 @@ public class HighlightSourceViewer implements SourceViewer {
 
   public void addSearchPath(File directory) {
     if (path == null) {
-      path = new ArrayList<File>();
+      path = new ArrayList<>();
     }
     path.add(directory);
   }
@@ -205,7 +201,7 @@ public class HighlightSourceViewer implements SourceViewer {
         }
       }
     } else {
-      path = new ArrayList<File>();
+      path = new ArrayList<>();
     }
     // Find new path to search from
     if (fileChooser == null) {

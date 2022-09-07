@@ -97,8 +97,8 @@ public class RTC extends IOUnit {
                 TYPE_A, TYPE_D,
         }
 
-        private RtcType type = RtcType.TYPE_A;
-        private int rtcIntVector = RTC_VECTOR;
+        private final RtcType type;
+        private final int rtcIntVector;
 
         /**
          * RTC peripheral for the MSP430
@@ -246,7 +246,7 @@ public class RTC extends IOUnit {
         /**
          * Timer to generate the interrupts and handle the calendar
          */
-        private TimeEvent rtcTimer = new TimeEvent(0) {
+        private final TimeEvent rtcTimer = new TimeEvent(0) {
 
                 @Override
                 public void execute(long t) {
@@ -324,7 +324,7 @@ public class RTC extends IOUnit {
         };
 
         private double getPreScalerFreq() {
-                double freqSrc = 0;
+                double freqSrc;
                 if (preScaler1Src > 1) {
                         /* From preScaler 0 */
                         if (preScaler0Src == 0) {
@@ -348,7 +348,7 @@ public class RTC extends IOUnit {
          * Initialize the RTC clock. This is called when the hold bit is released
          */
         private void rtcInit() {
-                double freqSrc = 1f;
+                double freqSrc;
                 if (modeCalendar) {
                         /* In this mode we can set the counter to 1 second */
                         freqSrc = 1f; // 1Hz = ~1s
@@ -409,7 +409,7 @@ public class RTC extends IOUnit {
                         f -= 1;
                 }
                 int res = 0;
-                int base = 0;
+                int base;
                 if (formatBCD) {
                         base = 10;
                 } else {
@@ -436,7 +436,7 @@ public class RTC extends IOUnit {
         private void parseCalReg(int calField, int value) {
                 int res = 0;
                 int factor = 1;
-                int base = 0;
+                int base;
                 if (formatBCD) {
                         base = 10;
                 } else {
@@ -511,7 +511,7 @@ public class RTC extends IOUnit {
                          * calendar has been enabled
                          */
                         if ((modeCalendar && formatBCD != ((value & RTCBCD) == RTCBCD))
-                                        || (modeCalendar == false && (value & RTCMODE) == RTCMODE)) {
+                                        || (!modeCalendar && (value & RTCMODE) == RTCMODE)) {
                                 /*
                                  * Changing this bit clears seconds, minutes, hours, day of week,
                                  * and year to 0 and sets day of month and month to 1. The real-time
@@ -573,7 +573,7 @@ public class RTC extends IOUnit {
                                 parseCalReg(Calendar.DAY_OF_WEEK, hi);
                         } else {
                                 rtcCount &= 0x0000ffff;
-                                rtcCount |= (long) (value << 16);
+                                rtcCount |= (long) value << 16;
                         }
                         break;
 

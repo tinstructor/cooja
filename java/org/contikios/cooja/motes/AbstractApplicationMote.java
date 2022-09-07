@@ -63,7 +63,7 @@ public abstract class AbstractApplicationMote extends AbstractWakeupMote impleme
 
   private SectionMoteMemory memory = null;
 
-  protected MoteInterfaceHandler moteInterfaces = null;
+  protected MoteInterfaceHandler moteInterfaces;
 
   /* Observe our own radio for incoming radio packets */
   private final Observer radioDataObserver = new Observer() {
@@ -146,7 +146,6 @@ public abstract class AbstractApplicationMote extends AbstractWakeupMote impleme
   @Override
   public boolean setConfigXML(Simulation simulation,
       Collection<Element> configXML, boolean visAvailable) {
-    setSimulation(simulation);
     this.memory = new SectionMoteMemory(new HashMap<>());
     moteInterfaces.getRadio().addObserver(radioDataObserver);
 

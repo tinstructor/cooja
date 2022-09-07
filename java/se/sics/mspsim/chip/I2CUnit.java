@@ -106,12 +106,12 @@ public abstract class I2CUnit implements USARTListener {
         /**
          * Address of the I2C peripheral
          */
-        protected int busAddress = 0x00;
+        protected int busAddress;
 
         /**
          * String name for logging
          */
-        protected String name = "Unknown";
+        protected String name;
 
         /**
          * Enable debug
@@ -191,7 +191,7 @@ public abstract class I2CUnit implements USARTListener {
                 this.name = name;
                 busAddress = address;
                 if (src != null) {
-                        src.addUSARTListener((USARTListener) this);
+                        src.addUSARTListener(this);
                 }
                 this.cpu = cpu;
                 source = src;

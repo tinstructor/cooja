@@ -72,7 +72,7 @@ public class ChartPanel extends JComponent {
 
   private static final Color LIGHT_GRAY = new Color(0xff909090);
 
-  private Hashtable<String,Object> config = new Hashtable<String,Object>();
+  private final Hashtable<String,Object> config = new Hashtable<>();
   private Chart[] charts = null;
 
   private Chart axisChart;
@@ -106,9 +106,9 @@ public class ChartPanel extends JComponent {
   public Chart getChart(String name) {
     Chart[] charts = this.charts;
     if (charts != null) {
-      for (int i = 0, n = charts.length; i < n; i++) {
-        if (name.equals(charts[i].getName())) {
-          return charts[i];
+      for (Chart chart : charts) {
+        if (name.equals(chart.getName())) {
+          return chart;
         }
       }
     }
@@ -181,8 +181,7 @@ public class ChartPanel extends JComponent {
       double totMaxY = Double.MIN_VALUE, totMinY = Double.MAX_VALUE;
       double totMaxX = Double.MIN_VALUE, totMinX = Double.MAX_VALUE;
 
-      for (int i = 0, n = chs.length; i < n; i++) {
-        Chart chart = chs[i];
+      for (Chart chart : chs) {
         double maxY = chart.getMaxY();
         double minY = chart.getMinY();
         double minX = chart.getMinX();
@@ -219,7 +218,7 @@ public class ChartPanel extends JComponent {
           double gridValue = getGridValue(totMinY, totMaxY, 10);
           for (double d = gridValue; d < totMaxY; d += gridValue) {
             int y = (int) (zero - yfac * d);
-            String text = "" + (int) d;
+            String text = String.valueOf((int) d);
             int tlen = fm.stringWidth(text);
             g.setColor(tickColor);
             g.drawLine(0, y, width, y);
@@ -228,7 +227,7 @@ public class ChartPanel extends JComponent {
           }
           for (double d = gridValue; d < -totMinY; d += gridValue) {
             int y = (int) (zero + yfac * d);
-            String text = "" + (int) -d;
+            String text = String.valueOf((int) -d);
             int tlen = fm.stringWidth(text);
             g.setColor(tickColor);
             g.drawLine(0, y, width, y);
@@ -239,7 +238,7 @@ public class ChartPanel extends JComponent {
           gridValue = getGridValue(totMinX, totMaxX, 10);
           for (double d = gridValue; d < totMaxX; d += gridValue) {
             int x = (int) (xfac * d);
-            String text = "" + (int) d;
+            String text = String.valueOf((int) d);
             int tlen = fm.stringWidth(text);
             g.setColor(tickColor);
             g.drawLine(x, 0, x, height);

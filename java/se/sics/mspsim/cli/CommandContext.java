@@ -10,7 +10,7 @@ public class CommandContext {
   private String[] args;
   private String commandLine;
   private MapTable mapTable;
-  private int pid = -1;
+  private int pid;
   private boolean exited = false;
   private Command command;
 
@@ -194,11 +194,11 @@ public class CommandContext {
   }
 
   public boolean getOption(String optionName) {
-      for (int i = 0; i < args.length; i++) {
-          if (args[i].equals("-" + optionName)) {
-              return true;
-          }
+    for (String arg : args) {
+      if (arg.equals("-" + optionName)) {
+        return true;
       }
+    }
       return false;
   }
 
@@ -213,7 +213,7 @@ public class CommandContext {
 
   @Override
   public String toString() {
-    return (pid >= 0 ? ("" + pid) : "?") + '\t' + (commandLine == null ? getCommandName() : commandLine);
+    return (pid >= 0 ? String.valueOf(pid) : "?") + '\t' + (commandLine == null ? getCommandName() : commandLine);
   }
 
 }

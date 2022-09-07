@@ -68,8 +68,8 @@ import org.contikios.cooja.mote.memory.VarMemory;
  * @author Fredrik Osterlind
  */
 public class ContikiBeeper extends Beeper implements ContikiMoteInterface, PolledAfterActiveTicks {
-  private Mote mote = null;
-  private VarMemory moteMem = null;
+  private final Mote mote;
+  private final VarMemory moteMem;
   private static final Logger logger = LogManager.getLogger(ContikiBeeper.class);
 
   /**

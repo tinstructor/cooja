@@ -58,7 +58,7 @@ import org.contikios.cooja.Positioner;
  */
 @ClassDescription("Manual positioning")
 public class ManualPositioner extends Positioner {
-  private int nodesLeft = 0;
+  private int nodesLeft;
   private boolean skipRemainder = false;
   private double lastX, lastY, lastZ;
 
@@ -158,7 +158,7 @@ public class ManualPositioner extends Positioner {
         @Override
         public void focusGained(FocusEvent e) {
           final JFormattedTextField source = ((JFormattedTextField)e.getSource());
-          SwingUtilities.invokeLater(() -> source.selectAll());
+          SwingUtilities.invokeLater(source::selectAll);
         }
         @Override
         public void focusLost(FocusEvent e) {

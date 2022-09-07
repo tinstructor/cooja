@@ -9,7 +9,7 @@ public class RadioWrapper implements RFListener {
   private PacketListener packetListener;
   int len = 0;
   int pos = 0;
-  byte[] buffer = new byte[128];
+  final byte[] buffer = new byte[128];
 
   public RadioWrapper(CC2420 radio) {
     this.radio = radio;
@@ -33,12 +33,12 @@ public class RadioWrapper implements RFListener {
     radio.receivedByte((byte)0x7a);
    // radio.receivedByte((byte) receivedData.length);
 
-    for (int i = 0; i < receivedData.length; i++) {
+    for (byte receivedDatum : receivedData) {
 //      int data = receivedData[i];
 //      System.out.println("*** RF (external) Data :" + data + " = $" + Utils.hex8(data) + " => " +
 //          (char) data);
 
-      radio.receivedByte(receivedData[i]);
+      radio.receivedByte(receivedDatum);
     }
   }
 

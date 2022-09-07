@@ -125,8 +125,8 @@ public class AT45DB extends ExternalFlash implements USARTListener {
 
 
   // AT45 has two page sized RAM buffers
-  private byte[] buffer1 = new byte[PAGE_SIZE];
-  private byte[] buffer2 = new byte[PAGE_SIZE];
+  private final byte[] buffer1 = new byte[PAGE_SIZE];
+  private final byte[] buffer2 = new byte[PAGE_SIZE];
 
   private TimeEvent writeEvent = new TimeEvent(0) {
     @Override
@@ -139,7 +139,7 @@ public class AT45DB extends ExternalFlash implements USARTListener {
     }
 
     private void setReady(boolean ready) {
-      if(ready == true)
+      if(ready)
         status |= STATUS_RDY;
       else
         status &= ~STATUS_RDY;
@@ -147,7 +147,7 @@ public class AT45DB extends ExternalFlash implements USARTListener {
 
     @Override
     public void dataReceived(USARTSource source, int data) {
-      int buf_num = 1;
+      int buf_num;
 
       if (chipSelect) {
         //if (DEBUG) {
@@ -304,7 +304,7 @@ public class AT45DB extends ExternalFlash implements USARTListener {
 
     public void setReset(boolean reset) {
       Reset = reset;
-      if(Reset == true)
+      if(Reset)
         setState(STATE_RESET);
       if(DEBUG) {
         log("Reset: " + Reset);
@@ -312,7 +312,7 @@ public class AT45DB extends ExternalFlash implements USARTListener {
     }
     public void setChipSelect(boolean select) {
       chipSelect = select;
-      if(chipSelect == false) {
+      if(!chipSelect) {
         switch(state) {
 
         case BUFFER1_TO_PAGE_ERASE:
@@ -343,9 +343,9 @@ public class AT45DB extends ExternalFlash implements USARTListener {
     private void bufferToPage(int buf) {
       try {
         if(buf == 1)
-          getStorage().write(pageAddress * PAGE_SIZE, buffer1);
+          getStorage().write((long) pageAddress * PAGE_SIZE, buffer1);
         else
-          getStorage().write(pageAddress * PAGE_SIZE, buffer2);
+          getStorage().write((long) pageAddress * PAGE_SIZE, buffer2);
       } catch (IOException e) {
         e.printStackTrace();
       }
@@ -354,9 +354,9 @@ public class AT45DB extends ExternalFlash implements USARTListener {
     private void pageToBuffer(int buf) {
       try {
         if(buf == 1)
-          getStorage().read(pageAddress * PAGE_SIZE, buffer1);
+          getStorage().read((long) pageAddress * PAGE_SIZE, buffer1);
         else
-          getStorage().read(pageAddress * PAGE_SIZE, buffer2);
+          getStorage().read((long) pageAddress * PAGE_SIZE, buffer2);
       } catch (IOException e) {
         e.printStackTrace();
       }

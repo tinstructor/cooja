@@ -113,7 +113,7 @@ import org.contikios.cooja.plugins.skins.LogisticLossVisualizerSkin;
 public class LogisticLoss extends AbstractRadioMedium {
     private static final Logger logger = LogManager.getLogger(LogisticLoss.class);
 
-    private Simulation sim = null;
+    private final Simulation sim;
 
     /* Success ratio of TX. If this fails, no radios receive the packet */
     public double SUCCESS_RATIO_TX = 1.0;
@@ -224,7 +224,7 @@ public class LogisticLoss extends AbstractRadioMedium {
 
     private final DirectedGraphMedium dgrm; /* Used only for efficient destination lookup */
 
-    private Random random = null;
+    private final Random random;
 
     private final HashMap<Index, TimeVaryingEdge> edgesTable = new HashMap<>();
 

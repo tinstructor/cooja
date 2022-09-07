@@ -61,7 +61,7 @@ public class BasicClockModule extends ClockSystem {
   private final int MIN_DCO_FRQ = 1000;
   private final int DCO_FACTOR;
 
-  private Timer[] timers;
+  private final Timer[] timers;
 
   private int dcoFrequency;
   private int dcoModulator;
@@ -177,8 +177,8 @@ public class BasicClockModule extends ClockSystem {
 
   private void updateTimers(long cycles) {
     if (timers != null) {
-      for(int i = 0; i < timers.length; i++) {
-        timers[i].resetCounter(cycles);
+      for (Timer timer : timers) {
+        timer.resetCounter(cycles);
       }
     }
   }

@@ -188,7 +188,7 @@ public class Scanner implements TokenTypes {
     gap = 0;
     endgap = 0;
     textLength = 0;
-    symbolTable = new HashMap<Symbol,Symbol>();
+    symbolTable = new HashMap<>();
     initSymbolTable();
     Symbol endOfText = new Symbol(WHITESPACE, "");
     tokens[0] = new Token(endOfText, 0);
@@ -372,7 +372,6 @@ public class Scanner implements TokenTypes {
     if (position + length > textLength)
       throw new Error("scan too much");
     boolean all = position + length == textLength;
-    end = start + length;
     int startGap = gap;
 
     buffer = array;
@@ -440,7 +439,7 @@ public class Scanner implements TokenTypes {
         continue;
       if (i == endgap)
         System.out.print("... ");
-      System.out.print("" + i + ":" + tokens[i].position);
+      System.out.print(i + ":" + tokens[i].position);
       System.out.print("-"
           + (tokens[i].position + tokens[i].symbol.name.length()));
       System.out.print(" ");

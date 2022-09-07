@@ -39,6 +39,11 @@ import javax.swing.JOptionPane;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.contikios.cooja.contikimote.ContikiMoteType;
+import org.contikios.cooja.motes.DisturberMoteType;
+import org.contikios.cooja.motes.ImportAppMoteType;
+import org.contikios.cooja.mspmote.SkyMoteType;
+import org.contikios.cooja.mspmote.Z1MoteType;
 import org.jdom.Element;
 
 import org.contikios.cooja.dialogs.CreateSimDialog;
@@ -80,13 +85,13 @@ public class Simulation extends Observable implements Runnable {
 
   private static final Logger logger = LogManager.getLogger(Simulation.class);
 
-  private boolean isRunning = false;
+  private volatile boolean isRunning = false;
 
   private boolean stopSimulation = false;
 
   private Thread simulationThread = null;
 
-  private Cooja cooja = null;
+  private final Cooja cooja;
 
   private long randomSeed = 123456;
 
@@ -266,9 +271,9 @@ public class Simulation extends Observable implements Runnable {
 
   @Override
   public void run() {
+    assert isRunning : "Did not set isRunning before starting";
     lastStartTime = System.currentTimeMillis();
     logger.debug("Simulation started, system time: " + lastStartTime);
-    isRunning = true;
     speedLimitLastRealtime = System.currentTimeMillis();
     speedLimitLastSimtime = getSimulationTime();
 
@@ -295,6 +300,11 @@ public class Simulation extends Observable implements Runnable {
 
         if (stopSimulation) {
           isRunning = false;
+          var duration = System.currentTimeMillis() - lastStartTime;
+          var curSimTime = getSimulationTimeMillis();
+          logger.info("Runtime: " + duration + " ms. " +
+                  "Simulated time: " + curSimTime + " ms. " +
+                  "Speedup: " + ((double)curSimTime / (double)duration));
         }
       }
     } catch (RuntimeException e) {
@@ -322,13 +332,6 @@ public class Simulation extends Observable implements Runnable {
 
     this.setChanged();
     this.notifyObservers(this);
-    logger.info("Simulation completed, system time: " + System.currentTimeMillis() +
-        "\tDuration: " + (System.currentTimeMillis() - lastStartTime) +
-                " ms" +
-                "\tSimulated time " + getSimulationTimeMillis() +
-                " ms\tRatio " +
-                ((double)getSimulationTimeMillis() /
-                 (double)(System.currentTimeMillis() - lastStartTime)));
   }
 
   /**
@@ -702,16 +705,35 @@ public class Simulation extends Observable implements Runnable {
           }
         }
 
-        Class<? extends MoteType> moteTypeClass = null;
-        for (int i = 0; i < availableMoteTypes.length; i++) {
-          if (moteTypeClassName.equals(availableMoteTypes[i])) {
-            moteTypeClass = availableMoteTypesObjs.get(i);
+        MoteType moteType;
+        switch (moteTypeClassName) {
+          case "org.contikios.cooja.motes.ImportAppMoteType":
+            moteType = new ImportAppMoteType();
             break;
-          }
+          case "org.contikios.cooja.motes.DisturberMoteType":
+            moteType = new DisturberMoteType();
+            break;
+          case "org.contikios.cooja.contikimote.ContikiMoteType":
+            moteType = new ContikiMoteType();
+            break;
+          case "org.contikios.cooja.mspmote.SkyMoteType":
+            moteType = new SkyMoteType();
+            break;
+          case "org.contikios.cooja.mspmote.Z1MoteType":
+            moteType = new Z1MoteType();
+            break;
+          default:
+            Class<? extends MoteType> moteTypeClass = null;
+            for (int i = 0; i < availableMoteTypes.length; i++) {
+              if (moteTypeClassName.equals(availableMoteTypes[i])) {
+                moteTypeClass = availableMoteTypesObjs.get(i);
+                break;
+              }
+            }
+            assert moteTypeClass != null : "Selected MoteType class is null";
+            moteType = moteTypeClass.getConstructor((Class<? extends MoteType>[]) null).newInstance();
+            break;
         }
-
-        assert moteTypeClass != null : "Selected MoteType class is null";
-        MoteType moteType = moteTypeClass.getConstructor((Class<? extends MoteType>[]) null).newInstance();
 
         boolean createdOK = moteType.setConfigXML(this, element.getChildren(),
             visAvailable);
@@ -1149,7 +1171,7 @@ public class Simulation extends Observable implements Runnable {
    * @return True if simulation is running
    */
   public boolean isRunning() {
-    return isRunning && simulationThread != null;
+    return isRunning;
   }
 
   /**

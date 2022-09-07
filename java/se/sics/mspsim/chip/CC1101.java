@@ -171,7 +171,7 @@ public class CC1101 extends Radio802154 implements USARTListener {
                         return state | (0b10 << 5); /* TODO 2 pin state not implemented */
                 }
         }
-        private TimeEvent sendEvent = new TimeEvent(0, "CC1101 Send") {
+        private final TimeEvent sendEvent = new TimeEvent(0, "CC1101 Send") {
                 @Override
                 public void execute(long t) {
                         txNext();
@@ -194,10 +194,10 @@ public class CC1101 extends Radio802154 implements USARTListener {
 
         private CC1101RadioState state = null;
 
-        protected List<Byte> txfifo = new ArrayList<Byte>();
-        protected List<Byte> rxfifo = new ArrayList<Byte>();
+        protected final List<Byte> txfifo = new ArrayList<>();
+        protected final List<Byte> rxfifo = new ArrayList<>();
 
-        protected int[] registers = new int[64];
+        protected final int[] registers = new int[64];
         protected int[] memory = new int[512];
 
         private boolean chipSelect;
@@ -296,7 +296,7 @@ public class CC1101 extends Radio802154 implements USARTListener {
                         break;
 
                 case CC1101_STX:
-            int len = (int) (0xff&txfifo.get(0));
+            int len = 0xff&txfifo.get(0);
             txFooterCountdown = 1 + len + 1/*len*/;
             if (DEBUG) {
                 System.out.println("TX started: len = " + len + ", txFooterCountdown = " + txFooterCountdown);
@@ -436,7 +436,6 @@ public class CC1101 extends Radio802154 implements USARTListener {
 
                 /* Return MARCSTATE */
                 source.byteReceived(getMarcstate());
-                return;
         }
         public int setReg(int address, int data) {
                 switch (address) {
@@ -554,7 +553,7 @@ public class CC1101 extends Radio802154 implements USARTListener {
             if (txSendSynchByteCnt < NUM_PREAMBLE + NUM_SYNCH) {
                 txSendSynchByteCnt++;
                 if (rfListener != null) {
-                    rfListener.receivedByte((byte) (SYNCH_BYTE_LAST));
+                    rfListener.receivedByte(SYNCH_BYTE_LAST);
                 }
                 cpu.scheduleTimeEventMillis(sendEvent, getInterByteDelayMs());
 
@@ -660,17 +659,17 @@ public class CC1101 extends Radio802154 implements USARTListener {
         private void printRXFIFO() {
             StringBuilder sb = new StringBuilder();
             sb.append(String.format("RXFIFO[%03d]: ", rxfifo.size()));
-                for (int i = 0; i < rxfifo.size(); i++) {
-                    sb.append(String.format("%02x", rxfifo.get(i)));
-                }
+          for (Byte aByte : rxfifo) {
+            sb.append(String.format("%02x", aByte));
+          }
                 log(sb + "\n");
         }
         private void printTXFIFO() {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("TXFIFO[%03d]: ", txfifo.size()));
-                for (int i = 0; i < txfifo.size(); i++) {
-                    sb.append(String.format("%02x", txfifo.get(i)));
-                }
+          for (Byte aByte : txfifo) {
+            sb.append(String.format("%02x", aByte));
+          }
         log(sb + "\n");
         }
 
@@ -777,7 +776,7 @@ public class CC1101 extends Radio802154 implements USARTListener {
 
         @Override
         public int getActiveFrequency() {
-                return (int) 0; /* Not implemented */
+                return 0; /* Not implemented */
         }
 
         @Override
@@ -903,23 +902,15 @@ public class CC1101 extends Radio802154 implements USARTListener {
 
     /* Bit 0-3 */
     status = status << 4;
+    int available;
     if (lastWasRead) {
       /* Return available bytes in RXFIFO */
-      int available = rxfifo.size();
-      if (available > 15) {
-        status += 15;
-      } else {
-        status += available;
-      }
+      available = rxfifo.size();
     } else {
       /* Return available bytes in TXFIFO */
-      int available = 64 - txfifo.size();
-      if (available > 15) {
-        status += 15;
-      } else {
-        status += available;
-      }
+      available = 64 - txfifo.size();
     }
+    status += Math.min(available, 15);
 
     return status;
   }

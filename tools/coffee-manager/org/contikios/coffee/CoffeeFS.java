@@ -42,14 +42,14 @@ public class CoffeeFS {
 	private final CoffeeImage image;
 	private final CoffeeConfiguration conf;
 	private int currentPage;
-	private Map<String, CoffeeFile> files;
+	private final Map<String, CoffeeFile> files;
 	private static final int INVALID_PAGE = -1;
 
 	public CoffeeFS(CoffeeImage image) throws IOException {
 		this.image = image;
 		conf = image.getConfiguration();
 		currentPage = 0;
-		files = new TreeMap<String, CoffeeFile>();
+		files = new TreeMap<>();
 
 		while(currentPage < (conf.fsSize / conf.pageSize)) {
 			CoffeeHeader header = readHeader(currentPage);
