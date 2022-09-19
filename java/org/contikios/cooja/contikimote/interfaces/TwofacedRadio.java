@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 import org.contikios.cooja.*;
 import org.contikios.cooja.contikimote.ContikiMote;
-import org.contikios.cooja.contikimote.ContikiMoteInterface;
 import org.contikios.cooja.interfaces.PolledAfterActiveTicks;
 import org.contikios.cooja.interfaces.Position;
 import org.contikios.cooja.interfaces.Radio;
@@ -53,7 +52,7 @@ import java.util.Collection;
  * @see ContikiRadio
  */
 @ClassDescription("Twofaced Radio Interface")
-public class TwofacedRadio extends Radio implements ContikiMoteInterface, PolledAfterActiveTicks {
+public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
     private final ContikiMote mote;
 
     private final VarMemory myMoteMemory;
@@ -103,11 +102,6 @@ public class TwofacedRadio extends Radio implements ContikiMoteInterface, Polled
         this.myMoteMemory = new VarMemory(mote.getMemory());
 
         radioOn = myMoteMemory.getByteValueOf("simRadioHWOnTwofaced") == 1;
-    }
-
-    /* Contiki mote interface support */
-    public static String[] getCoreInterfaceDependencies() {
-        return new String[]{"twofaced_radio_interface"};
     }
 
     @Override
