@@ -454,10 +454,6 @@ public abstract class AbstractCompileDialog extends JDialog {
   public void compileContiki() throws Exception {
     final MessageListUI taskOutput = new MessageListUI();
 
-    if (contikiFirmware.exists()) {
-      contikiFirmware.delete();
-    }
-
     /* Handle multiple compilation commands one by one */
     final ArrayList<String> commands = new ArrayList<>();
     String[] arr = getCompileCommands().split("\n");
@@ -837,7 +833,10 @@ public abstract class AbstractCompileDialog extends JDialog {
    * @param source Contiki source
    * @return Suggested compile commands for compiling source
    */
-  public abstract String getDefaultCompileCommands(File source);
+  public String getDefaultCompileCommands(File source) {
+    return Cooja.getExternalToolsSetting("PATH_MAKE") + " -j$(CPUS) " +
+           getExpectedFirmwareFile(source).getName() + " TARGET=" + getTargetName();
+  }
 
   /**
    * @param source Contiki source

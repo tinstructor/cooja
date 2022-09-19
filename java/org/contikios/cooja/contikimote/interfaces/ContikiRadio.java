@@ -43,7 +43,6 @@ import org.contikios.cooja.Mote;
 import org.contikios.cooja.RadioPacket;
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.contikimote.ContikiMote;
-import org.contikios.cooja.contikimote.ContikiMoteInterface;
 import org.contikios.cooja.interfaces.PolledAfterActiveTicks;
 import org.contikios.cooja.interfaces.Position;
 import org.contikios.cooja.interfaces.Radio;
@@ -76,12 +75,6 @@ import org.contikios.cooja.util.CCITT_CRC;
  * </ul>
  * <p>
  *
- * Core interface:
- * <ul>
- * <li>radio_interface
- * </ul>
- * <p>
- *
  * This observable notifies at radio state changes during RX and TX.
  *
  * @see #getLastEvent()
@@ -90,7 +83,7 @@ import org.contikios.cooja.util.CCITT_CRC;
  * @author Fredrik Osterlind
  * @author Robbe Elsas
  */
-public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledAfterActiveTicks {
+public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
   private final ContikiMote mote;
 
   private final VarMemory myMoteMemory;
@@ -148,11 +141,6 @@ public class ContikiRadio extends Radio implements ContikiMoteInterface, PolledA
     this.myMoteMemory = new VarMemory(mote.getMemory());
 
     radioOn = myMoteMemory.getByteValueOf("simRadioHWOn") == 1;
-  }
-
-  /* Contiki mote interface support */
-  public static String[] getCoreInterfaceDependencies() {
-    return new String[] { "radio_interface" };
   }
 
   /* Packet radio support */

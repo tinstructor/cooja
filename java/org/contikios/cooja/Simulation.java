@@ -32,7 +32,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Observable;
-import java.util.Observer;
 import java.util.Random;
 
 import javax.swing.JOptionPane;
@@ -76,7 +75,8 @@ public class Simulation extends Observable implements Runnable {
   private long speedLimitLastSimtime;
   private long speedLimitLastRealtime;
 
-  private long lastStartTime;
+  private long lastStartRealTime;
+  private long lastStartSimulationTime;
   private long currentSimulationTime = 0;
 
   private String title = null;
@@ -87,7 +87,7 @@ public class Simulation extends Observable implements Runnable {
 
   private volatile boolean isRunning = false;
 
-  private boolean stopSimulation = false;
+  private volatile boolean stopSimulation = false;
 
   private Thread simulationThread = null;
 
@@ -100,15 +100,6 @@ public class Simulation extends Observable implements Runnable {
   private long maxMoteStartupDelay = 1000*MILLISECOND;
 
   private final SafeRandom randomGenerator;
-
-  private boolean hasMillisecondObservers = false;
-  private final MillisecondObservable millisecondObservable = new MillisecondObservable();
-  private static class MillisecondObservable extends Observable {
-    private void newMillisecond(long time) {
-      setChanged();
-      notifyObservers(time);
-    }
-  }
 
   /* Event queue */
   private final EventQueue eventQueue = new EventQueue();
@@ -145,40 +136,6 @@ public class Simulation extends Observable implements Runnable {
       }
       r.run();
     }
-  }
-
-  /**
-   * Add millisecond observer.
-   * This observer is notified once every simulated millisecond.
-   *
-   * @see #deleteMillisecondObserver(Observer)
-   * @param newObserver Observer
-   */
-  public void addMillisecondObserver(Observer newObserver) {
-    millisecondObservable.addObserver(newObserver);
-    hasMillisecondObservers = true;
-
-    invokeSimulationThread(new Runnable() {
-      @Override
-      public void run() {
-        if (!millisecondEvent.isScheduled()) {
-          scheduleEvent(
-              millisecondEvent,
-              currentSimulationTime - (currentSimulationTime % MILLISECOND) + MILLISECOND);
-        }
-      }
-    });
-  }
-
-  /**
-   * Delete millisecond observer.
-   *
-   * @see #addMillisecondObserver(Observer)
-   * @param observer Observer to delete
-   */
-  public void deleteMillisecondObserver(Observer observer) {
-    millisecondObservable.deleteObserver(observer);
-    hasMillisecondObservers = millisecondObservable.countObservers() > 0;
   }
 
   /**
@@ -220,7 +177,7 @@ public class Simulation extends Observable implements Runnable {
         return;
       }
 
-      long diffSimtime = (getSimulationTime() - speedLimitLastSimtime)/1000; /* ms */
+      long diffSimtime = getSimulationTimeMillis() - speedLimitLastSimtime; /* ms */
       long diffRealtime = System.currentTimeMillis() - speedLimitLastRealtime; /* ms */
       long expectedDiffRealtime = (long) (diffSimtime/speedLimit);
       long sleep = expectedDiffRealtime - diffRealtime;
@@ -239,7 +196,7 @@ public class Simulation extends Observable implements Runnable {
       /* Update counters every second */
       if (diffRealtime > 1000) {
         speedLimitLastRealtime = System.currentTimeMillis();
-        speedLimitLastSimtime = getSimulationTime();
+        speedLimitLastSimtime = getSimulationTimeMillis();
       }
     }
     @Override
@@ -248,34 +205,14 @@ public class Simulation extends Observable implements Runnable {
     }
   };
 
-  private final TimeEvent millisecondEvent = new TimeEvent() {
-    @Override
-    public void execute(long t) {
-      if (!hasMillisecondObservers) {
-        return;
-      }
-
-      millisecondObservable.newMillisecond(getSimulationTime());
-      scheduleEvent(this, t+MILLISECOND);
-    }
-    @Override
-    public String toString() {
-      return "MILLISECOND: " + millisecondObservable.countObservers();
-    }
-  };
-
-  public void clearEvents() {
-    eventQueue.clear();
-    pollRequests.clear();
-  }
-
   @Override
   public void run() {
     assert isRunning : "Did not set isRunning before starting";
-    lastStartTime = System.currentTimeMillis();
-    logger.debug("Simulation started, system time: " + lastStartTime);
-    speedLimitLastRealtime = System.currentTimeMillis();
-    speedLimitLastSimtime = getSimulationTime();
+    lastStartRealTime = System.currentTimeMillis();
+    lastStartSimulationTime = getSimulationTimeMillis();
+    logger.debug("Simulation started, system time: {}", lastStartRealTime);
+    speedLimitLastRealtime = lastStartRealTime;
+    speedLimitLastSimtime = lastStartSimulationTime;
 
     /* Simulation starting */
     this.setChanged();
@@ -288,23 +225,18 @@ public class Simulation extends Observable implements Runnable {
 
         /* Handle one simulation event, and update simulation time */
         nextEvent = eventQueue.popFirst();
-        if (nextEvent == null) {
-          throw new RuntimeException("No more events");
-        }
-        if (nextEvent.time < currentSimulationTime) {
-          throw new RuntimeException("Next event is in the past: " + nextEvent.time + " < " + currentSimulationTime + ": " + nextEvent.event);
-        }
+        assert nextEvent != null : "Ran out of events in eventQueue";
+        assert nextEvent.time >= currentSimulationTime : "Event from the past";
         currentSimulationTime = nextEvent.time;
-        /*logger.info("Executing event #" + EVENT_COUNTER++ + " @ " + currentSimulationTime + ": " + nextEvent);*/
         nextEvent.event.execute(currentSimulationTime);
 
         if (stopSimulation) {
           isRunning = false;
-          var duration = System.currentTimeMillis() - lastStartTime;
-          var curSimTime = getSimulationTimeMillis();
-          logger.info("Runtime: " + duration + " ms. " +
-                  "Simulated time: " + curSimTime + " ms. " +
-                  "Speedup: " + ((double)curSimTime / (double)duration));
+          var realTimeDuration = System.currentTimeMillis() - lastStartRealTime;
+          var simulationDuration = getSimulationTimeMillis() - lastStartSimulationTime;
+          logger.info("Runtime: {} ms. Simulated time: {} ms. Speedup: {}",
+                      realTimeDuration, simulationDuration,
+                      ((double) simulationDuration / Math.max(1, realTimeDuration)));
         }
       }
     } catch (RuntimeException e) {
@@ -420,13 +352,6 @@ public class Simulation extends Observable implements Runnable {
    */
   public long getRandomSeed() {
     return randomSeed;
-  }
-
-  /**
-   * @return Random seed (converted to a string)
-   */
-  public String getRandomSeedString() {
-    return Long.toString(randomSeed);
   }
 
   /**
@@ -714,7 +639,7 @@ public class Simulation extends Observable implements Runnable {
             moteType = new DisturberMoteType();
             break;
           case "org.contikios.cooja.contikimote.ContikiMoteType":
-            moteType = new ContikiMoteType();
+            moteType = new ContikiMoteType(getCooja());
             break;
           case "org.contikios.cooja.mspmote.SkyMoteType":
             moteType = new SkyMoteType();
@@ -1057,7 +982,7 @@ public class Simulation extends Observable implements Runnable {
 
         speedLimitNone = false;
         speedLimitLastRealtime = System.currentTimeMillis();
-        speedLimitLastSimtime = getSimulationTime();
+        speedLimitLastSimtime = getSimulationTimeMillis();
         speedLimit = newSpeedLimit;
 
         if (delayEvent.isScheduled()) {
@@ -1126,7 +1051,7 @@ public class Simulation extends Observable implements Runnable {
    * @return Actual time (microseconds)
    */
   public long convertSimTimeToActualTime(long simTime) {
-    return simTime + lastStartTime * 1000;
+    return simTime + lastStartRealTime * 1000;
   }
 
   /**
@@ -1180,7 +1105,12 @@ public class Simulation extends Observable implements Runnable {
    * @return True if simulation is runnable
    */
   public boolean isRunnable() {
-    return isRunning || hasPollRequests || !eventQueue.isEmpty();
+    if (isRunning || !eventQueue.isEmpty()) {
+      return true;
+    }
+    synchronized (pollRequests) {
+      return hasPollRequests;
+    }
   }
 
   /**
