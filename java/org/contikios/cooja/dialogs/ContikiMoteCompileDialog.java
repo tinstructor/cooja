@@ -61,6 +61,7 @@ import org.contikios.cooja.MoteInterface;
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.contikimote.ContikiMoteType;
 import org.contikios.cooja.contikimote.ContikiMoteType.NetworkStack;
+import org.contikios.cooja.mote.BaseContikiMoteType;
 
 /**
  * Contiki Mote Type compile dialog.
@@ -110,12 +111,8 @@ public class ContikiMoteCompileDialog extends AbstractCompileDialog {
     }
 
     moteType.setContikiSourceFile(source);
-    var env = ((ContikiMoteType)moteType).configureForCompilation();
-    String[] envOneDimension = new String[env.length];
-    for (int i=0; i < env.length; i++) {
-      envOneDimension[i] = env[i][0] + "=" + env[i][1];
-    }
-    compilationEnvironment = envOneDimension;
+    var env = moteType.getCompilationEnvironment();
+    compilationEnvironment = BaseContikiMoteType.oneDimensionalEnv(env);
     if (SwingUtilities.isEventDispatchThread()) {
       createEnvironmentTab(tabbedPane, env);
     } else {
@@ -133,17 +130,6 @@ public class ContikiMoteCompileDialog extends AbstractCompileDialog {
 
     return Cooja.getExternalToolsSetting("PATH_MAKE") + " -j$(CPUS) " +
             ContikiMoteType.getMakeTargetName(source).getName() + " TARGET=cooja" + defines;
-  }
-
-  @Override
-  public File getExpectedFirmwareFile(File source) {
-    logger.fatal("Called getExpectedFirmwareFile(File)");
-    throw new RuntimeException("This method should not be called on ContikiMotes");
-  }
-
-  @Override
-  public File getExpectedFirmwareFile(String moteId, File source) {
-    return ContikiMoteType.getExpectedFirmwareFile(moteId, source);
   }
 
   @Override
@@ -270,12 +256,5 @@ public class ContikiMoteCompileDialog extends AbstractCompileDialog {
 
   @Override
   public void writeSettingsToMoteType() {
-    ((ContikiMoteType)moteType).setContikiFirmwareFile();
   }
-
-  @Override
-  protected String getTargetName() {
-  	return "cooja";
-  }
-
 }

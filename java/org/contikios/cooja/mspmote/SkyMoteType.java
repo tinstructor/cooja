@@ -30,6 +30,7 @@
 
 package org.contikios.cooja.mspmote;
 
+import java.util.List;
 import org.contikios.cooja.AbstractionLevelDescription;
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.MoteInterface;
@@ -52,10 +53,10 @@ import org.contikios.cooja.mspmote.interfaces.SkyTemperature;
 
 @ClassDescription("Sky mote")
 @AbstractionLevelDescription("Emulated level")
-public class SkyMoteType extends AbstractMspMoteType {
+public class SkyMoteType extends MspMoteType {
 
   @Override
-  protected MspMote createMote(Simulation simulation) {
+  protected MspMote createMote(Simulation simulation) throws MoteTypeCreationException {
     return new SkyMote(this, simulation);
   }
 
@@ -80,8 +81,7 @@ public class SkyMoteType extends AbstractMspMoteType {
   }
   @Override
   public Class<? extends MoteInterface>[] getAllMoteInterfaceClasses() {
-    @SuppressWarnings("unchecked")
-    Class<? extends MoteInterface>[] list =  createMoteInterfaceList(
+    var classes = List.of(
         Position.class,
         RimeAddress.class,
         IPAddress.class,
@@ -95,8 +95,8 @@ public class SkyMoteType extends AbstractMspMoteType {
         Msp802154Radio.class,
         MspSerial.class,
         SkyLED.class,
-        MspDebugOutput.class, /* EXPERIMENTAL: Enable me for COOJA_DEBUG(..) */
+        MspDebugOutput.class,
         SkyTemperature.class);
-    return list;
+    return classes.toArray(new Class[0]);
   }
 }

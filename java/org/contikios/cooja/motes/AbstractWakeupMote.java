@@ -36,9 +36,13 @@ import org.contikios.cooja.Simulation;
 import org.contikios.cooja.TimeEvent;
 
 public abstract class AbstractWakeupMote implements Mote {
-  protected Simulation simulation = null;
+  protected final Simulation simulation;
 
   private long nextWakeupTime = -1;
+
+  public AbstractWakeupMote(Simulation sim) {
+    this.simulation = sim;
+  }
 
   private final TimeEvent executeMoteEvent = new MoteTimeEvent(this) {
     @Override
@@ -57,10 +61,6 @@ public abstract class AbstractWakeupMote implements Mote {
       return simulation;
   }
 
-  public void setSimulation(Simulation simulation) {
-      this.simulation = simulation;
-  }
-  
   /**
    * Execute mote software.
    * This method is only called from the simulation thread.
@@ -80,26 +80,13 @@ public abstract class AbstractWakeupMote implements Mote {
    */
   public void requestImmediateWakeup() {
     long t = simulation.getSimulationTime();
-    
     if (simulation.isSimulationThread()) {
-      /* Schedule wakeup immediately */
       scheduleNextWakeup(t);
     } else {
-      /* Schedule wakeup asap */
       simulation.invokeSimulationThread(() -> scheduleNextWakeup(t));
     }
   }
 
-  /**
-   * @return Next wakeup time, or -1 if not scheduled
-   */
-  public long getNextWakeupTime() {
-    if (!executeMoteEvent.isScheduled()) {
-      return -1;
-    }
-    return nextWakeupTime;
-  }
-  
   /**
    * Execute mote software at given time, or earlier.
    * <p>
@@ -122,7 +109,6 @@ public abstract class AbstractWakeupMote implements Mote {
 
     if (executeMoteEvent.isScheduled()) {
       /* Reschedule wakeup mote event */
-      /*logger.info("Rescheduled wakeup from " + executeMoteEvent.getTime() + " to " + time);*/
       executeMoteEvent.remove();
     }
 

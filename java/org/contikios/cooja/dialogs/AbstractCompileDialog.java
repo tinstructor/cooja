@@ -66,7 +66,6 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileFilter;
@@ -76,10 +75,10 @@ import org.apache.logging.log4j.LogManager;
 
 import org.contikios.cooja.Cooja;
 import org.contikios.cooja.MoteInterface;
-import org.contikios.cooja.MoteType;
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.interfaces.MoteID;
 import org.contikios.cooja.interfaces.Position;
+import org.contikios.cooja.mote.BaseContikiMoteType;
 
 /**
  * Abstract configure mote type dialog used by Contiki-based mote type implementations.
@@ -109,7 +108,7 @@ public abstract class AbstractCompileDialog extends JDialog {
 
   protected final Simulation simulation;
   protected final Cooja gui;
-  protected final MoteType moteType;
+  protected final BaseContikiMoteType moteType;
 
   protected final JTabbedPane tabbedPane;
   protected Box moteIntfBox;
@@ -128,7 +127,7 @@ public abstract class AbstractCompileDialog extends JDialog {
   public File contikiSource = null;
   public File contikiFirmware = null;
 
-  public AbstractCompileDialog(Container parent, Simulation simulation, final MoteType moteType) {
+  public AbstractCompileDialog(Container parent, Simulation simulation, final BaseContikiMoteType moteType) {
     super(
         parent instanceof Dialog?(Dialog)parent:
           parent instanceof Window?(Window)parent:
@@ -190,8 +189,7 @@ public abstract class AbstractCompileDialog extends JDialog {
         if (lastFile == null) {
           String path = Cooja.getExternalToolsSetting("COMPILE_LAST_FILE", null);
           if (path != null) {
-            lastFile = new File(path);
-            lastFile = gui.restorePortablePath(lastFile);
+            lastFile = gui.restorePortablePath(new File(path));
           }
         }
 
@@ -275,13 +273,14 @@ public abstract class AbstractCompileDialog extends JDialog {
     	}
     };
     cleanButton = new JButton("Clean");
-    cleanButton.setToolTipText("make clean TARGET=" + getTargetName());
+    cleanButton.setToolTipText("make clean TARGET=" + moteType.getMoteType());
     cleanButton.addActionListener(new ActionListener() {
       @Override
       public void actionPerformed(ActionEvent e) {
+        createButton.setEnabled(false);
 				try {
-					currentCompilationProcess = CompileContiki.compile(
-							"make clean TARGET=" + getTargetName(),
+					currentCompilationProcess = BaseContikiMoteType.compile(
+							"make clean TARGET=" + moteType.getMoteType(),
 							compilationEnvironment,
 							new File(contikiField.getText()).getParentFile(),
 							null,
@@ -364,7 +363,6 @@ public abstract class AbstractCompileDialog extends JDialog {
       Dimension newSize = new Dimension();
       newSize.height = Math.min((int) maxSize.getHeight(), (int) getSize().getHeight());
       newSize.width = Math.min((int) maxSize.getWidth(), (int) getSize().getWidth());
-      /*logger.info("Resizing dialog: " + myDialog.getSize() + " -> " + newSize);*/
       setSize(newSize);
     }
 
@@ -381,51 +379,45 @@ public abstract class AbstractCompileDialog extends JDialog {
     tryRestoreMoteType();
   }
 
-  private void tryRestoreMoteType() { 
-    /* Restore old configuration if mote type is already configured */
-    boolean restoredDialogState = false;
-    if (moteType != null) {
-      /* Restore description */
-      if (moteType.getDescription() != null) {
-        descriptionField.setText(moteType.getDescription());
-      }
+  private void tryRestoreMoteType() {
+    var dialogState = DialogState.NO_SELECTION;
+    /* Restore description */
+    if (moteType.getDescription() != null) {
+      descriptionField.setText(moteType.getDescription());
+    }
 
-      /* Restore Contiki source or firmware */
-      if (moteType.getContikiSourceFile() != null) {
-        contikiField.setText(moteType.getContikiSourceFile().getAbsolutePath());
-        setDialogState(DialogState.SELECTED_SOURCE);
-        restoredDialogState = true;
-      } else if (moteType.getContikiFirmwareFile() != null) {
-        contikiField.setText(moteType.getContikiFirmwareFile().getAbsolutePath());
-        setDialogState(DialogState.SELECTED_FIRMWARE);
-        restoredDialogState = true;
-      }
+    /* Restore Contiki source or firmware */
+    final var source = moteType.getContikiSourceFile();
+    final var firmware = moteType.getContikiFirmwareFile();
+    if (source != null) {
+      contikiField.setText(source.getAbsolutePath());
+      dialogState = DialogState.SELECTED_SOURCE;
+    } else if (firmware != null) {
+      contikiField.setText(firmware.getAbsolutePath());
+      dialogState = DialogState.SELECTED_FIRMWARE;
+    }
 
-      /* Restore mote interface classes */
-      for (Component c : moteIntfBox.getComponents()) {
-        if (!(c instanceof JCheckBox)) {
-          continue;
-        }
-        ((JCheckBox) c).setSelected(false);
-      }
-      for (var intf : getAllMoteInterfaces()) {
-        addMoteInterface(intf, false);
-      }
-      var moteClasses = moteType.getMoteInterfaceClasses();
-      for (var intf : moteClasses == null ? getDefaultMoteInterfaces() : moteClasses) {
-        addMoteInterface(intf, true);
-      }
-
-      /* Restore compile commands */
-      if (moteType.getCompileCommands() != null) {
-        setCompileCommands(moteType.getCompileCommands());
-        setDialogState(DialogState.AWAITING_COMPILATION);
-        restoredDialogState = true;
+    /* Restore mote interface classes */
+    for (Component c : moteIntfBox.getComponents()) {
+      if (c instanceof JCheckBox box) {
+        box.setSelected(false);
       }
     }
-    if (!restoredDialogState) {
-      setDialogState(DialogState.NO_SELECTION);
+    for (var intf : getAllMoteInterfaces()) {
+      addMoteInterface(intf, false);
     }
+    var moteClasses = moteType.getMoteInterfaceClasses();
+    for (var intf : moteClasses == null ? getDefaultMoteInterfaces() : moteClasses) {
+      addMoteInterface(intf, true);
+    }
+
+    /* Restore compile commands */
+    final var commands = moteType.getCompileCommands();
+    if (commands != null) {
+      setCompileCommands(commands);
+      dialogState = DialogState.AWAITING_COMPILATION;
+    }
+    setDialogState(dialogState);
   }
 
   /**
@@ -456,8 +448,7 @@ public abstract class AbstractCompileDialog extends JDialog {
 
     /* Handle multiple compilation commands one by one */
     final ArrayList<String> commands = new ArrayList<>();
-    String[] arr = getCompileCommands().split("\n");
-    for (String cmd: arr) {
+    for (String cmd: getCompileCommands().split("\n")) {
       if (cmd.trim().isEmpty()) {
         continue;
       }
@@ -468,16 +459,7 @@ public abstract class AbstractCompileDialog extends JDialog {
       throw new Exception("No compile commands specified");
     }
 
-    if (SwingUtilities.isEventDispatchThread()) {
-      setDialogState(DialogState.IS_COMPILING);
-    } else {
-      SwingUtilities.invokeAndWait(new Runnable() {
-        @Override
-        public void run() {
-          setDialogState(DialogState.IS_COMPILING);
-        }
-      });
-    }
+    setDialogState(DialogState.IS_COMPILING);
     createNewCompilationTab(taskOutput);
 
     /* Add abort compilation menu item */
@@ -496,13 +478,6 @@ public abstract class AbstractCompileDialog extends JDialog {
 			@Override
 			public void actionPerformed(ActionEvent e) {
         abortMenuItem.setEnabled(false);
-
-        /* Make sure firmware exists */
-        if (!contikiFirmware.exists()) {
-          logger.fatal("Contiki firmware does not exist: " + contikiFirmware.getAbsolutePath());
-          setDialogState(DialogState.AWAITING_COMPILATION);
-          return;
-        }
         setDialogState(DialogState.COMPILED_FIRMWARE);
       }
     };
@@ -520,20 +495,13 @@ public abstract class AbstractCompileDialog extends JDialog {
     final Action nextCommandAction = new AbstractAction() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-        Action nextSuccessAction;
-        if (commands.size() == 1) {
-          nextSuccessAction = compilationSuccessAction;
-        } else {
-          nextSuccessAction = this;
-        }
-
         String command = commands.remove(0);
         try {
-          currentCompilationProcess = CompileContiki.compile(
+          currentCompilationProcess = BaseContikiMoteType.compile(
               command,
               compilationEnvironment,
               new File(contikiField.getText()).getParentFile(),
-              nextSuccessAction,
+              commands.isEmpty() ? compilationSuccessAction : this,
               compilationFailureAction,
               taskOutput,
               false
@@ -589,12 +557,12 @@ public abstract class AbstractCompileDialog extends JDialog {
       break;
 
     case SELECTED_SOURCE:
-      if (!sourceFile.exists()) {
-        logger.warn("Could not find Contiki source: " + sourceFile.getAbsolutePath());
+      if (!sourceFile.getName().endsWith(".c")) {
         setDialogState(DialogState.NO_SELECTION);
         return;
       }
-      if (!sourceFile.getName().endsWith(".c")) {
+      if (!sourceFile.exists()) {
+        logger.warn("Could not find Contiki source: " + sourceFile.getAbsolutePath());
         setDialogState(DialogState.NO_SELECTION);
         return;
       }
@@ -604,18 +572,18 @@ public abstract class AbstractCompileDialog extends JDialog {
     	createButton.setEnabled(false);
     	commandsArea.setEnabled(true);
       setCompileCommands(getDefaultCompileCommands(sourceFile));
-      contikiFirmware = getExpectedFirmwareFile(moteType.getIdentifier(), sourceFile);
+      contikiFirmware = moteType.getExpectedFirmwareFile(sourceFile);
       contikiSource = sourceFile;
       setDialogState(DialogState.AWAITING_COMPILATION);
       break;
 
     case AWAITING_COMPILATION:
-      if (!sourceFile.exists()) {
-        logger.warn("Could not find Contiki source: " + sourceFile.getAbsolutePath());
+      if (!sourceFile.getName().endsWith(".c")) {
         setDialogState(DialogState.NO_SELECTION);
         return;
       }
-      if (!sourceFile.getName().endsWith(".c")) {
+      if (!sourceFile.exists()) {
+        logger.warn("Could not find Contiki source: " + sourceFile.getAbsolutePath());
         setDialogState(DialogState.NO_SELECTION);
         return;
       }
@@ -817,7 +785,6 @@ public abstract class AbstractCompileDialog extends JDialog {
    * @param commands User configured compile commands
    */
   public void setCompileCommands(String commands) {
-    /* TODO Merge from String[] */
     commandsArea.setText(commands);
   }
 
@@ -825,7 +792,6 @@ public abstract class AbstractCompileDialog extends JDialog {
    * @return User configured compile commands
    */
   public String getCompileCommands() {
-    /* TODO Split into String[] */
     return commandsArea.getText();
   }
 
@@ -835,24 +801,7 @@ public abstract class AbstractCompileDialog extends JDialog {
    */
   public String getDefaultCompileCommands(File source) {
     return Cooja.getExternalToolsSetting("PATH_MAKE") + " -j$(CPUS) " +
-           getExpectedFirmwareFile(source).getName() + " TARGET=" + getTargetName();
-  }
-
-  /**
-   * @param source Contiki source
-   * @return Expected Contiki firmware compiled from source
-   */
-  public abstract File getExpectedFirmwareFile(File source);
-
-  /**
-   * Returns the Contiki firmware name for moteId and source.
-   *
-   * @param moteId The ID of the mote
-   * @param source Contiki source
-   * @return Expected Contiki firmware compiled from source
-   */
-  public File getExpectedFirmwareFile(String moteId, File source) {
-    return getExpectedFirmwareFile(source);
+           moteType.getExpectedFirmwareFile(source).getName() + " TARGET=" + moteType.getMoteType();
   }
 
   private void abortAnyCompilation() {
@@ -863,7 +812,7 @@ public abstract class AbstractCompileDialog extends JDialog {
     currentCompilationProcess = null;
   }
 
-  private boolean createNewCompilationTab(MessageListUI output) {
+  private void createNewCompilationTab(MessageListUI output) {
     abortAnyCompilation();
     tabbedPane.remove(currentCompilationOutput);
 
@@ -872,8 +821,5 @@ public abstract class AbstractCompileDialog extends JDialog {
 
     tabbedPane.setSelectedComponent(scrollOutput);
     currentCompilationOutput = scrollOutput;
-    return true;
   }
-
-  protected abstract String getTargetName();
 }

@@ -28,7 +28,7 @@
  *
  */
 
-package org.contikios.cooja.plugins;
+package org.contikios.cooja.script;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -248,7 +248,8 @@ public class ScriptParser {
     "\n" +
     "function write(mote,msg) { " +
     " mote.getInterfaces().getLog().writeString(msg); " +
-    "};\n";
+    "};\n" +
+    "run();\n";
   }
 
   public long getTimeoutTime() {

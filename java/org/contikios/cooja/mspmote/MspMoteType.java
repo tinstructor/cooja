@@ -29,26 +29,23 @@
 
 package org.contikios.cooja.mspmote;
 
+import java.awt.Container;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 
-import javax.swing.Icon;
-import javax.swing.JComponent;
-import javax.swing.JLabel;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.contikios.cooja.MoteInterfaceHandler;
+import org.contikios.cooja.mote.BaseContikiMoteType;
 import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Cooja;
 import org.contikios.cooja.Mote;
 import org.contikios.cooja.MoteInterface;
-import org.contikios.cooja.MoteType;
-import org.contikios.cooja.ProjectConfig;
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.interfaces.IPAddress;
 import org.contikios.cooja.mspmote.interfaces.Msp802154Radio;
@@ -64,78 +61,8 @@ import se.sics.mspsim.util.ELF;
  * @author Fredrik Osterlind, Joakim Eriksson, Niclas Finne
  */
 @ClassDescription("Msp Mote Type")
-public abstract class MspMoteType implements MoteType {
+public abstract class MspMoteType extends BaseContikiMoteType {
   private static final Logger logger = LogManager.getLogger(MspMoteType.class);
-
-  private String identifier = null;
-  private String description = null;
-
-  /* If source file is defined, the firmware is recompiled when loading simulations */
-  private File fileSource = null;
-  private String compileCommands = null;
-  private File fileFirmware = null;
-
-  private Class<? extends MoteInterface>[] moteInterfaceClasses = null;
-
-  @Override
-  public String getIdentifier() {
-    return identifier;
-  }
-
-  @Override
-  public void setIdentifier(String identifier) {
-    this.identifier = identifier;
-  }
-
-  @Override
-  public String getDescription() {
-    return description;
-  }
-
-  @Override
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  @Override
-  public String getCompileCommands() {
-    return compileCommands;
-  }
-
-  @Override
-  public void setCompileCommands(String commands) {
-    this.compileCommands = commands;
-  }
-
-  @Override
-  public File getContikiSourceFile() {
-    return fileSource;
-  }
-
-  @Override
-  public File getContikiFirmwareFile() {
-    return fileFirmware;
-  }
-
-  @Override
-  public void setContikiSourceFile(File file) {
-    fileSource = file;
-  }
-
-  @Override
-  public void setContikiFirmwareFile(File file) {
-    this.fileFirmware = file;
-  }
-
-  @Override
-  public Class<? extends MoteInterface>[] getMoteInterfaceClasses() {
-    return moteInterfaceClasses;
-  }
-
-  @Override
-  public void setMoteInterfaceClasses(Class<? extends MoteInterface>[] classes) {
-    moteInterfaceClasses = classes;
-  }
 
   @Override
   public final Mote generateMote(Simulation simulation) throws MoteTypeCreationException {
@@ -144,66 +71,37 @@ public abstract class MspMoteType implements MoteType {
     return mote;
   }
 
-  protected abstract MspMote createMote(Simulation simulation);
+  protected abstract MspMote createMote(Simulation simulation) throws MoteTypeCreationException;
 
   @Override
-  public JComponent getTypeVisualizer() {
-    StringBuilder sb = new StringBuilder();
-    // Identifier
-    sb.append("<html><table><tr><td>Identifier</td><td>")
-    .append(getIdentifier()).append("</td></tr>");
-
-    // Description
-    sb.append("<tr><td>Description</td><td>")
-    .append(getDescription()).append("</td></tr>");
-
-    /* Contiki source */
-    sb.append("<tr><td>Contiki source</td><td>");
-    if (getContikiSourceFile() != null) {
-      sb.append(getContikiSourceFile().getAbsolutePath());
-    } else {
-      sb.append("[not specified]");
-    }
-    sb.append("</td></tr>");
-
-    /* Contiki firmware */
-    sb.append("<tr><td>Contiki firmware</td><td>")
-    .append(getContikiFirmwareFile().getAbsolutePath()).append("</td></tr>");
-
-    /* Compile commands */
-    String compileCommands = getCompileCommands();
-    if (compileCommands == null) {
-        compileCommands = "";
-    }
-    sb.append("<tr><td valign=top>Compile commands</td><td>")
-    .append(compileCommands.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")).append("</td></tr>");
-
-    JLabel label = new JLabel(sb.append("</table></html>").toString());
-    label.setVerticalTextPosition(JLabel.TOP);
-    /* Icon */
-    Icon moteTypeIcon = getMoteTypeIcon();
-    if (moteTypeIcon != null) {
-      label.setIcon(moteTypeIcon);
-    }
-    return label;
+  protected boolean showCompilationDialog(Simulation sim) {
+    return MspCompileDialog.showDialog(Cooja.getTopParentContainer(), sim, this);
   }
 
-  public abstract Icon getMoteTypeIcon();
+  @Override
+  public boolean configureAndInit(Container parentContainer, Simulation simulation, boolean visAvailable) {
+    // If visualized, show compile dialog and let user configure.
+    if (visAvailable && !simulation.isQuickSetup()) {
+      if (getDescription() == null) {
+        setDescription(getMoteName() + " Mote Type #" + (simulation.getMoteTypes().length + 1));
+      }
+      return showCompilationDialog(simulation);
+    }
+
+    // Not visualized: Compile Contiki immediately.
+    return compileMoteType(visAvailable, BaseContikiMoteType.oneDimensionalEnv(getCompilationEnvironment()));
+  }
 
   @Override
-  public ProjectConfig getConfig() {
-    logger.warn("Msp mote type project config not implemented");
-    return null;
+  protected void appendVisualizerInfo(StringBuilder sb) {
   }
 
   @Override
   public Collection<Element> getConfigXML(Simulation simulation) {
     ArrayList<Element> config = new ArrayList<>();
 
-    Element element;
-
     // Identifier
-    element = new Element("identifier");
+    var element = new Element("identifier");
     element.setText(getIdentifier());
     config.add(element);
 
@@ -217,11 +115,9 @@ public abstract class MspMoteType implements MoteType {
       element = new Element("source");
       File file = simulation.getCooja().createPortablePath(fileSource);
       element.setText(file.getPath().replaceAll("\\\\", "/"));
-      element.setAttribute("EXPORT", "discard");
       config.add(element);
       element = new Element("commands");
       element.setText(compileCommands);
-      element.setAttribute("EXPORT", "discard");
       config.add(element);
     }
 
@@ -229,11 +125,10 @@ public abstract class MspMoteType implements MoteType {
     element = new Element("firmware");
     File file = simulation.getCooja().createPortablePath(fileFirmware);
     element.setText(file.getPath().replaceAll("\\\\", "/"));
-    element.setAttribute("EXPORT", "copy");
     config.add(element);
 
     // Mote interfaces
-    for (Class<? extends MoteInterface> moteInterface : getMoteInterfaceClasses()) {
+    for (var moteInterface : moteInterfaceClasses) {
       element = new Element("moteinterface");
       element.setText(moteInterface.getName());
       config.add(element);
@@ -256,25 +151,11 @@ public abstract class MspMoteType implements MoteType {
       } else if (name.equals("description")) {
         description = element.getText();
       } else if (name.equals("source")) {
-        fileSource = new File(element.getText());
-        if (!fileSource.exists()) {
-          fileSource = simulation.getCooja().restorePortablePath(fileSource);
-        }
-      } else if (name.equals("command")) {
-        /* Backwards compatibility: command is now commands */
-        logger.warn("Old simulation config detected: old version only supports a single compile command");
+        fileSource = simulation.getCooja().restorePortablePath(new File(element.getText()));
+      } else if (name.equals("command") || name.equals("commands")) {
         compileCommands = element.getText();
-      } else if (name.equals("commands")) {
-        compileCommands = element.getText();
-      } else if (name.equals("firmware")) {
-        fileFirmware = new File(element.getText());
-        if (!fileFirmware.exists()) {
-          fileFirmware = simulation.getCooja().restorePortablePath(fileFirmware);
-        }
-      } else if (name.equals("elf")) {
-        /* Backwards compatibility: elf is now firmware */
-        logger.warn("Old simulation config detected: firmware specified as elf");
-        fileFirmware = new File(element.getText());
+      } else if (name.equals("firmware") || name.equals("elf")) {
+        fileFirmware = simulation.getCooja().restorePortablePath(new File(element.getText()));
       } else if (name.equals("moteinterface")) {
         String intfClass = element.getText().trim();
 
@@ -282,28 +163,7 @@ public abstract class MspMoteType implements MoteType {
         if (intfClass.startsWith("se.sics")) {
         	intfClass = intfClass.replaceFirst("se\\.sics", "org.contikios");
         }
-
-        /* Backwards compatibility: MspIPAddress -> IPAddress */
-        if (intfClass.equals("org.contikios.cooja.mspmote.interfaces.MspIPAddress")) {
-        	logger.warn("Old simulation config detected: IP address interface was moved");
-        	intfClass = IPAddress.class.getName();
-        }
-        if (intfClass.equals("org.contikios.cooja.mspmote.interfaces.ESBLog")) {
-        	logger.warn("Old simulation config detected: ESBLog was replaced by MspSerial");
-        	intfClass = MspSerial.class.getName();
-        }
-        if (intfClass.equals("org.contikios.cooja.mspmote.interfaces.SkyByteRadio")) {
-        	logger.warn("Old simulation config detected: SkyByteRadio was replaced by Msp802154Radio");
-        	intfClass = Msp802154Radio.class.getName();
-        }
-        if (intfClass.equals("org.contikios.cooja.mspmote.interfaces.SkySerial")) {
-        	logger.warn("Old simulation config detected: SkySerial was replaced by MspSerial");
-        	intfClass = MspSerial.class.getName();
-        }
-
-        Class<? extends MoteInterface> moteInterfaceClass =
-          simulation.getCooja().tryLoadClass(this, MoteInterface.class, intfClass);
-
+        var moteInterfaceClass = MoteInterfaceHandler.getInterfaceClass(simulation.getCooja(), this, intfClass);
         if (moteInterfaceClass == null) {
           logger.warn("Can't find mote interface class: " + intfClass);
         } else {
@@ -335,21 +195,33 @@ public abstract class MspMoteType implements MoteType {
       logger.warn("Old simulation config detected: no firmware file specified, using '{}'", fileFirmware);
     }
 
+    if (!visAvailable || simulation.isQuickSetup()) {
+      if (getIdentifier() == null) {
+        throw new MoteTypeCreationException("No identifier");
+      }
+      if (getContikiSourceFile() == null) {
+        // Source file is null for firmware-only simulations, so just return true if firmware exists.
+        final var firmware = getContikiFirmwareFile();
+        if (firmware == null || !firmware.exists()) {
+          throw new MoteTypeCreationException("Contiki firmware file does not exist: " + firmware);
+        }
+        return true;
+      }
+      if (getCompileCommands() == null) {
+        throw new MoteTypeCreationException("No compile commands specified");
+      }
+    }
+
     return configureAndInit(Cooja.getTopParentContainer(), simulation, visAvailable);
   }
 
   public abstract Class<? extends MoteInterface>[] getAllMoteInterfaceClasses();
   public abstract Class<? extends MoteInterface>[] getDefaultMoteInterfaceClasses();
-  public abstract File getExpectedFirmwareFile(File source);
-
-  private static ELF loadELF(String filepath) throws IOException {
-    return ELF.readELF(filepath);
-  }
 
   private ELF elf; /* cached */
   public ELF getELF() throws IOException {
     if (elf == null) {
-      elf = loadELF(getContikiFirmwareFile().getPath());
+      elf = ELF.readELF(getContikiFirmwareFile().getPath());
     }
     return elf;
   }

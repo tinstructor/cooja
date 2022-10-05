@@ -37,31 +37,26 @@ import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 
-import org.contikios.cooja.Cooja;
 import org.contikios.cooja.MoteInterface;
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.dialogs.AbstractCompileDialog;
 
 public class MspCompileDialog extends AbstractCompileDialog {
-  private final String target;
-
   public static boolean showDialog(
       Container parent,
       Simulation simulation,
-      MspMoteType moteType,
-      String target) {
+      MspMoteType moteType) {
 
-    final AbstractCompileDialog dialog = new MspCompileDialog(parent, simulation, moteType, target);
+    final AbstractCompileDialog dialog = new MspCompileDialog(parent, simulation, moteType);
 
     /* Show dialog and wait for user */
     dialog.setVisible(true); /* BLOCKS */
     return dialog.createdOK();
   }
 
-  private MspCompileDialog(Container parent, Simulation simulation, MspMoteType moteType, String target) {
+  private MspCompileDialog(Container parent, Simulation simulation, MspMoteType moteType) {
     super(parent, simulation, moteType);
-    this.target = target;
-    setTitle("Create Mote Type: Compile Contiki for " + target);
+    setTitle("Create Mote Type: Compile Contiki for " + moteType.getMoteType());
     addCompilationTipsTab(tabbedPane);
   }
 
@@ -87,26 +82,14 @@ public class MspCompileDialog extends AbstractCompileDialog {
 
   @Override
   public boolean canLoadFirmware(File file) {
-    if (file.getName().endsWith("." + target)) {
+    if (file.getName().endsWith("." + moteType.getMoteType())) {
       return true;
     }
     return file.getName().equals("main.exe");
   }
 
   @Override
-  public File getExpectedFirmwareFile(File source) {
-    return ((MspMoteType)moteType).getExpectedFirmwareFile(source);
-  }
-
-  @Override
   public void writeSettingsToMoteType() {
     /* Nothing to do */
   }
-
-  @Override
-  protected String getTargetName() {
-  	/* Override me */
-  	return target;
-  }
-
 }

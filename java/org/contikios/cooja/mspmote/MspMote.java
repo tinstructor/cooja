@@ -95,9 +95,9 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
 
   private CommandHandler commandHandler;
   private MSP430 myCpu = null;
-  private MspMoteType myMoteType;
+  private final MspMoteType myMoteType;
   private MspMoteMemory myMemory = null;
-  private MoteInterfaceHandler myMoteInterfaceHandler = null;
+  protected MoteInterfaceHandler myMoteInterfaceHandler;
   public ComponentRegistry registry = null;
 
   /* Stack monitoring variables */
@@ -105,73 +105,74 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
 
   public GenericNode mspNode = null;
 
-  public MspMote(MspMoteType moteType, Simulation simulation) {
-    setSimulation(simulation);
+  public MspMote(MspMoteType moteType, Simulation simulation) throws MoteType.MoteTypeCreationException {
+    super(simulation);
     myMoteType = moteType;
-
+    try {
+      debuggingInfo = moteType.getFirmwareDebugInfo();
+    } catch (IOException e) {
+      throw new MoteType.MoteTypeCreationException("Error: " + e.getMessage(), e);
+    }
     /* Schedule us immediately */
     requestImmediateWakeup();
   }
 
-  protected void initMote() throws MoteType.MoteTypeCreationException {
-    if (myMoteType != null) {
-      initEmulator(myMoteType.getContikiFirmwareFile());
-      myMoteInterfaceHandler = createMoteInterfaceHandler();
+  protected void initMote() {
+    /* TODO Create COOJA-specific window manager */
+    registry.removeComponent("windowManager");
+    registry.registerComponent("windowManager", new WindowManager() {
+      @Override
+      public ManagedWindow createWindow(String name) {
+        return new ManagedWindow() {
+          @Override
+          public void setVisible(boolean b) {
+            logger.warn("setVisible() ignored");
+          }
 
-      /* TODO Create COOJA-specific window manager */
-      registry.removeComponent("windowManager");
-      registry.registerComponent("windowManager", new WindowManager() {
-        @Override
-        public ManagedWindow createWindow(String name) {
-          return new ManagedWindow() {
-            @Override
-            public void setVisible(boolean b) {
-              logger.warn("setVisible() ignored");
-            }
-            @Override
-            public void setTitle(String string) {
-              logger.warn("setTitle() ignored");
-            }
-            @Override
-            public void setSize(int width, int height) {
-              logger.warn("setSize() ignored");
-            }
-            @Override
-            public void setBounds(int x, int y, int width, int height) {
-              logger.warn("setBounds() ignored");
-            }
-            @Override
-            public void removeAll() {
-              logger.warn("removeAll() ignored");
-            }
-            @Override
-            public void pack() {
-              logger.warn("pack() ignored");
-            }
-            @Override
-            public boolean isVisible() {
-              logger.warn("isVisible() return false");
-              return false;
-            }
-            @Override
-            public String getTitle() {
-              logger.warn("getTitle() return \"\"");
-              return "";
-            }
-            @Override
-            public void add(Component component) {
-              logger.warn("add() ignored");
-            }
-          };
-        }
-      });
+          @Override
+          public void setTitle(String string) {
+            logger.warn("setTitle() ignored");
+          }
 
-      try {
-        debuggingInfo = ((MspMoteType)getType()).getFirmwareDebugInfo();
-      } catch (IOException e) {
-        throw new RuntimeException("Error: " + e.getMessage(), e);
+          @Override
+          public void setSize(int width, int height) {
+            logger.warn("setSize() ignored");
+          }
+
+          @Override
+          public void setBounds(int x, int y, int width, int height) {
+            logger.warn("setBounds() ignored");
+          }
+
+          @Override
+          public void removeAll() {
+            logger.warn("removeAll() ignored");
+          }
+
+          @Override
+          public void pack() {
+            logger.warn("pack() ignored");
+          }
+
+          @Override
+          public boolean isVisible() {
+            logger.warn("isVisible() return false");
+            return false;
+          }
+
+          @Override
+          public String getTitle() {
+            logger.warn("getTitle() return \"\"");
+            return "";
+          }
+
+          @Override
+          public void add(Component component) {
+            logger.warn("add() ignored");
+          }
+        };
       }
-    }
+    });
   }
 
   /**
@@ -181,10 +182,6 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
   public void stopNextInstruction() {
     stopNextInstruction = true;
     getCPU().stop();
-  }
-
-  protected MoteInterfaceHandler createMoteInterfaceHandler() throws MoteType.MoteTypeCreationException {
-    return new MoteInterfaceHandler(this, getType().getMoteInterfaceClasses());
   }
 
   /**
@@ -201,10 +198,6 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
   @Override
   public MemoryInterface getMemory() {
     return myMemory;
-  }
-
-  public void setMemory(MspMoteMemory memory) {
-    myMemory = memory;
   }
 
   /**
@@ -243,7 +236,6 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
 
     this.myCpu.getLogger().addLogListener(ll);
 
-    logger.info("Loading firmware from: " + fileELF.getAbsolutePath());
     Cooja.setProgressMessage("Loading " + fileELF.getName());
     node.loadFirmware(((MspMoteType)getType()).getELF());
 
@@ -276,29 +268,9 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
     return myMoteInterfaceHandler;
   }
 
-  public void setInterfaces(MoteInterfaceHandler moteInterfaceHandler) {
-    myMoteInterfaceHandler = moteInterfaceHandler;
-  }
-
-  /**
-   * Initializes emulator by creating CPU, memory and node object.
-   *
-   * @param ELFFile ELF file
-   * @return True if successful
-   */
-  protected abstract boolean initEmulator(File ELFFile);
-
   private boolean booted = false;
 
-  public void simTimeChanged(long diff) {
-    /* Compensates for simulation time changes (without simulation execution) */
-    lastExecute -= diff;
-    nextExecute -= diff;
-    scheduleNextWakeup(nextExecute);
-  }
-
   private long lastExecute = -1; /* Last time mote executed */
-  private long nextExecute;
 
   private double jumpError = 0.;
 
@@ -317,8 +289,6 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
 
   private void regularExecute(MspClock clock, long t, int duration) {
     long nextExecute;
-    long drift = clock.getDrift();
-
     /* Wait until mote boots */
     if (!booted && clock.getTime() < 0) {
       scheduleNextWakeup(t - clock.getTime());
@@ -368,7 +338,6 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
   private void driftExecute(MspClock clock, long t, int duration) {
     double deviation = clock.getDeviation();
     double invDeviation = 1.0 / deviation;
-    long drift = clock.getDrift();
     long jump, executeDelta;
     double exactJump, exactExecuteDelta;
 
@@ -415,7 +384,7 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
     exactExecuteDelta = executeDelta * invDeviation;
     executeDelta = (int)Math.floor(exactExecuteDelta);
 
-    nextExecute = executeDelta + t;
+    var nextExecute = executeDelta + t;
 
     /* Schedule wakeup */
     if (nextExecute < t) {
@@ -474,23 +443,19 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
 
   @Override
   public boolean setConfigXML(Simulation simulation, Collection<Element> configXML, boolean visAvailable) throws MoteType.MoteTypeCreationException {
-    if (myMoteInterfaceHandler == null) {
-      myMoteInterfaceHandler = createMoteInterfaceHandler();
-    }
-
-    try {
-      debuggingInfo = ((MspMoteType)getType()).getFirmwareDebugInfo();
-    } catch (IOException e) {
-      throw new RuntimeException("Error: " + e.getMessage(), e);
-    }
-
     for (Element element: configXML) {
       String name = element.getName();
-
-      if (name.equals("motetype_identifier")) {
-        /* Ignored: handled by simulation */
-      } else if ("breakpoints".equals(element.getName())) {
-        setWatchpointConfigXML(element.getChildren(), visAvailable);
+      if ("breakpoints".equals(name)) {
+        for (Element elem : (Collection<Element>) element.getChildren()) {
+          if (elem.getName().equals("breakpoint")) {
+            MspBreakpoint breakpoint = new MspBreakpoint(this);
+            if (!breakpoint.setConfigXML(elem.getChildren(), visAvailable)) {
+              logger.warn("Could not restore breakpoint: " + breakpoint);
+            } else {
+              watchpoints.add(breakpoint);
+            }
+          }
+        }
       } else if (name.equals("interface_config")) {
         String intfClass = element.getText().trim();
 
@@ -499,22 +464,7 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
           intfClass = intfClass.replaceFirst("se\\.sics", "org.contikios");
         }
 
-        if (intfClass.equals("org.contikios.cooja.mspmote.interfaces.MspIPAddress")) {
-        	intfClass = IPAddress.class.getName();
-        }
-        if (intfClass.equals("org.contikios.cooja.mspmote.interfaces.ESBLog")) {
-        	intfClass = MspSerial.class.getName();
-        }
-        if (intfClass.equals("org.contikios.cooja.mspmote.interfaces.SkyByteRadio")) {
-        	intfClass = Msp802154Radio.class.getName();
-        }
-        if (intfClass.equals("org.contikios.cooja.mspmote.interfaces.SkySerial")) {
-        	intfClass = MspSerial.class.getName();
-        }
-
-        Class<? extends MoteInterface> moteInterfaceClass = simulation.getCooja().tryLoadClass(
-              this, MoteInterface.class, intfClass);
-
+        var moteInterfaceClass = MoteInterfaceHandler.getInterfaceClass(simulation.getCooja(), this, intfClass);
         if (moteInterfaceClass == null) {
           logger.fatal("Could not load mote interface class: " + intfClass);
           return false;
@@ -623,7 +573,7 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
   /* WatchpointMote */
   private final ArrayList<WatchpointListener> watchpointListeners = new ArrayList<>();
   private final ArrayList<MspBreakpoint> watchpoints = new ArrayList<>();
-  private HashMap<File, HashMap<Integer, Integer>> debuggingInfo = null;
+  private final HashMap<File, HashMap<Integer, Integer>> debuggingInfo;
 
   @Override
   public void addWatchpointListener(WatchpointListener listener) {
@@ -756,18 +706,5 @@ public abstract class MspMote extends AbstractEmulatedMote implements Mote, Watc
     }
 
     return config;
-  }
-  public boolean setWatchpointConfigXML(Collection<Element> configXML, boolean visAvailable) {
-    for (Element element : configXML) {
-      if (element.getName().equals("breakpoint")) {
-        MspBreakpoint breakpoint = new MspBreakpoint(this);
-        if (!breakpoint.setConfigXML(element.getChildren(), visAvailable)) {
-          logger.warn("Could not restore breakpoint: " + breakpoint);
-        } else {
-          watchpoints.add(breakpoint);
-        }
-      }
-    }
-    return true;
   }
 }

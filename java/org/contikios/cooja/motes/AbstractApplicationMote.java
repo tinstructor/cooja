@@ -59,9 +59,9 @@ import org.contikios.cooja.mote.memory.MemoryInterface;
 public abstract class AbstractApplicationMote extends AbstractWakeupMote implements Mote {
   private static final Logger logger = LogManager.getLogger(AbstractApplicationMote.class);
 
-  private MoteType moteType = null;
+  private final MoteType moteType;
 
-  private SectionMoteMemory memory = null;
+  private SectionMoteMemory memory;
 
   protected MoteInterfaceHandler moteInterfaces;
 
@@ -84,12 +84,8 @@ public abstract class AbstractApplicationMote extends AbstractWakeupMote impleme
   public abstract void receivedPacket(RadioPacket p);
   public abstract void sentPacket(RadioPacket p);
   
-  public AbstractApplicationMote() throws MoteType.MoteTypeCreationException {
-    moteInterfaces = new MoteInterfaceHandler(this, moteType.getMoteInterfaceClasses());
-  }
-
   public AbstractApplicationMote(MoteType moteType, Simulation sim) throws MoteType.MoteTypeCreationException {
-    setSimulation(sim);
+    super(sim);
     this.moteType = moteType;
     this.memory = new SectionMoteMemory(new HashMap<>());
     this.moteInterfaces = new MoteInterfaceHandler(this, moteType.getMoteInterfaceClasses());
@@ -106,17 +102,9 @@ public abstract class AbstractApplicationMote extends AbstractWakeupMote impleme
     return moteInterfaces;
   }
 
-  public void setInterfaces(MoteInterfaceHandler moteInterfaceHandler) {
-    moteInterfaces = moteInterfaceHandler;
-  }
-
   @Override
   public MemoryInterface getMemory() {
     return memory;
-  }
-
-  public void setMemory(SectionMoteMemory memory) {
-    this.memory = memory;
   }
 
   @Override
@@ -162,8 +150,7 @@ public abstract class AbstractApplicationMote extends AbstractWakeupMote impleme
           intfClass = intfClass.replaceFirst("se\\.sics", "org.contikios");
         }
 
-        Class<? extends MoteInterface> moteInterfaceClass =
-            simulation.getCooja().tryLoadClass(this, MoteInterface.class, intfClass);
+        var moteInterfaceClass = MoteInterfaceHandler.getInterfaceClass(simulation.getCooja(), this, intfClass);
 
         if (moteInterfaceClass == null) {
           logger.warn("Can't find mote interface class: " + intfClass);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, Swedish Institute of Computer Science.
+ * Copyright (c) 2009, Swedish Institute of Computer Science.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,38 +28,16 @@
  *
  */
 
-package org.contikios.cooja.contikimote.interfaces;
+package org.contikios.cooja.script;
 
-import org.contikios.cooja.Mote;
-import org.contikios.cooja.interfaces.IPAddress;
 
-/**
- * uIP IP address.
- * <p>
- * Contiki variables (currently not activated):
- * <ul>
- * <li>char simIP[4], or char simIP[16]
- * <li>int simIPv4
- * <li>int simIPv6
- * <li>char simIPChanged (1 if new IP should be set)
- * </ul>
- * <p>
- *
- * This observable notifies when the IP address is set.
- * Note that this mote interface does not detect if Contiki changes IP address at run-time.
- *
- * @author Fredrik Osterlind
- */
-// FIXME: Remove this class.
-public class ContikiIPAddress extends IPAddress {
-  /**
-   * Creates an interface to the IP address at mote.
-   *
-   * @param mote IP address' mote.
-   * @see Mote
-   * @see org.contikios.cooja.MoteInterfaceHandler
-   */
-  public ContikiIPAddress(final Mote mote) {
-    super(mote);
-  }
+/* Morty: This interface must be public, otherwise openjdk will fail */
+
+public interface ScriptLog {
+    void log(String log);
+    void testOK();
+    void testFailed();
+    void generateMessage(long delay, String msg);
+    void append(String filename, String msg);
+    void writeFile(String filename, String msg);
 }
