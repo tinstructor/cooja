@@ -32,7 +32,6 @@ package org.contikios.cooja.mspmote.plugins;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
@@ -106,7 +105,7 @@ public class MspCodeWatcher extends VisPlugin implements MotePlugin, HasQuickHel
   private final WatchpointMote watchpointMote;
   private WatchpointListener watchpointListener;
 
-  private final JComboBox<String> fileComboBox;
+  private final JComboBox<String> fileComboBox = new JComboBox<>();
   private File[] sourceFiles;
 
   private final JTabbedPane mainPane;
@@ -160,7 +159,6 @@ public class MspCodeWatcher extends VisPlugin implements MotePlugin, HasQuickHel
     getContentPane().setLayout(new BorderLayout());
 
     /* Create source file list */
-    fileComboBox = new JComboBox<>();
     fileComboBox.addActionListener(e -> sourceFileSelectionChanged());
     fileComboBox.setRenderer(new BasicComboBoxRenderer() {
       @Override
@@ -485,7 +483,7 @@ public class MspCodeWatcher extends VisPlugin implements MotePlugin, HasQuickHel
 
     /* table with rules */
     rulesDebuggingOutput.clearMessages();
-    final JDialog dialog = new JDialog((Window)Cooja.getTopParentContainer(), "Locate source files");
+    final JDialog dialog = new JDialog(Cooja.getTopParentContainer(), "Locate source files");
     dialog.setModal(true);
     updateRulesUsage();
     AbstractTableModel model = new AbstractTableModel() {

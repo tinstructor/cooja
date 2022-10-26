@@ -209,7 +209,6 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
 	    }
     });
     viewMenu.add(new JCheckBoxMenuItem(logEventMoteColorAction) {
-        private static final long serialVersionUID = 8314556794750277114L;
         @Override
         public boolean isSelected() {
             return logEventColorOfMote;
@@ -611,27 +610,19 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
     zoomFinish(cpd, focusTime, focusCenter);
   }
 
-  private void zoomIn(final long focusTime) {
-    zoomFinishLevel(zoomGetLevel()-1, focusTime, 0.5);
-  }
-
-  private void zoomOut(final long focusTime) {
-    zoomFinishLevel(zoomGetLevel()+1, focusTime, 0.5);
-  }
-
   private final Action zoomInAction = new AbstractAction("Zoom in (Ctrl+)") {
     @Override
     public void actionPerformed(ActionEvent e) {
-      final long centerTime = getCenterPointTime(); 
-      zoomIn(centerTime);
+      final long centerTime = getCenterPointTime();
+      zoomFinishLevel(zoomGetLevel() - 1, centerTime, 0.5);
     }
   };
 
   private final Action zoomOutAction = new AbstractAction("Zoom out (Ctrl-)") {
     @Override
     public void actionPerformed(ActionEvent e) {
-      final long centerTime = getCenterPointTime(); 
-      zoomOut(centerTime);
+      final long centerTime = getCenterPointTime();
+      zoomFinishLevel(zoomGetLevel() + 1, centerTime, 0.5);
     }
   };
 
@@ -720,12 +711,7 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
         return;
       }
 
-      try {
-        BufferedWriter outStream = new BufferedWriter(
-            new OutputStreamWriter(
-                new FileOutputStream(
-                    saveFile), UTF_8));
-
+      try (var outStream = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(saveFile), UTF_8))) {
         /* Output all events (sorted per mote) */
         for (MoteEvents events: allMoteEvents) {
           for (MoteEvent ev: events.ledEvents) {
@@ -747,8 +733,6 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
             outStream.write(events.mote + "\t" + ev.time + "\t" + ev + "\n");
           }
         }
-
-        outStream.close();
       } catch (Exception ex) {
         logger.fatal("Could not write to file: " + saveFile);
       }
@@ -1036,8 +1020,6 @@ public class TimeLine extends VisPlugin implements HasQuickHelp {
   };
 
   private final Action logEventMoteColorAction = new AbstractAction("use Mote colors") {
-      private static final long serialVersionUID = -8626118368774023257L;
-      
       @Override
       public void actionPerformed(ActionEvent e) {
           logEventColorOfMote = !logEventColorOfMote;

@@ -2,8 +2,6 @@ package se.sics.mspsim.ui;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
@@ -16,9 +14,6 @@ import se.sics.mspsim.core.MemoryMonitor;
 import se.sics.mspsim.core.MSP430Core;
 
 public class CPUHeatMap extends JComponent implements MemoryMonitor {
-
-    private static final long serialVersionUID = -7964848220064713887L;
-
     private final Timer ticker;
 
     private ManagedWindow window;
@@ -43,12 +38,7 @@ public class CPUHeatMap extends JComponent implements MemoryMonitor {
         setOpaque(true);
         window.add(this);
 
-        ticker = new Timer(50, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent arg0) {
-                repaint();
-            }
-        });
+        ticker = new Timer(50, arg0 -> repaint());
         ticker.start();
 
         setFocusable(true);

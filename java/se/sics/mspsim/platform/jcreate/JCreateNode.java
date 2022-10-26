@@ -46,7 +46,6 @@ import se.sics.mspsim.chip.Leds;
 import se.sics.mspsim.chip.M25P80;
 import se.sics.mspsim.chip.MMA7260QT;
 import se.sics.mspsim.core.ADC12;
-import se.sics.mspsim.core.ADCInput;
 import se.sics.mspsim.core.IOPort;
 import se.sics.mspsim.core.USARTSource;
 import se.sics.mspsim.platform.sky.CC2420Node;
@@ -115,24 +114,9 @@ public class JCreateNode extends CC2420Node {
         leds = new Leds(cpu, LEDS);
         accelerometer = new MMA7260QT(cpu);
         ADC12 adc = cpu.getIOUnit(ADC12.class, "ADC12");
-        adc.setADCInput(4, new ADCInput() {
-            @Override
-            public int nextData() {
-                return accelerometer.getADCX();
-            }
-        });
-        adc.setADCInput(5, new ADCInput() {
-            @Override
-            public int nextData() {
-                return accelerometer.getADCY();
-            }
-        });
-        adc.setADCInput(6, new ADCInput() {
-            @Override
-            public int nextData() {
-                return accelerometer.getADCZ();
-            }
-        });
+        adc.setADCInput(4, () -> accelerometer.getADCX());
+        adc.setADCInput(5, () -> accelerometer.getADCY());
+        adc.setADCInput(6, () -> accelerometer.getADCZ());
 
         if (getFlash() == null) {
             setFlash(new M25P80(cpu));

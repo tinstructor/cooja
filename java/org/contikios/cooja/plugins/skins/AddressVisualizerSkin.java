@@ -37,7 +37,6 @@ import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.util.Observable;
 import java.util.Observer;
 
 import org.contikios.cooja.ClassDescription;
@@ -63,12 +62,7 @@ public class AddressVisualizerSkin implements VisualizerSkin {
   private Simulation simulation = null;
   private Visualizer visualizer = null;
 
-  private final Observer addrObserver = new Observer() {
-    @Override
-    public void update(Observable obs, Object obj) {
-      visualizer.repaint();
-    }
-  };
+  private final Observer addrObserver = (obs, obj) -> visualizer.repaint();
   private final MoteCountListener newMotesListener = new MoteCountListener() {
     @Override
     public void moteWasAdded(Mote mote) {

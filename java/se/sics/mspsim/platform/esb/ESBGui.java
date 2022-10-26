@@ -54,9 +54,6 @@ import se.sics.mspsim.core.StateChangeListener;
 import se.sics.mspsim.platform.AbstractNodeGUI;
 
 public class ESBGui extends AbstractNodeGUI implements ADCInput {
-
-  private static final long serialVersionUID = -139331418649524704L;
-
   public static final int GREEN_X = 2;
   public static final int YELLOW_X = 9;
   public static final int RED_X = 16;
@@ -78,12 +75,7 @@ public class ESBGui extends AbstractNodeGUI implements ADCInput {
   private MouseAdapter mouseListener;
 
   private final ESBNode node;
-  private final StateChangeListener ledsListener = new StateChangeListener() {
-      @Override
-      public void stateChanged(Object source, int oldState, int newState) {
-          repaint(LED_BOUNDS);
-      }
-  };
+  private final StateChangeListener ledsListener = (source, oldState, newState) -> repaint(LED_BOUNDS);
   private boolean buttonDown = false;
   private boolean resetDown = false;
 

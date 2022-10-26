@@ -58,9 +58,6 @@ import se.sics.mspsim.util.ArrayUtils;
  *
  */
 public class ChartPanel extends JComponent {
-
-  private static final long serialVersionUID = 7243446493049199594L;
-
   public static final String COLOR_TICK = "color.tick";
 
   private static final Border DEFAULT_BORDER =
@@ -136,7 +133,7 @@ public class ChartPanel extends JComponent {
     }
   }
 
-  private Color getDefaultColor(int index) {
+  private static Color getDefaultColor(int index) {
     return DEFAULT_COLOR[index % DEFAULT_COLOR.length];
   }
 
@@ -268,7 +265,7 @@ public class ChartPanel extends JComponent {
     }
   }
 
-  private double getGridValue(double totMinX, double totMaxX, int maxCount) {
+  private static double getGridValue(double totMinX, double totMaxX, int maxCount) {
     double diff = totMaxX - totMinX;
     if (diff <= 0) {
       return 1;

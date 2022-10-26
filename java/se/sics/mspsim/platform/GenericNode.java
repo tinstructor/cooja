@@ -34,13 +34,10 @@
  */
 
 package se.sics.mspsim.platform;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
-import java.net.URL;
 import javax.swing.JFrame;
 import se.sics.mspsim.cli.CommandHandler;
 import se.sics.mspsim.cli.DebugCommands;
@@ -80,7 +77,6 @@ public abstract class GenericNode extends Chip implements Runnable {
   protected ConfigManager config;
 
   protected String firmwareFile = null;
-  protected ELF elf;
   protected OperatingModeStatistics stats;
 
 
@@ -297,20 +293,6 @@ public abstract class GenericNode extends Chip implements Runnable {
     }
   }
 
-  public ELF loadFirmware(URL url) throws IOException {
-    DataInputStream inputStream = new DataInputStream(url.openStream());
-    ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-    byte[] firmwareData = new byte[2048];
-    int read;
-    while ((read = inputStream.read(firmwareData)) != -1) {
-      byteStream.write(firmwareData, 0, read);
-    }
-    inputStream.close();
-    ELF elf = new ELF(byteStream.toByteArray());
-    elf.readAll();
-    return loadFirmware(elf);
-  }
-
   public ELF loadFirmware(String name) throws IOException {
     return loadFirmware(ELF.readELF(firmwareFile = name));
   }
@@ -319,7 +301,6 @@ public abstract class GenericNode extends Chip implements Runnable {
     if (cpu.isRunning()) {
         stop();
     }
-    this.elf = elf;
     elf.loadPrograms(cpu.memory);
     MapTable map = elf.getMap();
     cpu.getDisAsm().setMap(map);

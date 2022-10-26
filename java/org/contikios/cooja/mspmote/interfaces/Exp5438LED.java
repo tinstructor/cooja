@@ -32,7 +32,6 @@ package org.contikios.cooja.mspmote.interfaces;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.util.Observable;
 import java.util.Observer;
 
 import javax.swing.JPanel;
@@ -136,12 +135,7 @@ public class Exp5438LED extends LED {
     };
 
     Observer observer;
-    this.addObserver(observer = new Observer() {
-      @Override
-      public void update(Observable obs, Object obj) {
-        panel.repaint();
-      }
-    });
+    this.addObserver(observer = (obs, obj) -> panel.repaint());
 
     // Saving observer reference for releaseInterfaceVisualizer
     panel.putClientProperty("intf_obs", observer);

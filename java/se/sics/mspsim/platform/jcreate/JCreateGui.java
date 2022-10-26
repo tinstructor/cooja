@@ -50,9 +50,6 @@ import se.sics.mspsim.core.StateChangeListener;
 import se.sics.mspsim.platform.AbstractNodeGUI;
 
 public class JCreateGui extends AbstractNodeGUI {
-
-    private static final long serialVersionUID = -1377998375300964966L;
-
     private static final Color RED_TRANS = new Color(0xff, 0x40, 0x40, 0xa0);
     private static final Color RED_O = new Color(0xff,0x40,0x40,0xff);
     private static final Color RED_I = new Color(0xff,0x60,0x60,0xff);
@@ -64,12 +61,7 @@ public class JCreateGui extends AbstractNodeGUI {
         LEDS_X[LEDS_X.length - 1] + 10 - LEDS_X[0], 10);
 
     private final JCreateNode node;
-    private final StateChangeListener ledsListener = new StateChangeListener() {
-        @Override
-        public void stateChanged(Object source, int oldState, int newState) {
-            repaint(LEDS_CLIP);
-        }
-    };
+    private final StateChangeListener ledsListener = (source, oldState, newState) -> repaint(LEDS_CLIP);
 
     public JCreateGui(JCreateNode node) {
         super("JCreateGui", "images/jcreate.jpg");

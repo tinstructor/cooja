@@ -29,27 +29,22 @@
 
 package org.contikios.cooja.mspmote;
 
-import java.awt.Container;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.contikios.cooja.MoteInterfaceHandler;
+import org.contikios.cooja.dialogs.AbstractCompileDialog;
 import org.contikios.cooja.mote.BaseContikiMoteType;
 import org.jdom.Element;
 
 import org.contikios.cooja.ClassDescription;
 import org.contikios.cooja.Cooja;
-import org.contikios.cooja.Mote;
-import org.contikios.cooja.MoteInterface;
 import org.contikios.cooja.Simulation;
-import org.contikios.cooja.interfaces.IPAddress;
-import org.contikios.cooja.mspmote.interfaces.Msp802154Radio;
-import org.contikios.cooja.mspmote.interfaces.MspSerial;
 import se.sics.mspsim.util.DebugInfo;
 import se.sics.mspsim.util.ELF;
 
@@ -65,31 +60,8 @@ public abstract class MspMoteType extends BaseContikiMoteType {
   private static final Logger logger = LogManager.getLogger(MspMoteType.class);
 
   @Override
-  public final Mote generateMote(Simulation simulation) throws MoteTypeCreationException {
-    MspMote mote = createMote(simulation);
-    mote.initMote();
-    return mote;
-  }
-
-  protected abstract MspMote createMote(Simulation simulation) throws MoteTypeCreationException;
-
-  @Override
-  protected boolean showCompilationDialog(Simulation sim) {
-    return MspCompileDialog.showDialog(Cooja.getTopParentContainer(), sim, this);
-  }
-
-  @Override
-  public boolean configureAndInit(Container parentContainer, Simulation simulation, boolean visAvailable) {
-    // If visualized, show compile dialog and let user configure.
-    if (visAvailable && !simulation.isQuickSetup()) {
-      if (getDescription() == null) {
-        setDescription(getMoteName() + " Mote Type #" + (simulation.getMoteTypes().length + 1));
-      }
-      return showCompilationDialog(simulation);
-    }
-
-    // Not visualized: Compile Contiki immediately.
-    return compileMoteType(visAvailable, BaseContikiMoteType.oneDimensionalEnv(getCompilationEnvironment()));
+  protected AbstractCompileDialog createCompilationDialog(Simulation sim, MoteTypeConfig cfg) {
+    return new MspCompileDialog(sim, this, cfg);
   }
 
   @Override
@@ -141,82 +113,31 @@ public abstract class MspMoteType extends BaseContikiMoteType {
   public boolean setConfigXML(Simulation simulation,
       Collection<Element> configXML, boolean visAvailable)
       throws MoteTypeCreationException {
-
-    ArrayList<Class<? extends MoteInterface>> intfClassList = new ArrayList<>();
-    for (Element element : configXML) {
-      String name = element.getName();
-
-      if (name.equals("identifier")) {
-        identifier = element.getText();
-      } else if (name.equals("description")) {
-        description = element.getText();
-      } else if (name.equals("source")) {
-        fileSource = simulation.getCooja().restorePortablePath(new File(element.getText()));
-      } else if (name.equals("command") || name.equals("commands")) {
-        compileCommands = element.getText();
-      } else if (name.equals("firmware") || name.equals("elf")) {
-        fileFirmware = simulation.getCooja().restorePortablePath(new File(element.getText()));
-      } else if (name.equals("moteinterface")) {
-        String intfClass = element.getText().trim();
-
-        /* Backwards compatibility: se.sics -> org.contikios */
-        if (intfClass.startsWith("se.sics")) {
-        	intfClass = intfClass.replaceFirst("se\\.sics", "org.contikios");
-        }
-        var moteInterfaceClass = MoteInterfaceHandler.getInterfaceClass(simulation.getCooja(), this, intfClass);
-        if (moteInterfaceClass == null) {
-          logger.warn("Can't find mote interface class: " + intfClass);
-        } else {
-          intfClassList.add(moteInterfaceClass);
-        }
-      } else {
-        logger.fatal("Unrecognized entry in loaded configuration: " + name);
-        throw new MoteTypeCreationException(
-            "Unrecognized entry in loaded configuration: " + name);
-      }
+    if (!setBaseConfigXML(simulation, configXML)) {
+      return false;
     }
-
-    Class<? extends MoteInterface>[] intfClasses = intfClassList.toArray(new Class[0]);
-
-    if (intfClasses.length == 0) {
+    if (moteInterfaceClasses.isEmpty()) {
       /* Backwards compatibility: No interfaces specified */
       logger.warn("Old simulation config detected: no mote interfaces specified, assuming all.");
-      intfClasses = getAllMoteInterfaceClasses();
-    }
-    setMoteInterfaceClasses(intfClasses);
-
-    if (fileFirmware == null) {
-      if (fileSource == null) {
-        throw new MoteTypeCreationException("Neither source or firmware specified");
-      }
-
-      /* Backwards compatibility: Generate expected firmware file name from source */
-      fileFirmware = getExpectedFirmwareFile(fileSource);
-      logger.warn("Old simulation config detected: no firmware file specified, using '{}'", fileFirmware);
+      moteInterfaceClasses.addAll(Arrays.asList(getAllMoteInterfaceClasses()));
     }
 
-    if (!visAvailable || simulation.isQuickSetup()) {
-      if (getIdentifier() == null) {
-        throw new MoteTypeCreationException("No identifier");
-      }
-      if (getContikiSourceFile() == null) {
-        // Source file is null for firmware-only simulations, so just return true if firmware exists.
-        final var firmware = getContikiFirmwareFile();
-        if (firmware == null || !firmware.exists()) {
-          throw new MoteTypeCreationException("Contiki firmware file does not exist: " + firmware);
-        }
-        return true;
-      }
-      if (getCompileCommands() == null) {
-        throw new MoteTypeCreationException("No compile commands specified");
-      }
+    if (fileFirmware == null && fileSource == null) {
+      throw new MoteTypeCreationException("Neither source or firmware specified");
     }
-
+    if (getContikiSourceFile() == null) {
+      // Source file is null for firmware-only simulations, so just return true if firmware exists.
+      final var firmware = getContikiFirmwareFile();
+      if (firmware == null || !firmware.exists()) {
+        throw new MoteTypeCreationException("Contiki firmware file does not exist: " + firmware);
+      }
+      return true;
+    }
+    if (getCompileCommands() == null) {
+      throw new MoteTypeCreationException("No compile commands specified");
+    }
     return configureAndInit(Cooja.getTopParentContainer(), simulation, visAvailable);
   }
-
-  public abstract Class<? extends MoteInterface>[] getAllMoteInterfaceClasses();
-  public abstract Class<? extends MoteInterface>[] getDefaultMoteInterfaceClasses();
 
   private ELF elf; /* cached */
   public ELF getELF() throws IOException {

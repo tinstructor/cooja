@@ -40,7 +40,6 @@ import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Rectangle;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
@@ -110,25 +109,20 @@ public class ProjectDirectoriesDialog extends JDialog {
 	 * Shows a blocking configuration dialog.
 	 * Returns a list of new COOJA project directories, or null if canceled by the user. 
 	 *  
-	 * @param parent Parent container
 	 * @param gui COOJA
 	 * @param currentProjects Current projects
 	 * @return New COOJA projects, or null
 	 */
-	public static COOJAProject[] showDialog(Container parent, Cooja gui, COOJAProject[] currentProjects) {
-		ProjectDirectoriesDialog dialog = new ProjectDirectoriesDialog(parent, currentProjects);
+  public static COOJAProject[] showDialog(Cooja gui, COOJAProject[] currentProjects) {
+    ProjectDirectoriesDialog dialog = new ProjectDirectoriesDialog(currentProjects);
 		dialog.gui = gui;
-		dialog.setLocationRelativeTo(parent);
+		dialog.setLocationRelativeTo(Cooja.getTopParentContainer());
 		dialog.setVisible(true);
 		return dialog.returnedProjects;
 	}
 
-	private ProjectDirectoriesDialog(Container parent, COOJAProject[] projects) {
-		super(
-				parent instanceof Dialog?(Dialog)parent:
-					parent instanceof Window?(Window)parent:
-						(Frame)parent, "Cooja extensions", ModalityType.APPLICATION_MODAL);
-
+  private ProjectDirectoriesDialog(COOJAProject[] projects) {
+    super(Cooja.getTopParentContainer(), "Cooja extensions", ModalityType.APPLICATION_MODAL);
 		table = new JTable(new AbstractTableModel() {
 			@Override
 			public int getColumnCount() {
@@ -469,8 +463,12 @@ public class ProjectDirectoriesDialog extends JDialog {
 		((AbstractTableModel)table.getModel()).fireTableDataChanged();
 	}
 	protected void addProjectDir(File dir) {
-		currentProjects.add(new COOJAProject(dir));
-		((AbstractTableModel)table.getModel()).fireTableDataChanged();
+    try {
+      currentProjects.add(new COOJAProject(dir));
+      ((AbstractTableModel) table.getModel()).fireTableDataChanged();
+    } catch (IOException e) {
+      logger.error("Failed to parse Cooja project: {}", dir, e);
+    }
 	}
 	protected void addProjectDir(COOJAProject project, int index) {
 		currentProjects.add(index, project);
@@ -768,7 +766,7 @@ class DirectoryTreePanel extends JPanel {
 			return false;
 		}
 		boolean containsConfig() {
-			return new File(dir, Cooja.PROJECT_CONFIG_FILENAME).exists();
+			return new File(dir, ProjectConfig.PROJECT_CONFIG_FILENAME).exists();
 		}
 		boolean subtreeContainsProject() {
 			try {

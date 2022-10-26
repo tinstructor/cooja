@@ -36,7 +36,7 @@ import org.contikios.cooja.contikimote.interfaces.TwofacedRadio;
 import org.contikios.cooja.interfaces.Radio;
 
 /**
- * UDGM with constant loss probablity.
+ * UDGM with constant loss probability.
  *  
  * @see UDGM
  * @author Fredrik Osterlind

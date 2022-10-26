@@ -137,8 +137,7 @@ public class EventListener extends VisPlugin {
         @Override
         public void actionPerformed(ActionEvent e) {
           MoteInterfaceViewer plugin =
-            (MoteInterfaceViewer) mySimulation.getCooja().tryStartPlugin(
-                MoteInterfaceViewer.class, mySimulation.getCooja(), mySimulation, myMote);
+            (MoteInterfaceViewer) mySimulation.getCooja().tryStartPlugin(MoteInterfaceViewer.class, mySimulation, myMote);
           plugin.setSelectedInterface(Cooja.getDescriptionOf(moteInterface.getClass()));
         }
       });
@@ -335,8 +334,7 @@ public class EventListener extends VisPlugin {
 
     /* Save general observers */
     for (Component comp: generalPanel.getComponents()) {
-      if (comp instanceof JCheckBox) {
-        JCheckBox checkBox = (JCheckBox) comp;
+      if (comp instanceof JCheckBox checkBox) {
         if (checkBox.isSelected()) {
           var element = new Element("general");
           element.setText(checkBox.getText());
@@ -347,8 +345,7 @@ public class EventListener extends VisPlugin {
 
     /* Save interface observers */
     for (Component comp: interfacePanel.getComponents()) {
-      if (comp instanceof JCheckBox) {
-        JCheckBox checkBox = (JCheckBox) comp;
+      if (comp instanceof JCheckBox checkBox) {
         if (checkBox.isSelected()) {
           var element = new Element("interface");
           element.setText(checkBox.getText());
@@ -367,8 +364,7 @@ public class EventListener extends VisPlugin {
     for (Element element : configXML) {
       if (element.getName().equals("general")) {
         for (Component comp: generalPanel.getComponents()) {
-          if (comp instanceof JCheckBox) {
-            JCheckBox checkBox = (JCheckBox) comp;
+          if (comp instanceof JCheckBox checkBox) {
             if (checkBox.getText().equals(element.getText())) {
               checkBox.setSelected(true);
               generalCheckBoxListener.actionPerformed(new ActionEvent(checkBox, ActionEvent.ACTION_PERFORMED, ""));
@@ -380,8 +376,7 @@ public class EventListener extends VisPlugin {
       /* Load interface observers */
       else if (element.getName().equals("interface")) {
         for (Component comp: interfacePanel.getComponents()) {
-          if (comp instanceof JCheckBox) {
-            JCheckBox checkBox = (JCheckBox) comp;
+          if (comp instanceof JCheckBox checkBox) {
             if (checkBox.getText().equals(element.getText())) {
               checkBox.setSelected(true);
               interfaceCheckBoxListener.actionPerformed(new ActionEvent(checkBox, ActionEvent.ACTION_PERFORMED, ""));

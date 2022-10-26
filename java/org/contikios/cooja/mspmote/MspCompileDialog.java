@@ -30,66 +30,28 @@
 
 package org.contikios.cooja.mspmote;
 
-import java.awt.Container;
-import java.io.File;
-
 import javax.swing.JScrollPane;
-import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 
-import org.contikios.cooja.MoteInterface;
 import org.contikios.cooja.Simulation;
 import org.contikios.cooja.dialogs.AbstractCompileDialog;
+import org.contikios.cooja.mote.BaseContikiMoteType;
 
 public class MspCompileDialog extends AbstractCompileDialog {
-  public static boolean showDialog(
-      Container parent,
-      Simulation simulation,
-      MspMoteType moteType) {
-
-    final AbstractCompileDialog dialog = new MspCompileDialog(parent, simulation, moteType);
-
-    /* Show dialog and wait for user */
-    dialog.setVisible(true); /* BLOCKS */
-    return dialog.createdOK();
-  }
-
-  private MspCompileDialog(Container parent, Simulation simulation, MspMoteType moteType) {
-    super(parent, simulation, moteType);
+  public MspCompileDialog(Simulation sim, MspMoteType moteType, BaseContikiMoteType.MoteTypeConfig cfg) {
+    super(sim, moteType, cfg);
     setTitle("Create Mote Type: Compile Contiki for " + moteType.getMoteType());
-    addCompilationTipsTab(tabbedPane);
-  }
-
-  @Override
-  public Class<? extends MoteInterface>[] getAllMoteInterfaces() {
-	  return ((MspMoteType)moteType).getAllMoteInterfaceClasses();
-  }
-  @Override
-  public Class<? extends MoteInterface>[] getDefaultMoteInterfaces() {
-	  return ((MspMoteType)moteType).getDefaultMoteInterfaceClasses();
-  }
-
-  private static void addCompilationTipsTab(JTabbedPane parent) {
-    JTextArea textArea = new JTextArea();
+    var textArea = new JTextArea();
     textArea.setEditable(false);
     textArea.append("# Without low-power radio:\n" +
     		"DEFINES=NETSTACK_MAC=nullmac_driver,NETSTACK_RDC=nullrdc_noframer_driver,CC2420_CONF_AUTOACK=0\n" +
     		"# (remember to \"make clean\" after changing compilation flags)"
     );
-
-    parent.addTab("Tips", null, new JScrollPane(textArea), "Compilation tips");
+    tabbedPane.addTab("Tips", null, new JScrollPane(textArea), "Compilation tips");
   }
 
   @Override
-  public boolean canLoadFirmware(File file) {
-    if (file.getName().endsWith("." + moteType.getMoteType())) {
-      return true;
-    }
-    return file.getName().equals("main.exe");
-  }
-
-  @Override
-  public void writeSettingsToMoteType() {
-    /* Nothing to do */
+  public boolean canLoadFirmware(String name) {
+    return name.endsWith("." + targetName) || name.equals("main.exe");
   }
 }

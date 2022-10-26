@@ -38,6 +38,7 @@ import java.util.Collection;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.contikios.cooja.contikimote.ContikiMoteType;
 import org.contikios.cooja.contikimote.interfaces.ContikiBeeper;
 import org.contikios.cooja.contikimote.interfaces.ContikiButton;
 import org.contikios.cooja.contikimote.interfaces.ContikiCFS;
@@ -64,6 +65,10 @@ import org.contikios.cooja.interfaces.PIR;
 import org.contikios.cooja.interfaces.Position;
 import org.contikios.cooja.interfaces.Radio;
 import org.contikios.cooja.interfaces.RimeAddress;
+import org.contikios.cooja.motes.DisturberMoteType;
+import org.contikios.cooja.motes.ImportAppMoteType;
+import org.contikios.cooja.mspmote.SkyMoteType;
+import org.contikios.cooja.mspmote.Z1MoteType;
 import org.contikios.cooja.mspmote.interfaces.Msp802154Radio;
 import org.contikios.cooja.mspmote.interfaces.MspClock;
 import org.contikios.cooja.mspmote.interfaces.MspDebugOutput;
@@ -74,6 +79,12 @@ import org.contikios.cooja.mspmote.interfaces.MspSerial;
 import org.contikios.cooja.mspmote.interfaces.SkyCoffeeFilesystem;
 import org.contikios.cooja.mspmote.interfaces.SkyFlash;
 import org.contikios.cooja.mspmote.interfaces.SkyTemperature;
+import org.contikios.cooja.radiomediums.DirectedGraphMedium;
+import org.contikios.cooja.radiomediums.LogisticLoss;
+import org.contikios.cooja.radiomediums.SilentRadioMedium;
+import org.contikios.cooja.radiomediums.UDGM;
+import org.contikios.cooja.radiomediums.UDGMConstantLoss;
+import org.contikios.mrm.MRM;
 
 /**
  * The mote interface handler holds all interfaces for a specific mote.
@@ -152,6 +163,50 @@ public class MoteInterfaceHandler {
     }
   }
 
+  /** Fast translation from class name to object for builtin mote types.
+   * @param cooja Cooja
+   * @param name Name of mote type to create
+   * @return Object or null
+   */
+  public static MoteType createMoteType(Cooja cooja, String name) {
+    return switch (name) {
+      case "org.contikios.cooja.motes.ImportAppMoteType" -> new ImportAppMoteType();
+      case "org.contikios.cooja.motes.DisturberMoteType" -> new DisturberMoteType();
+      case "org.contikios.cooja.contikimote.ContikiMoteType" -> new ContikiMoteType(cooja);
+      case "org.contikios.cooja.mspmote.SkyMoteType" -> new SkyMoteType();
+      case "org.contikios.cooja.mspmote.Z1MoteType" -> new Z1MoteType();
+      default -> null;
+    };
+  }
+
+  /** Fast translation from class name to object for radio mediums.
+   * @param sim Simulation
+   * @param name Name of radio medium to create
+   * @return Object or null
+   */
+  public static RadioMedium createRadioMedium(Simulation sim, String name) {
+    if (name.startsWith("se.sics")) {
+      name = name.replaceFirst("se\\.sics", "org.contikios");
+    }
+    switch (name) {
+      case "org.contikios.cooja.radiomediums.UDGM": return new UDGM(sim);
+      case "org.contikios.cooja.radiomediums.UDGMConstantLoss": return new UDGMConstantLoss(sim);
+      case "org.contikios.cooja.radiomediums.DirectedGraphMedium": return new DirectedGraphMedium(sim);
+      case "org.contikios.cooja.radiomediums.SilentRadioMedium": return new SilentRadioMedium(sim);
+      case "org.contikios.cooja.radiomediums.LogisticLoss": return new LogisticLoss(sim);
+      case "org.contikios.cooja.mrm.MRM": return new MRM(sim);
+    }
+    var clazz = sim.getCooja().tryLoadClass(sim, RadioMedium.class, name);
+    if (clazz == null) {
+      return null;
+    }
+    try {
+      return clazz.getConstructor(Simulation.class).newInstance(sim);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
   /** Fast translation from class name to class file for builtin interfaces. Uses the classloader
    * to load other interfaces.
    * @param gui Cooja
@@ -160,6 +215,9 @@ public class MoteInterfaceHandler {
    * @return Found class or null
    */
   public static Class<? extends MoteInterface> getInterfaceClass(Cooja gui, Object caller, String name) {
+    if (name.startsWith("se.sics")) {
+      name = name.replaceFirst("se\\.sics", "org.contikios");
+    }
     var clazz = builtinInterfaces.get(name);
     if (clazz != null) {
       return clazz;

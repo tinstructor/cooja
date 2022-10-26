@@ -48,8 +48,6 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
@@ -70,9 +68,6 @@ import se.sics.mspsim.cli.CommandHandler;
  *
  */
 public class ConsoleUI extends JComponent {
-
-  private static final long serialVersionUID = -4398393961025971500L;
-
   private Timer timer;
 
   private String[] history = new String[200];
@@ -269,12 +264,7 @@ public class ConsoleUI extends JComponent {
       }
     });
     output('>');
-    timer = new Timer(500, new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent arg0) {
-        flashCursor();
-      }
-    });
+    timer = new Timer(500, arg0 -> flashCursor());
     timer.start();
   }
 

@@ -32,6 +32,7 @@ package org.contikios.cooja.mote;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.awt.Container;
 import java.awt.Image;
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,7 +41,12 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Objects;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.swing.Action;
@@ -51,11 +57,15 @@ import javax.swing.JLabel;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.contikios.cooja.MoteInterface;
+import org.contikios.cooja.MoteInterfaceHandler;
 import org.contikios.cooja.MoteType;
 import org.contikios.cooja.ProjectConfig;
 import org.contikios.cooja.Simulation;
+import org.contikios.cooja.dialogs.AbstractCompileDialog;
 import org.contikios.cooja.dialogs.MessageContainer;
 import org.contikios.cooja.dialogs.MessageList;
+import org.contikios.cooja.util.StringUtils;
+import org.jdom.Element;
 
 /**
  * The common parts of mote types based on compiled Contiki-NG targets.
@@ -79,6 +89,9 @@ public abstract class BaseContikiMoteType implements MoteType {
 
   /** MoteInterface classes used by the mote type. */
   protected final ArrayList<Class<? extends MoteInterface>> moteInterfaceClasses = new ArrayList<>();
+
+  /** Random generator for generating a unique mote ID. */
+  private static final Random rnd = new Random();
 
   /** Returns file name extension for firmware. */
   public abstract String getMoteType();
@@ -106,6 +119,24 @@ public abstract class BaseContikiMoteType implements MoteType {
   @Override
   public void setIdentifier(String identifier) {
     this.identifier = identifier;
+  }
+
+  /**
+   * Generates a unique mote type ID.
+   *
+   * @param prefix Beginning of name
+   * @param reservedIdentifiers Already reserved identifiers
+   * @return Unique mote type ID.
+   */
+  public static String generateUniqueMoteTypeID(String prefix, Set<String> reservedIdentifiers) {
+    String testID = "";
+    boolean available = false;
+    while (!available) {
+      testID = prefix + rnd.nextInt(1000000000);
+      available = !reservedIdentifiers.contains(testID);
+      // FIXME: add check that the library name is not already used.
+    }
+    return testID;
   }
 
   @Override
@@ -143,13 +174,13 @@ public abstract class BaseContikiMoteType implements MoteType {
     fileFirmware = file;
   }
 
-  public File getExpectedFirmwareFile(File source) {
-    File parentDir = source.getParentFile();
-    String sourceNoExtension = source.getName();
+  public File getExpectedFirmwareFile(String name) {
+    String sourceNoExtension = new File(name).getName();
     if (sourceNoExtension.endsWith(".c")) {
-      sourceNoExtension = sourceNoExtension.substring(0, source.getName().length() - 2);
+      sourceNoExtension = sourceNoExtension.substring(0, sourceNoExtension.length() - 2);
     }
-    return new File(parentDir, "/build/" + getMoteType() + "/" + sourceNoExtension + '.' + getMoteType());
+    return new File(new File(name).getParentFile(),
+            "/build/" + getMoteType() + "/" + sourceNoExtension + '.' + getMoteType());
   }
 
   @Override
@@ -167,6 +198,9 @@ public abstract class BaseContikiMoteType implements MoteType {
     moteInterfaceClasses.clear();
     moteInterfaceClasses.addAll(Arrays.asList(moteInterfaces));
   }
+
+  public abstract Class<? extends MoteInterface>[] getAllMoteInterfaceClasses();
+  public abstract Class<? extends MoteInterface>[] getDefaultMoteInterfaceClasses();
 
   /** Target hook for adding additional information to view. */
   protected abstract void appendVisualizerInfo(StringBuilder sb);
@@ -227,56 +261,124 @@ public abstract class BaseContikiMoteType implements MoteType {
     return null;
   }
 
-  /** Show a compilation dialog for this mote type. */
-  protected abstract boolean showCompilationDialog(Simulation sim);
-
-  /** Return a two-dimensional compilation environment. */
-  public String[][] getCompilationEnvironment() {
-    return null;
-  }
-
-  /** Turn a two-dimensional environment into a one-dimensional environment. */
-  public static String[] oneDimensionalEnv(String[][] env) {
-    if (env == null) {
-      return null;
-    }
-    String[] envOneDimension = new String[env.length];
-    for (int i = 0; i < env.length; i++) {
-      envOneDimension[i] = env[i][0] + "=" + env[i][1];
-    }
-    return envOneDimension;
-  }
-
-  /**
-   * Compile the mote type.
-   *
-   * @param visAvailable True if visualization is available.
-   * @param env Environment to compile in.
-   * @return Returns true on success.
-   */
-  protected boolean compileMoteType(boolean visAvailable, String[] env) {
-    // Handle multiple compilation commands one by one.
-    final var compilationOutput = MessageContainer.createMessageList(visAvailable);
-    for (String cmd : getCompileCommands().split("\n")) {
-      cmd = cmd.trim();
-      if (cmd.isEmpty()) {
-        continue;
+  protected boolean setBaseConfigXML(Simulation sim, Collection<Element> configXML) throws MoteTypeCreationException {
+    for (Element element : configXML) {
+      switch (element.getName()) {
+        case "identifier":
+          identifier = element.getText();
+          break;
+        case "description":
+          description = element.getText();
+          break;
+        case "contikiapp":
+        case "source":
+          fileSource = sim.getCooja().restorePortablePath(new File(element.getText()));
+          fileFirmware = getExpectedFirmwareFile(fileSource.getName());
+          break;
+        case "elf":
+        case "firmware":
+          fileFirmware = sim.getCooja().restorePortablePath(new File(element.getText()));
+          break;
+        case "command":
+        case "commands":
+          compileCommands = element.getText();
+          break;
+        case "moteinterface":
+          var name = element.getText().trim();
+          var clazz = MoteInterfaceHandler.getInterfaceClass(sim.getCooja(), this, name);
+          if (clazz == null) {
+            logger.warn("Can't find mote interface class: " + name);
+            return false;
+          }
+          moteInterfaceClasses.add(clazz);
+          break;
+        case "contikibasedir":
+        case "contikicoredir":
+        case "projectdir":
+        case "compilefile":
+        case "process":
+        case "sensor":
+        case "coreinterface":
+          logger.fatal("Old Cooja mote type detected, aborting..");
+          return false;
       }
-
-      try {
-        compile(cmd, env, getContikiSourceFile().getParentFile(), null, null,
-                compilationOutput, true);
-      } catch (MoteTypeCreationException e) {
-        // Print last 10 compilation errors to console.
-        MessageContainer[] messages = compilationOutput.getMessages();
-        for (int i = Math.max(messages.length - 10, 0); i < messages.length; i++) {
-          logger.error(">> " + messages[i]);
-        }
-        logger.error("Compilation error: " + compilationOutput);
-        return false;
-      }
+    }
+    if (getIdentifier() == null) {
+      throw new MoteTypeCreationException("No identifier specified");
     }
     return true;
+  }
+
+  @Override
+  public boolean configureAndInit(Container top, Simulation sim, boolean vis) throws MoteTypeCreationException {
+    if (vis && !sim.isQuickSetup()) {
+      if (getIdentifier() == null) {
+        var usedNames = new HashSet<String>();
+        for (var mote : sim.getMoteTypes()) {
+          usedNames.add(mote.getIdentifier());
+        }
+        // The "mtype" prefix for ContikiMoteType is hardcoded elsewhere, so use that instead of "cooja".
+        var namePrefix = getMoteType();
+        setIdentifier(generateUniqueMoteTypeID("cooja".equals(namePrefix) ? "mtype" : namePrefix, usedNames));
+      }
+      var currDesc = getDescription();
+      var desc = currDesc == null ? getMoteName() + " Mote Type #" + (sim.getMoteTypes().length + 1) : currDesc;
+      final var source = getContikiSourceFile();
+      final var firmware = getContikiFirmwareFile();
+      String file = source != null ? source.getAbsolutePath() : firmware != null ? firmware.getAbsolutePath() : null;
+      var moteClasses = getMoteInterfaceClasses();
+      var interfaces = moteClasses == null ? getDefaultMoteInterfaceClasses() : moteClasses;
+      var cfg = showCompilationDialog(sim, new MoteTypeConfig(desc, getMoteType(), file,
+              getCompileCommands(), interfaces));
+      if (cfg == null) {
+        return false;
+      }
+      setDescription(cfg.desc);
+      if (cfg.file.endsWith(".c")) {
+        fileSource = new File(cfg.file);
+        fileFirmware = getExpectedFirmwareFile(fileSource.getAbsolutePath());
+      } else {
+        fileFirmware = new File(cfg.file);
+      }
+      setCompileCommands(cfg.commands);
+      setMoteInterfaceClasses(cfg.interfaces);
+    } else {
+      // Handle multiple compilation commands one by one.
+      final var output = MessageContainer.createMessageList(vis);
+      final var env = getCompilationEnvironment();
+      for (String cmd : StringUtils.splitOnNewline(getCompileCommands())) {
+        try {
+          compile(cmd, env, fileSource.getParentFile(), null, null, output, true);
+        } catch (MoteTypeCreationException e) {
+          return false;
+        }
+      }
+    }
+    return loadMoteFirmware(vis);
+  }
+
+  /** Load the mote firmware into memory. */
+  public boolean loadMoteFirmware(boolean vis) throws MoteTypeCreationException {
+    return true;
+  }
+
+  /** Compilation-relevant parts of mote type configuration. */
+  public record MoteTypeConfig(String desc, String targetName, String file, String commands,
+                               Class<? extends MoteInterface>[] interfaces) {}
+
+  /** Create a compilation dialog for this mote type. */
+  protected abstract AbstractCompileDialog createCompilationDialog(Simulation sim, MoteTypeConfig cfg);
+
+  /** Show a compilation dialog for this mote type. */
+  protected MoteTypeConfig showCompilationDialog(Simulation sim, MoteTypeConfig cfg) {
+    final var dialog = createCompilationDialog(sim, cfg);
+    dialog.setVisible(true); // Blocks.
+    return dialog.results();
+  }
+
+  /** Return a compilation environment. */
+  public LinkedHashMap<String, String> getCompilationEnvironment() {
+    return null;
   }
 
   /**
@@ -287,22 +389,24 @@ public abstract class BaseContikiMoteType implements MoteType {
    * @param directory Directory in which to execute command
    * @param onSuccess Action called if compilation succeeds
    * @param onFailure Action called if compilation fails
-   * @param compilationOutput Is written both std and err process output
+   * @param messageDialog Is written both std and err process output
    * @param synchronous If true, method blocks until process completes
    * @return Sub-process if called asynchronously
    * @throws MoteTypeCreationException If process returns error, or outputFile does not exist
    */
   public static Process compile(
           final String commandIn,
-          final String[] env,
+          final Map<String, String> env,
           final File directory,
           final Action onSuccess,
           final Action onFailure,
-          final MessageList compilationOutput,
+          final MessageList messageDialog,
           boolean synchronous)
           throws MoteTypeCreationException {
     Pattern p = Pattern.compile("([^\\s\"']+|\"[^\"]*\"|'[^']*')");
-    Matcher m = p.matcher(commandIn);
+    // Perform compile command variable expansions.
+    String cpus = Integer.toString(Runtime.getRuntime().availableProcessors());
+    Matcher m = p.matcher(commandIn.replace("$(CPUS)", cpus));
     ArrayList<String> commandList = new ArrayList<>();
     while (m.find()) {
       String arg = m.group();
@@ -311,113 +415,72 @@ public abstract class BaseContikiMoteType implements MoteType {
       }
       commandList.add(arg);
     }
-
-    final MessageList messageDialog =
-            Objects.requireNonNullElseGet(compilationOutput, () -> MessageContainer.createMessageList(true));
-    String cpus = Integer.toString(Runtime.getRuntime().availableProcessors());
-    // Perform compile command variable expansions.
-    String[] command = new String[commandList.size()];
-    for (int i = 0; i < commandList.size(); i++) {
-      command[i] = commandList.get(i).replace("$(CPUS)", cpus);
+    messageDialog.addMessage("> " + String.join(" ", commandList), MessageList.NORMAL);
+    final var pb = new ProcessBuilder(commandList).directory(directory);
+    if (env != null) {
+      var environment = pb.environment();
+      environment.clear();
+      environment.putAll(env);
     }
-    {
-      var cmd = new StringBuilder();
-      for (String c : command) {
-        cmd.append(c).append(" ");
-      }
-      messageDialog.addMessage("", MessageList.NORMAL);
-      messageDialog.addMessage("> " + cmd, MessageList.NORMAL);
-    }
-
     final Process compileProcess;
     try {
-      compileProcess = Runtime.getRuntime().exec(command, env, directory);
-
-      Thread readInput = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          try (var stdout = new BufferedReader(new InputStreamReader(compileProcess.getInputStream(), UTF_8))) {
-            String readLine;
-            while ((readLine = stdout.readLine()) != null) {
-              messageDialog.addMessage(readLine, MessageList.NORMAL);
-            }
-          } catch (IOException e) {
-            logger.warn("Error while reading from process");
-          }
-        }
-      }, "read input stream thread");
-
-      Thread readError = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          try (var stderr = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream(), UTF_8))) {
-            String readLine;
-            while ((readLine = stderr.readLine()) != null) {
-              messageDialog.addMessage(readLine, MessageList.ERROR);
-            }
-          } catch (IOException e) {
-            logger.warn("Error while reading from process");
-          }
-        }
-      }, "read error stream thread");
-
-      final MoteTypeCreationException syncException = new MoteTypeCreationException("");
-      Thread handleCompilationResultThread = new Thread(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            compileProcess.waitFor();
-          } catch (Exception e) {
-            messageDialog.addMessage(e.getMessage(), MessageList.ERROR);
-            syncException.setCompilationOutput(MessageContainer.createMessageList(true));
-            syncException.fillInStackTrace();
-            return;
-          }
-
-          if (compileProcess.exitValue() != 0) {
-            messageDialog.addMessage("Process returned error code " + compileProcess.exitValue(), MessageList.ERROR);
-            if (onFailure != null) {
-              java.awt.EventQueue.invokeLater(() -> onFailure.actionPerformed(null));
-            }
-            syncException.setCompilationOutput(MessageContainer.createMessageList(true));
-            syncException.fillInStackTrace();
-            return;
-          }
-
-          if (onSuccess != null) {
-            java.awt.EventQueue.invokeLater(() -> onSuccess.actionPerformed(null));
-          }
-        }
-      }, "handle compilation results");
-
-      readInput.start();
-      readError.start();
-      handleCompilationResultThread.start();
-
-      if (synchronous) {
-        try {
-          handleCompilationResultThread.join();
-        } catch (Exception e) {
-          // Make sure process has exited.
-          compileProcess.destroy();
-
-          String msg = e.getMessage();
-          if (e instanceof InterruptedException) {
-            msg = "Aborted by user";
-          }
-          throw new MoteTypeCreationException("Compilation error: " + msg, e);
-        }
-
-        // Detect error manually.
-        if (syncException.hasCompilationOutput()) {
-          throw new MoteTypeCreationException("Bad return value", syncException);
-        }
-      }
+      compileProcess = pb.start();
     } catch (IOException ex) {
       if (onFailure != null) {
         onFailure.actionPerformed(null);
       }
       throw new MoteTypeCreationException("Compilation error: " + ex.getMessage(), ex);
+    }
+    new Thread(() -> {
+      try (var stdout = new BufferedReader(new InputStreamReader(compileProcess.getInputStream(), UTF_8))) {
+        String readLine;
+        while ((readLine = stdout.readLine()) != null) {
+          messageDialog.addMessage(readLine, MessageList.NORMAL);
+        }
+      } catch (IOException e) {
+        logger.warn("Error while reading from process");
+      }
+    }, "read input stream thread").start();
+
+    new Thread(() -> {
+      try (var stderr = new BufferedReader(new InputStreamReader(compileProcess.getErrorStream(), UTF_8))) {
+        String readLine;
+        while ((readLine = stderr.readLine()) != null) {
+          messageDialog.addMessage(readLine, MessageList.ERROR);
+        }
+      } catch (IOException e) {
+        logger.warn("Error while reading from process");
+      }
+    }, "read error stream thread").start();
+
+    final var compile = new Runnable() {
+      @Override
+      public void run() {
+        try {
+          compileProcess.waitFor();
+        } catch (Exception e) {
+          messageDialog.addMessage(e.getMessage(), MessageList.ERROR);
+          return;
+        }
+
+        if (compileProcess.exitValue() != 0) {
+          messageDialog.addMessage("Compilation process returned error code " + compileProcess.exitValue(), MessageList.ERROR);
+          if (onFailure != null) {
+            java.awt.EventQueue.invokeLater(() -> onFailure.actionPerformed(null));
+          }
+        } else if (onSuccess != null) {
+          java.awt.EventQueue.invokeLater(() -> onSuccess.actionPerformed(null));
+        }
+      }
+    };
+    if (synchronous) {
+      compile.run();
+      // Errors are already printed to messageDialog, so just throw a non-descriptive exception on error.
+      if (compileProcess.exitValue() != 0) {
+        throw new MoteTypeCreationException("Compilation failed");
+      }
+    } else {
+      new Thread(compile, "handle compilation results").start();
     }
     return compileProcess;
   }

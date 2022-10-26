@@ -30,7 +30,6 @@
 
 package org.contikios.cooja.contikimote.interfaces;
 
-import java.util.Observable;
 import java.util.Observer;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -103,13 +102,7 @@ public class ContikiMoteID extends MoteID {
     panel.add(idLabel);
 
     Observer observer;
-    this.addObserver(observer = new Observer() {
-      @Override
-      public void update(Observable obs, Object obj) {
-        idLabel.setText("Mote ID: " + moteID);
-      }
-    });
-
+    this.addObserver(observer = (obs, obj) -> idLabel.setText("Mote ID: " + moteID));
     // Saving observer reference for releaseInterfaceVisualizer
     panel.putClientProperty("intf_obs", observer);
 
