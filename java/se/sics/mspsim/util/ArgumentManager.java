@@ -48,10 +48,6 @@ public class ArgumentManager extends ConfigManager {
   public ArgumentManager() {
   }
 
-  public ArgumentManager(ConfigManager parent) {
-    super(parent);
-  }
-
   public boolean isConfigLoaded() {
     return isConfigLoaded;
   }
@@ -84,9 +80,7 @@ public class ArgumentManager extends ConfigManager {
         String value = "";
         int index = param.indexOf('=');
         if (index >= 0) {
-          if (index < param.length()) {
-            value = param.substring(index + 1);
-          }
+          value = param.substring(index + 1);
           param = param.substring(0, index);
         }
         if (param.length() == 0) {

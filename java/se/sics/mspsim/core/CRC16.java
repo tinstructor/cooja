@@ -88,7 +88,7 @@ public class CRC16 extends IOUnit {
          */
         private static class CRC16Java {
                 private int crc = CCITTSeed;
-                private int polynomial = 0x1021; // 0001 0000 0010 0001 (0, 5, 12)
+                private final int polynomial = 0x1021; // 0001 0000 0010 0001 (0, 5, 12)
 
                 /**
                  * Adds one byte to the CRC computation
@@ -239,13 +239,11 @@ public class CRC16 extends IOUnit {
          */
         @Override
         public int read(int address, boolean word, long cycles) {
-                switch (address - offset) {
-                case CRC16.CRCINIRES:
-                        return crc.getCRC();
-                case CRC16.CRCRESR:
-                        return crc.getCrcRb();
-                }
-                return 0;
+                return switch (address - offset) {
+                        case CRC16.CRCINIRES -> crc.getCRC();
+                        case CRC16.CRCRESR -> crc.getCrcRb();
+                        default -> 0;
+                };
         }
 
         @Override

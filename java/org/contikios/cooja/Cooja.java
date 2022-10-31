@@ -31,7 +31,6 @@ package org.contikios.cooja;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
-import java.awt.Dialog;
 import java.awt.Dialog.ModalityType;
 import java.awt.Dimension;
 import java.awt.Frame;
@@ -203,7 +202,7 @@ public class Cooja extends Observable {
    *  Version used to detect incompatibility with the Contiki-NG
    *  build system. The format is &lt;YYYY&gt;&lt;MM&gt;&lt;DD&gt;&lt;2 digit sequence number&gt;.
    */
-  public static final String CONTIKI_NG_BUILD_VERSION = "2022052601";
+  public static final String CONTIKI_NG_BUILD_VERSION = "2022071901";
 
   private static JFrame frame = null;
   private static final Logger logger = LogManager.getLogger(Cooja.class);
@@ -236,8 +235,6 @@ public class Cooja extends Observable {
 
     "PARSE_WITH_COMMAND",
 
-    "MAPFILE_DATA_START", "MAPFILE_DATA_SIZE",
-    "MAPFILE_BSS_START", "MAPFILE_BSS_SIZE",
     "READELF_COMMAND",
 
     "PARSE_COMMAND",
@@ -445,7 +442,7 @@ public class Cooja extends Observable {
                       "To manage Cooja extensions:\n" +
                       "Menu->Settings->Cooja extensions",
               "Reconfigure Cooja extensions", JOptionPane.INFORMATION_MESSAGE);
-      showErrorDialog(frame, "Cooja extensions load error", e, false);
+      showErrorDialog("Cooja extensions load error", e, false);
     }
 
     // Start all standard GUI plugins
@@ -780,14 +777,14 @@ public class Cooja extends Observable {
           return;
         }
         switch (e.getStateChange()) {
-          case ItemEvent.SELECTED:
+          case ItemEvent.SELECTED -> {
             sim.startSimulation();
             stepButton.setEnabled(false);
-            break;
-          case ItemEvent.DESELECTED:
+          }
+          case ItemEvent.DESELECTED -> {
             sim.stopSimulation();
             stepButton.setEnabled(true);
-            break;
+          }
         }
         updateToolbar(false);
       }
@@ -881,27 +878,13 @@ public class Cooja extends Observable {
       @Override
       public void actionPerformed(ActionEvent e) {
         switch (e.getActionCommand()) {
-          case "0.01X":
-            getSimulation().setSpeedLimit(0.01);
-            break;
-          case "0.1X":
-            getSimulation().setSpeedLimit(0.1);
-            break;
-          case "1X":
-            getSimulation().setSpeedLimit(1.0);
-            break;
-          case "2X":
-            getSimulation().setSpeedLimit(2.0);
-            break;
-          case "4X":
-            getSimulation().setSpeedLimit(4.0);
-            break;
-          case "20X":
-            getSimulation().setSpeedLimit(20.0);
-            break;
-          case "Unlimited":
-            getSimulation().setSpeedLimit(null);
-            break;
+          case "0.01X" -> getSimulation().setSpeedLimit(0.01);
+          case "0.1X" -> getSimulation().setSpeedLimit(0.1);
+          case "1X" -> getSimulation().setSpeedLimit(1.0);
+          case "2X" -> getSimulation().setSpeedLimit(2.0);
+          case "4X" -> getSimulation().setSpeedLimit(4.0);
+          case "20X" -> getSimulation().setSpeedLimit(20.0);
+          case "Unlimited" -> getSimulation().setSpeedLimit(null);
         }
       }
     };
@@ -1871,7 +1854,7 @@ public class Cooja extends Observable {
 
       Mote pluginMote = ((MotePlugin)p).getMote();
       if (pluginMote == mote) {
-        removePlugin(p, false);
+        removePlugin(p);
       }
     }
   }
@@ -1879,13 +1862,9 @@ public class Cooja extends Observable {
   /**
    * Remove a plugin from working area.
    *
-   * @param plugin
-   *          Plugin to remove
-   * @param askUser
-   *          If plugin is the last one, ask user if we should remove current
-   *          simulation also?
+   * @param plugin Plugin to remove
    */
-  public void removePlugin(final Plugin plugin, final boolean askUser) {
+  public void removePlugin(final Plugin plugin) {
     plugin.closePlugin();
     startedPlugins.remove(plugin);
 
@@ -1903,10 +1882,6 @@ public class Cooja extends Observable {
           return true;
         }
       }.invokeAndWait();
-    }
-    // Remove simulation if requested (and all plugins are closed).
-    if (askUser && getSimulation() != null && startedPlugins.isEmpty()) {
-      doRemoveSimulation(true);
     }
   }
 
@@ -1927,7 +1902,7 @@ public class Cooja extends Observable {
       return startPlugin(pluginClass, sim, argMote, root);
     } catch (PluginConstructionException ex) {
       if (Cooja.isVisualized()) {
-        Cooja.showErrorDialog(Cooja.getTopParentContainer(), "Error when starting plugin", ex, false);
+        Cooja.showErrorDialog("Error when starting plugin", ex, false);
       } else {
         /* If the plugin requires visualization, inform user */
         Throwable cause = ex;
@@ -2114,6 +2089,10 @@ public class Cooja extends Observable {
     return null;
   }
 
+  public boolean hasStartedPlugins() {
+    return !startedPlugins.isEmpty();
+  }
+
   public Plugin[] getStartedPlugins() {
     return startedPlugins.toArray(new Plugin[0]);
   }
@@ -2243,7 +2222,7 @@ public class Cooja extends Observable {
    *          Should we ask for confirmation if a simulation is already active?
    * @return True if no simulation exists when method returns
    */
-  private boolean doRemoveSimulation(boolean askForConfirmation) {
+  boolean doRemoveSimulation(boolean askForConfirmation) {
 
     if (mySimulation == null) {
       return true;
@@ -2273,7 +2252,7 @@ public class Cooja extends Observable {
     for (var startedPlugin : startedPlugins.toArray(new Plugin[0])) {
       int pluginType = startedPlugin.getClass().getAnnotation(PluginType.class).value();
       if (pluginType != PluginType.COOJA_PLUGIN && pluginType != PluginType.COOJA_STANDARD_PLUGIN) {
-        removePlugin(startedPlugin, false);
+        removePlugin(startedPlugin);
       }
     }
 
@@ -2419,7 +2398,7 @@ public class Cooja extends Observable {
       @Override
       protected void process(List<SimulationCreationException> exs) {
         for (var e : exs) {
-          var retry = showErrorDialog(Cooja.getTopParentContainer(), "Simulation load error", e, true);
+          var retry = showErrorDialog("Simulation load error", e, true);
           try {
             channel.put(retry ? 1 : 0);
           } catch (InterruptedException ex) {
@@ -2579,20 +2558,12 @@ public class Cooja extends Observable {
   }
   
   public void doQuit(boolean askForConfirmation, int exitCode) {
-    if (getSimulation() != null) {
-      if (askForConfirmation) {
-        /* Save? */
-        String s1 = "Yes";
-        String s2 = "No";
-        String s3 = "Cancel";
-        Object[] options = { s1, s2, s3 };
-        int n = JOptionPane.showOptionDialog(Cooja.getTopParentContainer(),
-            "Do you want to save the current simulation?",
-            WINDOW_TITLE, JOptionPane.YES_NO_CANCEL_OPTION,
-            JOptionPane.WARNING_MESSAGE, null, options, s1);
-        if (n == JOptionPane.CANCEL_OPTION || n == JOptionPane.YES_OPTION && doSaveConfig() == null) {
-          return;
-        }
+    if (getSimulation() != null && askForConfirmation) { // Save?
+      Object[] opts = {"Yes", "No", "Cancel"};
+      int n = JOptionPane.showOptionDialog(frame, "Do you want to save the current simulation?", WINDOW_TITLE,
+              JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE, null, opts, opts[0]);
+      if (n == JOptionPane.CANCEL_OPTION || n == JOptionPane.YES_OPTION && doSaveConfig() == null) {
+        return;
       }
     }
 
@@ -2600,7 +2571,7 @@ public class Cooja extends Observable {
     try {
       doRemoveSimulation(false);
       for (var plugin : startedPlugins.toArray(new Plugin[0])) {
-        removePlugin(plugin, false);
+        removePlugin(plugin);
       }
     } catch (Exception e) {
       logger.error("Failed to remove simulation/plugins on shutdown.", e);
@@ -2827,7 +2798,7 @@ public class Cooja extends Observable {
           mySimulation.addMoteType(newMoteType);
         } catch (Exception e1) {
           logger.fatal("Exception when creating mote type", e1);
-          showErrorDialog(getTopParentContainer(), "Mote type creation error", e1, false);
+          showErrorDialog("Mote type creation error", e1, false);
           newMoteType = null;
         }
       } else if (cmd.equals("add motes")) {
@@ -2849,7 +2820,7 @@ public class Cooja extends Observable {
                             "To manage Cooja extensions:\n" +
                             "Menu->Settings->Cooja extensions",
                     "Reconfigure Cooja extensions", JOptionPane.INFORMATION_MESSAGE);
-            showErrorDialog(getTopParentContainer(), "Cooja extensions load error", ex, false);
+            showErrorDialog("Cooja extensions load error", ex, false);
           }
         }
       } else {
@@ -3484,33 +3455,17 @@ public class Cooja extends Observable {
   /**
    * A simple error dialog with compilation output and stack trace.
    *
-   * @param parentComponent
-   *          Parent component
-   * @param title
-   *          Title of error window
-   * @param exception
-   *          Exception causing window to be shown
-   * @param retryAvailable
-   *          If true, a retry option is presented
+   * @param title          Title of error window
+   * @param exception      Exception causing window to be shown
+   * @param retryAvailable If true, a retry option is presented
    * @return Retry failed operation
    */
-  public static boolean showErrorDialog(final Component parentComponent,
-      final String title, final Throwable exception, final boolean retryAvailable) {
-
+  public static boolean showErrorDialog(final String title, final Throwable exception, final boolean retryAvailable) {
     return new RunnableInEDT<Boolean>() {
       @Override
       public Boolean work() {
         JTabbedPane tabbedPane = new JTabbedPane();
-        final JDialog errorDialog;
-        if (parentComponent instanceof Dialog) {
-          errorDialog = new JDialog((Dialog) parentComponent, title, true);
-        } else if (parentComponent instanceof Frame) {
-          errorDialog = new JDialog((Frame) parentComponent, title, true);
-        } else {
-          errorDialog = new JDialog((Frame) null, title);
-        }
         Box buttonBox = Box.createHorizontalBox();
-
         if (exception != null) {
           /* Contiki error */
           if (exception instanceof ContikiError) {
@@ -3555,7 +3510,7 @@ public class Cooja extends Observable {
         }
 
         buttonBox.add(Box.createHorizontalGlue());
-
+        final var errorDialog = new JDialog(Cooja.getTopParentContainer(), title, true);
         if (retryAvailable) {
           Action retryAction = new AbstractAction() {
             @Override
@@ -3595,11 +3550,9 @@ public class Cooja extends Observable {
         errorDialog.getContentPane().add(BorderLayout.CENTER, tabbedPane);
         errorDialog.getContentPane().add(BorderLayout.SOUTH, buttonBox);
         errorDialog.setSize(700, 500);
-        errorDialog.setLocationRelativeTo(parentComponent);
+        errorDialog.setLocationRelativeTo(Cooja.getTopParentContainer());
         errorDialog.setVisible(true); /* BLOCKS */
-
         return errorDialog.getTitle().equals("-RETRY-");
-
       }
     }.invokeAndWait();
 

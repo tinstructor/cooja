@@ -71,7 +71,6 @@ public class LogScriptEngine {
   private final NashornScriptEngine engine = (NashornScriptEngine) new NashornScriptEngineFactory().getScriptEngine();
 
   private final BufferedWriter logWriter; // For non-GUI tests.
-  private static int engineInstances = 0;
 
   private final LogOutputListener logOutputListener = new LogOutputListener() {
     @Override
@@ -100,12 +99,10 @@ public class LogScriptEngine {
       } catch (UndeclaredThrowableException e) {
         logger.fatal("Exception: " + e.getMessage(), e);
         if (Cooja.isVisualized()) {
-          Cooja.showErrorDialog(Cooja.getTopParentContainer(),
-              e.getMessage(),
-              e, false);
+          Cooja.showErrorDialog(e.getMessage(), e, false);
         }
         deactivateScript();
-        simulation.stopSimulation(false, 1);
+        simulation.stopSimulation(1);
       }
     }
     @Override
@@ -124,10 +121,10 @@ public class LogScriptEngine {
   private long startTime;
   private long startRealTime;
 
-  protected LogScriptEngine(Simulation simulation, JTextArea logTextArea) {
+  protected LogScriptEngine(Simulation simulation, int logNumber, JTextArea logTextArea) {
     this.simulation = simulation;
     if (!Cooja.isVisualized()) {
-      var logName = engineInstances++ == 0 ? "COOJA.testlog" : String.format("COOJA-%02d.testlog", engineInstances);
+      var logName = logNumber == 0 ? "COOJA.testlog" : String.format("COOJA-%02d.testlog", logNumber);
       var logFile = Paths.get(simulation.getCooja().logDirectory, logName);
       try {
         logWriter = Files.newBufferedWriter(logFile, UTF_8);
@@ -276,11 +273,9 @@ public class LogScriptEngine {
               // Something else is shutting down Cooja, for example the SerialSocket commands in 17-tun-rpl-br.
               break;
             case 0:
-              logger.info("TEST OK\n");
               scriptLogObserver.update(null, "TEST OK\n");
               break;
             default:
-              logger.warn("TEST FAILED\n");
               scriptLogObserver.update(null, "TEST FAILED\n");
               break;
           }
@@ -288,11 +283,11 @@ public class LogScriptEngine {
           rv = 1;
           logger.fatal("Script error:", e);
           if (Cooja.isVisualized()) {
-            Cooja.showErrorDialog(Cooja.getTopParentContainer(), "Script error", e, false);
+            Cooja.showErrorDialog("Script error", e, false);
           }
         }
         deactivateScript();
-        simulation.stopSimulation(false, rv > 0 ? rv : null);
+        simulation.stopSimulation(rv > 0 ? rv : null);
       }
     }, "script");
     scriptThread.start();

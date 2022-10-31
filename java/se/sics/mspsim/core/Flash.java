@@ -106,8 +106,8 @@ public class Flash extends IOUnit {
   private static final int FN_MASK = 0x3f;
   private static final int LOCKINFO = 0x80;
 
-  private FlashRange main_range;
-  private FlashRange info_range;
+  private final FlashRange main_range;
+  private final FlashRange info_range;
 
   private int mode;      /* FCTL1 */
   private int clockcfg;  /* FCTL2 */
@@ -129,7 +129,7 @@ public class Flash extends IOUnit {
    */
   private boolean lockInfo = true;
 
-  private TimeEvent end_process = new TimeEvent(0) {
+  private final TimeEvent end_process = new TimeEvent(0) {
     @Override
     public void execute(long t) {
       blocked_cpu = false;
@@ -160,9 +160,6 @@ public class Flash extends IOUnit {
           logw(WarningType.EXECUTION, "Last access in block mode. Forced exit?");
           currentWriteMode = WriteMode.WRITE_BLOCK_FINISH;
         }
-/*	if (DEBUG) {
-          System.out.println("Write cycle complete, flagged WAIT.");
-        } */
         wait = true;
         break;
 
@@ -488,9 +485,6 @@ public class Flash extends IOUnit {
   }
 
   private void triggerSingleWrite() {
-    /*if (DEBUG) {
-      System.out.println("Single write triggered");
-    }*/
     currentWriteMode = WriteMode.WRITE_SINGLE;
   }
 

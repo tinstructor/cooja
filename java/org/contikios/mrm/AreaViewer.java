@@ -171,7 +171,6 @@ public class AreaViewer extends VisPlugin {
   private Image channelImage = null;
 
   private final JSlider resolutionSlider;
-  private final Box controlPanel;
   private final JScrollPane scrollControlPanel;
 
   private final Simulation currentSimulation;
@@ -283,7 +282,158 @@ public class AreaViewer extends VisPlugin {
     canvas.setBorder(BorderFactory.createLineBorder(Color.BLACK));
     canvas.setBackground(Color.WHITE);
     canvas.setLayout(new BorderLayout());
-    canvas.addMouseListener(canvasMouseHandler);
+    canvas.addMouseListener(new MouseAdapter() {
+      private Popup popUpToolTip = null;
+      private boolean temporaryZoom = false;
+      private boolean temporaryPan = false;
+      private boolean trackedPreviously = false;
+
+      @Override
+      public void mouseReleased(MouseEvent e1) {
+        if (temporaryZoom) {
+          temporaryZoom = false;
+          if (trackedPreviously) {
+            trackModeButton.doClick();
+          } else {
+            selectModeButton.doClick();
+          }
+        }
+        if (temporaryPan) {
+          temporaryPan = false;
+          if (trackedPreviously) {
+            trackModeButton.doClick();
+          } else {
+            selectModeButton.doClick();
+          }
+        }
+
+        if (popUpToolTip != null) {
+          popUpToolTip.hide();
+          popUpToolTip = null;
+        }
+      }
+
+      @Override
+      public void mousePressed(final MouseEvent e1) {
+        if (e1.isControlDown()) {
+          temporaryZoom = true;
+          trackedPreviously = inTrackMode;
+          zoomModeButton.doClick();
+        }
+        if (e1.isAltDown()) {
+          temporaryPan = true;
+          trackedPreviously = inTrackMode;
+          panModeButton.doClick();
+          //canvasModeHandler.actionPerformed(new ActionEvent(e, 0, "set zoom mode"));
+        }
+
+        if (popUpToolTip != null) {
+          popUpToolTip.hide();
+          popUpToolTip = null;
+        }
+
+        /* Zoom & Pan */
+        lastHandledPosition = new Point(e1.getX(), e1.getY());
+        zoomCenterX = e1.getX() / currentZoomX - currentPanX;
+        zoomCenterY = e1.getY() / currentZoomY - currentPanY;
+        zoomCenterPoint = e1.getPoint();
+        if (temporaryZoom || temporaryPan) {
+          e1.consume();
+          return;
+        }
+
+        /* Select */
+        if (inSelectMode) {
+          ArrayList<Radio> hitRadios = trackClickedRadio(e1.getPoint());
+          if (hitRadios == null || hitRadios.size() == 0) {
+            if (e1.getButton() != MouseEvent.BUTTON1) {
+              selectedRadio = null;
+              channelImage = null;
+              trackModeButton.setEnabled(false);
+              paintEnvironmentAction.setEnabled(false);
+              canvas.repaint();
+            }
+            return;
+          }
+
+          if (hitRadios.size() == 1 && hitRadios.get(0) == selectedRadio) {
+            return;
+          }
+
+          if (selectedRadio == null || !hitRadios.contains(selectedRadio)) {
+            selectedRadio = hitRadios.get(0);
+          } else {
+            selectedRadio = hitRadios.get(
+                    (hitRadios.indexOf(selectedRadio) + 1) % hitRadios.size()
+            );
+          }
+          trackModeButton.setEnabled(true);
+          paintEnvironmentAction.setEnabled(true);
+
+          channelImage = null;
+          canvas.repaint();
+          return;
+        }
+
+        /* Track */
+        if (inTrackMode && selectedRadio != null) {
+          TxPair txPair = new TxPair() {
+            @Override
+            public double getFromX() {
+              return selectedRadio.getPosition().getXCoordinate();
+            }
+
+            @Override
+            public double getFromY() {
+              return selectedRadio.getPosition().getYCoordinate();
+            }
+
+            @Override
+            public double getToX() {
+              return e1.getX() / currentZoomX - currentPanX;
+            }
+
+            @Override
+            public double getToY() {
+              return e1.getY() / currentZoomY - currentPanY;
+            }
+
+            @Override
+            public double getTxPower() {
+              return selectedRadio.getCurrentOutputPower();
+            }
+
+            @Override
+            public double getTxGain() {
+              if (!(selectedRadio instanceof DirectionalAntennaRadio)) {
+                return 0;
+              }
+              DirectionalAntennaRadio r = (DirectionalAntennaRadio) selectedRadio;
+              return r.getRelativeGain(r.getDirection() + getAngle(), getDistance());
+            }
+
+            @Override
+            public double getRxGain() {
+              return 0;
+            }
+          };
+          trackedComponents = currentChannelModel.getRaysOfTransmission(txPair);
+          canvas.repaint();
+
+          // Show popup.
+          JToolTip t = AreaViewer.this.createToolTip();
+          t.setTipText("<html>" +
+                  trackedComponents.log.replace("\n", "<br>").replace(" pi", " &pi;") +
+                  "</html>");
+          if (t.getTipText() == null || t.getTipText().equals("")) {
+            return;
+          }
+          popUpToolTip = PopupFactory.getSharedInstance().getPopup(
+                  AreaViewer.this, t, e1.getXOnScreen(), e1.getYOnScreen());
+          popUpToolTip.show();
+        }
+      }
+    });
 
     // Create canvas mode panel
     JPanel canvasModePanel = new JPanel();
@@ -325,11 +475,6 @@ public class AreaViewer extends VisPlugin {
     radiosCheckBox.setActionCommand("toggle radios");
     radiosCheckBox.addActionListener(selectGraphicsHandler);
     graphicsComponentsPanel.add(radiosCheckBox);
-
-//    radioActivityCheckBox = new JCheckBox("Radio Activity", true);
-//    radioActivityCheckBox.setActionCommand("toggle radio activity");
-//    radioActivityCheckBox.addActionListener(selectGraphicsHandler);
-//    graphicsComponentsPanel.add(radioActivityCheckBox);
 
     arrowCheckBox = new JCheckBox("Scale arrow", true);
     arrowCheckBox.setActionCommand("toggle arrow");
@@ -377,22 +522,12 @@ public class AreaViewer extends VisPlugin {
     JPanel fixedVsRelative = new JPanel(new GridLayout(1, 2));
     JRadioButton fixedColoringButton = new JRadioButton("Fixed");
     fixedColoringButton.setSelected(true);
-    fixedColoringButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        coloringIsFixed = true;
-      }
-    });
+    fixedColoringButton.addActionListener(e -> coloringIsFixed = true);
     fixedVsRelative.add(fixedColoringButton);
 
     JRadioButton relativeColoringButton = new JRadioButton("Relative");
     relativeColoringButton.setSelected(true);
-    relativeColoringButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        coloringIsFixed = false;
-      }
-    });
+    relativeColoringButton.addActionListener(e -> coloringIsFixed = false);
     fixedVsRelative.add(relativeColoringButton);
     ButtonGroup coloringGroup = new ButtonGroup();
     coloringGroup.add(fixedColoringButton);
@@ -496,67 +631,37 @@ public class AreaViewer extends VisPlugin {
     JRadioButton signalStrengthButton = new JRadioButton("Signal strength");
     signalStrengthButton.setActionCommand("signalStrengthButton");
     signalStrengthButton.setSelected(true);
-    signalStrengthButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        dataTypeToVisualize = ChannelModel.TransmissionData.SIGNAL_STRENGTH;
-      }
-    });
+    signalStrengthButton.addActionListener(e -> dataTypeToVisualize = ChannelModel.TransmissionData.SIGNAL_STRENGTH);
     visualizeChannelPanel.add(signalStrengthButton);
 
     JRadioButton signalStrengthVarButton = new JRadioButton("Signal strength variance");
     signalStrengthVarButton.setActionCommand("signalStrengthVarButton");
     signalStrengthVarButton.setSelected(false);
-    signalStrengthVarButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        dataTypeToVisualize = ChannelModel.TransmissionData.SIGNAL_STRENGTH_VAR;
-      }
-    });
+    signalStrengthVarButton.addActionListener(e -> dataTypeToVisualize = ChannelModel.TransmissionData.SIGNAL_STRENGTH_VAR);
     visualizeChannelPanel.add(signalStrengthVarButton);
 
     JRadioButton SNRButton = new JRadioButton("Signal to Noise ratio");
     SNRButton.setActionCommand("SNRButton");
     SNRButton.setSelected(false);
-    SNRButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        dataTypeToVisualize = ChannelModel.TransmissionData.SNR;
-      }
-    });
+    SNRButton.addActionListener(e -> dataTypeToVisualize = ChannelModel.TransmissionData.SNR);
     visualizeChannelPanel.add(SNRButton);
 
     JRadioButton SNRVarButton = new JRadioButton("Signal to Noise variance");
     SNRVarButton.setActionCommand("SNRVarButton");
     SNRVarButton.setSelected(false);
-    SNRVarButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        dataTypeToVisualize = ChannelModel.TransmissionData.SNR_VAR;
-      }
-    });
+    SNRVarButton.addActionListener(e -> dataTypeToVisualize = ChannelModel.TransmissionData.SNR_VAR);
     visualizeChannelPanel.add(SNRVarButton);
 
     JRadioButton probabilityButton = new JRadioButton("Probability of reception");
     probabilityButton.setActionCommand("probabilityButton");
     probabilityButton.setSelected(false);
-    probabilityButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        dataTypeToVisualize = ChannelModel.TransmissionData.PROB_OF_RECEPTION;
-      }
-    });
+    probabilityButton.addActionListener(e -> dataTypeToVisualize = ChannelModel.TransmissionData.PROB_OF_RECEPTION);
     visualizeChannelPanel.add(probabilityButton);
 
     JRadioButton rmsDelaySpreadButton = new JRadioButton("RMS delay spread");
     rmsDelaySpreadButton.setActionCommand("rmsDelaySpreadButton");
     rmsDelaySpreadButton.setSelected(false);
-    rmsDelaySpreadButton.addActionListener(new ActionListener() {
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        dataTypeToVisualize = ChannelModel.TransmissionData.DELAY_SPREAD_RMS;
-      }
-    });
+    rmsDelaySpreadButton.addActionListener(e -> dataTypeToVisualize = ChannelModel.TransmissionData.DELAY_SPREAD_RMS);
     visualizeChannelPanel.add(rmsDelaySpreadButton);
 
     visTypeSelectionGroup = new ButtonGroup();
@@ -592,7 +697,7 @@ public class AreaViewer extends VisPlugin {
     visualizeChannelPanel.add(recalculateVisibleButton);
 
     // Create control panel
-    controlPanel = Box.createVerticalBox();
+    var controlPanel = Box.createVerticalBox();
     graphicsComponentsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
     controlPanel.add(graphicsComponentsPanel);
     controlPanel.add(new JSeparator());
@@ -632,150 +737,6 @@ public class AreaViewer extends VisPlugin {
       // Could not select
     }
   }
-
-  /**
-   * Listens to mouse event on canvas
-   */
-  private final MouseAdapter canvasMouseHandler = new MouseAdapter() {
-    private Popup popUpToolTip = null;
-    private boolean temporaryZoom = false;
-    private boolean temporaryPan = false;
-    private boolean trackedPreviously = false;
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
-      if (temporaryZoom) {
-        temporaryZoom = false;
-        if (trackedPreviously) {
-          trackModeButton.doClick();
-        } else {
-          selectModeButton.doClick();
-        }
-      }
-      if (temporaryPan) {
-        temporaryPan = false;
-        if (trackedPreviously) {
-          trackModeButton.doClick();
-        } else {
-          selectModeButton.doClick();
-        }
-      }
-
-      if (popUpToolTip != null) {
-        popUpToolTip.hide();
-        popUpToolTip = null;
-      }
-    }
-
-    @Override
-    public void mousePressed(final MouseEvent e) {
-      if (e.isControlDown()) {
-        temporaryZoom = true;
-        trackedPreviously = inTrackMode;
-        zoomModeButton.doClick();
-      }
-      if (e.isAltDown()) {
-        temporaryPan = true;
-        trackedPreviously = inTrackMode;
-        panModeButton.doClick();
-        //canvasModeHandler.actionPerformed(new ActionEvent(e, 0, "set zoom mode"));
-      }
-
-      if (popUpToolTip != null) {
-        popUpToolTip.hide();
-        popUpToolTip = null;
-      }
-
-      /* Zoom & Pan */
-      lastHandledPosition = new Point(e.getX(), e.getY());
-      zoomCenterX = e.getX() / currentZoomX - currentPanX;
-      zoomCenterY = e.getY() / currentZoomY - currentPanY;
-      zoomCenterPoint = e.getPoint();
-      if (temporaryZoom || temporaryPan) {
-        e.consume();
-        return;
-      }
-
-      /* Select */
-      if (inSelectMode) {
-        ArrayList<Radio> hitRadios = trackClickedRadio(e.getPoint());
-        if (hitRadios == null || hitRadios.size() == 0) {
-          if (e.getButton() != MouseEvent.BUTTON1) {
-            selectedRadio = null;
-            channelImage = null;
-            trackModeButton.setEnabled(false);
-            paintEnvironmentAction.setEnabled(false);
-            canvas.repaint();
-          }
-          return;
-        }
-
-        if (hitRadios.size() == 1 && hitRadios.get(0) == selectedRadio) {
-          return;
-        }
-
-        if (selectedRadio == null || !hitRadios.contains(selectedRadio)) {
-          selectedRadio = hitRadios.get(0);
-        } else {
-          selectedRadio = hitRadios.get(
-              (hitRadios.indexOf(selectedRadio)+1) % hitRadios.size()
-          );
-        }
-        trackModeButton.setEnabled(true);
-        paintEnvironmentAction.setEnabled(true);
-
-        channelImage = null;
-        canvas.repaint();
-        return;
-      }
-
-      /* Track */
-      if (inTrackMode && selectedRadio != null) {
-        TxPair txPair = new TxPair() {
-          @Override
-          public double getFromX() { return selectedRadio.getPosition().getXCoordinate(); }
-          @Override
-          public double getFromY() { return selectedRadio.getPosition().getYCoordinate(); }
-          @Override
-          public double getToX() { return e.getX() / currentZoomX - currentPanX; }
-          @Override
-          public double getToY() { return e.getY() / currentZoomY - currentPanY; }
-          @Override
-          public double getTxPower() { return selectedRadio.getCurrentOutputPower(); }
-          @Override
-          public double getTxGain() {
-            if (!(selectedRadio instanceof DirectionalAntennaRadio)) {
-              return 0;
-            }
-            DirectionalAntennaRadio r = (DirectionalAntennaRadio)selectedRadio;
-            return r.getRelativeGain(r.getDirection() + getAngle(), getDistance());
-          }
-          @Override
-          public double getRxGain() {
-            return 0;
-          }
-        };
-        trackedComponents = currentChannelModel.getRaysOfTransmission(txPair);
-        canvas.repaint();
-
-        /* Show popup */
-        JToolTip t = AreaViewer.this.createToolTip();
-
-        String logHtml =
-                "<html>" +
-                trackedComponents.log.replace("\n", "<br>").replace(" pi", " &pi;") +
-                "</html>";
-        t.setTipText(logHtml);
-
-        if (t.getTipText() == null || t.getTipText().equals("")) {
-          return;
-        }
-        popUpToolTip = PopupFactory.getSharedInstance().getPopup(
-                        AreaViewer.this, t, e.getXOnScreen(), e.getYOnScreen());
-        popUpToolTip.show();
-      }
-    }
-  };
 
   /**
    * Listens to mouse movements when in pan mode
@@ -943,33 +904,28 @@ public class AreaViewer extends VisPlugin {
       virtualWidth = 0.0,
       virtualHeight = 0.0;
 
-      private JFormattedTextField
-      virtualStartXField,
-      virtualStartYField,
-      virtualWidthField,
-      virtualHeightField;
+      private final JFormattedTextField virtualStartXField;
+      private final JFormattedTextField virtualStartYField;
+      private final JFormattedTextField virtualWidthField;
+      private final JFormattedTextField virtualHeightField;
 
       private boolean terminatedOK = false;
-
-      private final NumberFormat doubleFormat = NumberFormat.getNumberInstance();
 
       /**
        * Creates a new dialog for settings background parameters
        */
       private ImageSettingsDialog() {
         super(Cooja.getTopParentContainer(), "Image settings");
-        JPanel mainPanel, tempPanel;
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-        doubleFormat.setMinimumIntegerDigits(1);
-
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
         // Set layout and add components
-        mainPanel = new JPanel();
+        var mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
-        tempPanel = new JPanel(new GridLayout(1, 2));
+        var tempPanel = new JPanel(new GridLayout(1, 2));
         tempPanel.add(new JLabel("Start X (m)     "));
+        var doubleFormat = NumberFormat.getNumberInstance();
+        doubleFormat.setMinimumIntegerDigits(1);
         virtualStartXField = new JFormattedTextField(doubleFormat);
         virtualStartXField.setValue(0.0);
         tempPanel.add(virtualStartXField);
@@ -1006,24 +962,18 @@ public class AreaViewer extends VisPlugin {
         final JButton okButton = new JButton("OK");
         this.getRootPane().setDefaultButton(okButton);
         final JButton cancelButton = new JButton("Cancel");
-        okButton.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            virtualStartX = ((Number) virtualStartXField.getValue()).doubleValue();
-            virtualStartY = ((Number) virtualStartYField.getValue()).doubleValue();
-            virtualWidth = ((Number) virtualWidthField.getValue()).doubleValue();
-            virtualHeight = ((Number) virtualHeightField.getValue()).doubleValue();
+        okButton.addActionListener(e -> {
+          virtualStartX = ((Number) virtualStartXField.getValue()).doubleValue();
+          virtualStartY = ((Number) virtualStartYField.getValue()).doubleValue();
+          virtualWidth = ((Number) virtualWidthField.getValue()).doubleValue();
+          virtualHeight = ((Number) virtualHeightField.getValue()).doubleValue();
 
-            terminatedOK = true;
-            dispose();
-}
+          terminatedOK = true;
+          dispose();
         });
-        cancelButton.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            terminatedOK = false;
-            dispose();
-          }
+        cancelButton.addActionListener(e -> {
+          terminatedOK = false;
+          dispose();
         });
 
         tempPanel.add(okButton);
@@ -1263,7 +1213,6 @@ public class AreaViewer extends VisPlugin {
   };
 
   static class ObstacleFinderDialog extends JDialog {
-    private final NumberFormat intFormat = NumberFormat.getIntegerInstance();
     private final BufferedImage imageToAnalyze;
     private BufferedImage obstacleImage;
     private JPanel canvasPanel = null;
@@ -1373,6 +1322,7 @@ public class AreaViewer extends VisPlugin {
         );
 
         // Set layout and add components
+        var intFormat = NumberFormat.getIntegerInstance();
         intFormat.setMinimumIntegerDigits(1);
         intFormat.setMaximumIntegerDigits(3);
         intFormat.setParseIntegerOnly(true);
@@ -1456,25 +1406,19 @@ public class AreaViewer extends VisPlugin {
         tempPanel.add(Box.createHorizontalGlue());
         var tempButton = new JButton("Pick color");
         tempPanel.add(tempButton);
-        tempButton.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            // Set to color picker mode (if not already there)
-            if (canvasPanel.getMouseMotionListeners().length == 0) {
-              canvasPanel.addMouseListener(myMouseListener);
-              canvasPanel.addMouseMotionListener(myMouseMotionListener);
-              canvasPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
-            }
+        tempButton.addActionListener(e -> {
+          // Set to color picker mode (if not already there)
+          if (canvasPanel.getMouseMotionListeners().length == 0) {
+            canvasPanel.addMouseListener(myMouseListener);
+            canvasPanel.addMouseMotionListener(myMouseMotionListener);
+            canvasPanel.setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
           }
         });
         tempPanel.add(Box.createHorizontalStrut(5));
         tempPanel.add(tempButton = new JButton("Preview obstacles"));
-        tempButton.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            obstacleImage = createObstacleImage();
-            canvasPanel.repaint();
-          }
+        tempButton.addActionListener(e -> {
+          obstacleImage = createObstacleImage();
+          canvasPanel.repaint();
         });
         mainPanel.add(tempPanel);
 
@@ -1502,21 +1446,13 @@ public class AreaViewer extends VisPlugin {
         tempPanel.setLayout(new BoxLayout(tempPanel, BoxLayout.X_AXIS));
         tempPanel.add(Box.createHorizontalGlue());
         tempPanel.add(tempButton = new JButton("Cancel"));
-        tempButton.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            dispose();
-          }
-        });
+        tempButton.addActionListener(e -> dispose());
         tempPanel.add(Box.createHorizontalStrut(5));
         tempPanel.add(tempButton = new JButton("OK"));
-        tempButton.addActionListener(new ActionListener() {
-          @Override
-          public void actionPerformed(ActionEvent e) {
-            obstacleImage = createObstacleImage();
-            exitedOK = true;
-            dispose();
-          }
+        tempButton.addActionListener(e -> {
+          obstacleImage = createObstacleImage();
+          exitedOK = true;
+          dispose();
         });
         mainPanel.add(tempPanel);
 
@@ -2222,9 +2158,6 @@ public class AreaViewer extends VisPlugin {
       // Decide on scale comparator
       double currentArrowDistance = 0.1; // in meters
       if (currentZoomX < canvas.getWidth() / 2) {
-        currentArrowDistance = 0.1; // 0.1m
-      }
-      if (currentZoomX < canvas.getWidth() / 2) {
         currentArrowDistance = 1; // 1m
       }
       if (10 * currentZoomX < canvas.getWidth() / 2) {
@@ -2381,9 +2314,6 @@ public class AreaViewer extends VisPlugin {
     element = new Element("show_radios");
     element.setText(Boolean.toString(drawRadios));
     config.add(element);
-//    element = new Element("show_activity");
-//    element.setText(Boolean.toString(drawRadioActivity));
-//    config.add(element);
     element = new Element("show_arrow");
     element.setText(Boolean.toString(drawScaleArrow));
     config.add(element);
@@ -2432,48 +2362,46 @@ public class AreaViewer extends VisPlugin {
   @Override
   public boolean setConfigXML(Collection<Element> configXML, boolean visAvailable) {
     for (Element element : configXML) {
-      if (element.getName().equals("selected")) {
+      var name = element.getName();
+      if (name.equals("selected")) {
         int id = Integer.parseInt(element.getAttributeValue("mote"));
         selectedRadio =  currentSimulation.getMoteWithID(id).getInterfaces().getRadio();
         trackModeButton.setEnabled(true);
         paintEnvironmentAction.setEnabled(true);
-      } else if (element.getName().equals("controls_visible")) {
+      } else if (name.equals("controls_visible")) {
         showSettingsBox.setSelected(Boolean.parseBoolean(element.getText()));
         canvasModeHandler.actionPerformed(new ActionEvent(showSettingsBox,
             ActionEvent.ACTION_PERFORMED, showSettingsBox.getActionCommand()));
-      } else if (element.getName().equals("zoom_x")) {
+      } else if (name.equals("zoom_x")) {
         currentZoomX = Double.parseDouble(element.getText());
-      } else if (element.getName().equals("zoom_y")) {
+      } else if (name.equals("zoom_y")) {
         currentZoomY = Double.parseDouble(element.getText());
-      } else if (element.getName().equals("pan_x")) {
+      } else if (name.equals("pan_x")) {
         currentPanX = Double.parseDouble(element.getText());
-      } else if (element.getName().equals("pan_y")) {
+      } else if (name.equals("pan_y")) {
         currentPanY = Double.parseDouble(element.getText());
-      } else if (element.getName().equals("show_background")) {
+      } else if (name.equals("show_background")) {
         backgroundCheckBox.setSelected(Boolean.parseBoolean(element.getText()));
         selectGraphicsHandler.actionPerformed(new ActionEvent(backgroundCheckBox,
             ActionEvent.ACTION_PERFORMED, backgroundCheckBox.getActionCommand()));
-      } else if (element.getName().equals("show_obstacles")) {
+      } else if (name.equals("show_obstacles")) {
         obstaclesCheckBox.setSelected(Boolean.parseBoolean(element.getText()));
         selectGraphicsHandler.actionPerformed(new ActionEvent(obstaclesCheckBox,
             ActionEvent.ACTION_PERFORMED, obstaclesCheckBox.getActionCommand()));
-      } else if (element.getName().equals("show_channel")) {
+      } else if (name.equals("show_channel")) {
         channelCheckBox.setSelected(Boolean.parseBoolean(element.getText()));
         selectGraphicsHandler.actionPerformed(new ActionEvent(channelCheckBox,
             ActionEvent.ACTION_PERFORMED, channelCheckBox.getActionCommand()));
-      } else if (element.getName().equals("show_radios")) {
+      } else if (name.equals("show_radios")) {
         radiosCheckBox.setSelected(Boolean.parseBoolean(element.getText()));
         selectGraphicsHandler.actionPerformed(new ActionEvent(radiosCheckBox,
             ActionEvent.ACTION_PERFORMED, radiosCheckBox.getActionCommand()));
-      } else if (element.getName().equals("show_activity")) {
-//        radioActivityCheckBox.setSelected(Boolean.parseBoolean(element.getText()));
-//        selectGraphicsHandler.actionPerformed(new ActionEvent(radioActivityCheckBox,
-//            ActionEvent.ACTION_PERFORMED, radioActivityCheckBox.getActionCommand()));
-      } else if (element.getName().equals("show_arrow")) {
+      } else if (name.equals("show_activity")) {
+      } else if (name.equals("show_arrow")) {
         arrowCheckBox.setSelected(Boolean.parseBoolean(element.getText()));
         selectGraphicsHandler.actionPerformed(new ActionEvent(arrowCheckBox,
             ActionEvent.ACTION_PERFORMED, arrowCheckBox.getActionCommand()));
-      } else if (element.getName().equals("vis_type")) {
+      } else if (name.equals("vis_type")) {
         String visTypeIdentifier = element.getText();
         Enumeration<AbstractButton> buttonEnum = visTypeSelectionGroup.getElements();
         while (buttonEnum.hasMoreElements()) {
@@ -2485,7 +2413,7 @@ public class AreaViewer extends VisPlugin {
                     ActionEvent.ACTION_PERFORMED, button.getActionCommand()));
           }
         }
-      } else if (element.getName().equals("background_image")) {
+      } else if (name.equals("background_image")) {
         backgroundImageFile = new File(element.getText());
         if (backgroundImageFile.exists()) {
           Toolkit toolkit = Toolkit.getDefaultToolkit();
@@ -2502,18 +2430,18 @@ public class AreaViewer extends VisPlugin {
           }
 
         }
-      } else if (element.getName().equals("back_start_x")) {
+      } else if (name.equals("back_start_x")) {
         backgroundStartX = Double.parseDouble(element.getText());
-      } else if (element.getName().equals("back_start_y")) {
+      } else if (name.equals("back_start_y")) {
         backgroundStartY = Double.parseDouble(element.getText());
-      } else if (element.getName().equals("back_width")) {
+      } else if (name.equals("back_width")) {
         backgroundWidth = Double.parseDouble(element.getText());
-      } else if (element.getName().equals("back_height")) {
+      } else if (name.equals("back_height")) {
         backgroundHeight = Double.parseDouble(element.getText());
-      } else if (element.getName().equals("resolution")) {
+      } else if (name.equals("resolution")) {
         resolutionSlider.setValue(Integer.parseInt(element.getText()));
       } else {
-        logger.fatal("Unknown configuration value: " + element.getName());
+        logger.fatal("Unknown configuration value: " + name);
       }
     }
 

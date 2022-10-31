@@ -85,7 +85,7 @@ public class M25P80 extends ExternalFlash implements USARTListener, PortListener
   private boolean writeEnable = false;
   private boolean writing = false;
 
-  private int[] identity = new int[] {
+  private final int[] identity = new int[] {
       0x20,0x20,0x14,0x10,
       0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
       0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00
@@ -343,9 +343,6 @@ public class M25P80 extends ExternalFlash implements USARTListener, PortListener
       }
     }
     chipSelect = (data & CHIP_SELECT) == 0;
-//    if (DEBUG) log("write to Port4: " +
-//		       Integer.toString(data, 16)
-//		       + " CS:" + chipSelect);
     state = 0;
   }
 

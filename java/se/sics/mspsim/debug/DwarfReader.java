@@ -74,7 +74,7 @@ public class DwarfReader implements ELFDebug {
     public static final int    DW_LNE_define_file = 3;
     public static final int    DW_LNE_set_discriminator = 4; /* DWARF > 2.0 */
 
-    ELF elfFile;
+    final ELF elfFile;
 
     /* Address ranges */
     static class Arange {
@@ -86,9 +86,9 @@ public class DwarfReader implements ELFDebug {
     }
 
     static class LineEntry {
-        int address;
-        int line;
-        int file;
+        final int address;
+        final int line;
+        final int file;
         LineEntry(int line, int adr, int file) {
             this.line = line;
             this.address = adr;
@@ -102,7 +102,7 @@ public class DwarfReader implements ELFDebug {
         LineEntry[] lineEntries;
     }
 
-    ArrayList<LineData> lineInfo = new ArrayList<>();
+    final ArrayList<LineData> lineInfo = new ArrayList<>();
 
     /* some state for the line number handling */
     private int lineAddress;
@@ -113,7 +113,7 @@ public class DwarfReader implements ELFDebug {
     private boolean isStatement = false;
     private boolean endSequence = false;
 
-    private ArrayList<Arange> aranges = new ArrayList<>();
+    private final ArrayList<Arange> aranges = new ArrayList<>();
 
     public DwarfReader(ELF elfFile) {
         this.elfFile = elfFile;

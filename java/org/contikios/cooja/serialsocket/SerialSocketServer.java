@@ -465,9 +465,8 @@ public class SerialSocketServer implements Plugin, MotePlugin {
             break;
           }
         }
-        simulation.stopSimulation(false, rv > 0 ? rv : null);
+        simulation.stopSimulation(rv > 0 ? rv : null);
         stopServer();
-        simulation.stopScriptEngines();
       }, "SerialSocketServer commands").start();
     }
     return true;
@@ -603,18 +602,10 @@ public class SerialSocketServer implements Plugin, MotePlugin {
     
     for (Element element : configXML) {
       switch (element.getName()) {
-        case "port":
-          port = Integer.parseInt(element.getText());
-          break;
-        case "bound":
-          bound = Boolean.parseBoolean(element.getText());
-          break;
-        case "commands":
-          commands = element.getText();
-          break;
-        default:
-          logger.warn("Unknown config element: " + element.getName());
-          break;
+        case "port" -> port = Integer.parseInt(element.getText());
+        case "bound" -> bound = Boolean.parseBoolean(element.getText());
+        case "commands" -> commands = element.getText();
+        default -> logger.warn("Unknown config element: " + element.getName());
       }
     }
     if (Cooja.isVisualized()) {

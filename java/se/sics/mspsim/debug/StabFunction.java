@@ -36,10 +36,5 @@ public class StabFunction {
         return sb.toString();
     }
 
-    static class Param {
-        String name;
-        Param(String name) {
-            this.name = name;
-        }
-    }
+    record Param(String name) {}
 }

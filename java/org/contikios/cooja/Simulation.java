@@ -27,14 +27,12 @@
  */
 
 package org.contikios.cooja;
-
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Observable;
 import java.util.Random;
-
+import java.util.concurrent.LinkedBlockingDeque;
 import javax.swing.JOptionPane;
 
 import javax.swing.JTextArea;
@@ -53,12 +51,25 @@ import org.contikios.cooja.dialogs.CreateSimDialog;
  *
  * @author Fredrik Osterlind
  */
-public class Simulation extends Observable implements Runnable {
+public class Simulation extends Observable {
+
+  /** Commands sent to the simulation thread to start, stop, or shutdown the simulation */
+  private enum Command {
+    START, STOP, QUIT
+  }
+
   public static final long MICROSECOND = 1L;
   public static final long MILLISECOND = 1000*MICROSECOND;
 
+  /** Lock used to wait for simulation state changes */
+  private final Object stateLock = new Object();
+
   private final ArrayList<Mote> motes = new ArrayList<>();
   private final ArrayList<MoteType> moteTypes = new ArrayList<>();
+
+  private final LinkedBlockingDeque<Object> commandQueue = new LinkedBlockingDeque<>();
+
+  private final Thread simulationThread;
 
   /* If true, run simulation at full speed */
   private boolean speedLimitNone = true;
@@ -79,10 +90,7 @@ public class Simulation extends Observable implements Runnable {
   private static final Logger logger = LogManager.getLogger(Simulation.class);
 
   private volatile boolean isRunning = false;
-
-  private volatile boolean stopSimulation = false;
-
-  private Thread simulationThread = null;
+  private volatile boolean isShutdown = false;
 
   private final Cooja cooja;
 
@@ -103,71 +111,6 @@ public class Simulation extends Observable implements Runnable {
   /** The return value from startSimulation. */
   private volatile Integer returnValue = null;
 
-  /* Poll requests */
-  private boolean hasPollRequests = false;
-  private final ArrayDeque<Runnable> pollRequests = new ArrayDeque<>();
-
-
-  /**
-   * Request poll from simulation thread.
-   * Poll requests are prioritized over simulation events, and are
-   * executed between each simulation event.
-   *
-   * @param r Simulation thread action
-   */
-  public void invokeSimulationThread(Runnable r) {
-    synchronized (pollRequests) {
-      pollRequests.addLast(r);
-      hasPollRequests = true;
-    }
-  }
-
-  private void runSimulationInvokes() {
-    boolean more;
-    synchronized (pollRequests) {
-      more = hasPollRequests;
-    }
-    while (more) {
-      Runnable r;
-      synchronized (pollRequests) {
-        r = pollRequests.pop();
-        more = hasPollRequests = !pollRequests.isEmpty();
-      }
-      r.run();
-    }
-  }
-
-  /**
-   * @return True iff current thread is the simulation thread
-   */
-  public boolean isSimulationThread() {
-    return simulationThread == Thread.currentThread();
-  }
-
-  /**
-   * @return True iff current thread is the simulation thread,
-   * or the simulation threat has not yet been created.
-   */
-  public boolean isSimulationThreadOrNull() {
-    return simulationThread == Thread.currentThread() || simulationThread == null;
-  }
-
-  /**
-   * Schedule simulation event for given time.
-   * Already scheduled events must be removed before they are rescheduled.
-   * <p>
-   * If the simulation is running, this method may only be called from the simulation thread.
-   *
-   * @see #invokeSimulationThread(Runnable)
-   *
-   * @param e Event
-   * @param time Execution time
-   */
-  public void scheduleEvent(final TimeEvent e, final long time) {
-    assert !isRunning || isSimulationThread() : "Scheduling event from non-simulation thread: " + e;
-    eventQueue.addEvent(e, time);
-  }
-
   private final TimeEvent delayEvent = new TimeEvent() {
     @Override
     public void execute(long t) {
@@ -181,12 +124,14 @@ public class Simulation extends Observable implements Runnable {
       long expectedDiffRealtime = (long) (diffSimtime/speedLimit);
       long sleep = expectedDiffRealtime - diffRealtime;
       if (sleep >= 0) {
+        scheduleEvent(this, t+MILLISECOND);
         /* Slow down simulation */
         try {
           Thread.sleep(sleep);
         } catch (InterruptedException e) {
+          // Restore interrupted status
+          Thread.currentThread().interrupt();
         }
-        scheduleEvent(this, t+MILLISECOND);
       } else {
         /* Reduce slow-down: execute this delay event less often */
         scheduleEvent(this, t-sleep*MILLISECOND);
@@ -204,68 +149,6 @@ public class Simulation extends Observable implements Runnable {
     }
   };
 
-  @Override
-  public void run() {
-    assert isRunning : "Did not set isRunning before starting";
-    lastStartRealTime = System.currentTimeMillis();
-    lastStartSimulationTime = getSimulationTimeMillis();
-    speedLimitLastRealtime = lastStartRealTime;
-    speedLimitLastSimtime = lastStartSimulationTime;
-
-    /* Simulation starting */
-    cooja.updateProgress(false);
-    this.setChanged();
-    this.notifyObservers(this);
-
-    EventQueue.Pair nextEvent = null;
-    try {
-      while (isRunning) {
-        runSimulationInvokes();
-
-        /* Handle one simulation event, and update simulation time */
-        nextEvent = eventQueue.popFirst();
-        assert nextEvent != null : "Ran out of events in eventQueue";
-        assert nextEvent.time >= currentSimulationTime : "Event from the past";
-        currentSimulationTime = nextEvent.time;
-        nextEvent.event.execute(currentSimulationTime);
-
-        if (stopSimulation) {
-          isRunning = false;
-          var realTimeDuration = System.currentTimeMillis() - lastStartRealTime;
-          var simulationDuration = getSimulationTimeMillis() - lastStartSimulationTime;
-          logger.info("Runtime: {} ms. Simulated time: {} ms. Speedup: {}",
-                      realTimeDuration, simulationDuration,
-                      ((double) simulationDuration / Math.max(1, realTimeDuration)));
-        }
-      }
-    } catch (RuntimeException e) {
-    	if ("MSPSim requested simulation stop".equals(e.getMessage())) {
-    		/* XXX Should be*/
-    		logger.info("Simulation stopped due to MSPSim breakpoint");
-    	} else {
-
-    		logger.fatal("Simulation stopped due to error: " + e.getMessage(), e);
-    		if (!Cooja.isVisualized()) {
-    			/* Quit simulator if in test mode */
-    			System.exit(1);
-    		} else {
-    		  String title = "Simulation error";
-    		  if (nextEvent.event instanceof MoteTimeEvent) {
-    		    title += ": " + ((MoteTimeEvent)nextEvent.event).getMote();
-    		  }
-    		  Cooja.showErrorDialog(Cooja.getTopParentContainer(), title, e, false);
-    		}
-    	}
-    }
-    isRunning = false;
-    simulationThread = null;
-    stopSimulation = false;
-
-    cooja.updateProgress(true);
-    this.setChanged();
-    this.notifyObservers(this);
-  }
-
   /**
    * Creates a new simulation
    */
@@ -273,6 +156,157 @@ public class Simulation extends Observable implements Runnable {
     this.cooja = cooja;
     randomGenerator = new SafeRandom(this);
     randomSeed = seed;
+    simulationThread = new Thread(() -> {
+      boolean isAlive = true;
+      do {
+        boolean isSimulationRunning = false;
+        EventQueue.Pair nextEvent = null;
+        try {
+          while (isAlive) {
+            Object cmd;
+            do {
+              cmd = isSimulationRunning ? commandQueue.poll() : commandQueue.take();
+              if (cmd instanceof Runnable r) {
+                r.run();
+              } else if (cmd instanceof Command c) {
+                isAlive = c != Command.QUIT;
+                isShutdown = !isAlive;
+                isSimulationRunning = c == Command.START;
+                setRunning(isSimulationRunning);
+              }
+            } while (cmd != null && isAlive);
+
+            if (isSimulationRunning) {
+              /* Handle one simulation event, and update simulation time */
+              nextEvent = eventQueue.popFirst();
+              assert nextEvent != null : "Ran out of events in eventQueue";
+              assert nextEvent.time >= currentSimulationTime : "Event from the past";
+              currentSimulationTime = nextEvent.time;
+              nextEvent.event.execute(currentSimulationTime);
+            }
+          }
+        } catch (RuntimeException e) {
+          if ("MSPSim requested simulation stop".equals(e.getMessage())) {
+            logger.info("Simulation stopped due to MSPSim breakpoint");
+          } else {
+            logger.fatal("Simulation stopped due to error: " + e.getMessage(), e);
+            if (!Cooja.isVisualized()) {
+              /* Quit simulator if in test mode */
+              System.exit(1);
+            }
+            String title = "Simulation error";
+            if (nextEvent != null && nextEvent.event instanceof MoteTimeEvent moteTimeEvent) {
+              title += ": " + moteTimeEvent.getMote();
+            }
+            Cooja.showErrorDialog(title, e, false);
+          }
+        } catch (InterruptedException e) {
+          // Simulation thread interrupted - quit
+          logger.warn("simulation thread interrupted");
+          Thread.currentThread().interrupt();
+          isAlive = false;
+          isShutdown = true;
+        }
+        setRunning(false);
+      } while (isAlive);
+      isShutdown = true;
+      commandQueue.clear();
+
+      // Deactivate all script engines
+      for (var engine : scriptEngines) {
+        engine.deactivateScript();
+        engine.closeLog();
+      }
+
+      // Remove the radio medium
+      if (currentRadioMedium != null) {
+        currentRadioMedium.removed();
+      }
+
+      // Remove all motes
+      Mote[] motes = getMotes();
+      for (Mote m: motes) {
+        doRemoveMote(m);
+      }
+
+      // Log test status to console in headless mode, ScriptRunner shows status in GUI mode.
+      if (!Cooja.isVisualized()) {
+        if (returnValue == null) {
+          logger.info("TEST OK\n");
+        } else {
+          logger.warn("TEST FAILED\n");
+        }
+      }
+    }, "sim");
+    simulationThread.start();
+  }
+
+  /**
+   * Set if the simulation is running or not.
+   * May only be called by the simulation thread to notify about its state.
+   */
+  private void setRunning(boolean isRunning) {
+    if (this.isRunning == isRunning) {
+      return;
+    }
+
+    if (isRunning) {
+      // Simulation starting
+      speedLimitLastRealtime = lastStartRealTime = System.currentTimeMillis();
+      speedLimitLastSimtime = lastStartSimulationTime = getSimulationTimeMillis();
+    } else {
+      // Simulation stopped
+      var realTimeDuration = System.currentTimeMillis() - lastStartRealTime;
+      var simulationDuration = getSimulationTimeMillis() - lastStartSimulationTime;
+      logger.info("Runtime: {} ms. Simulated time: {} ms. Speedup: {}",
+                  realTimeDuration, simulationDuration,
+                  ((double) simulationDuration / Math.max(1, realTimeDuration)));
+    }
+
+    synchronized (stateLock) {
+      this.isRunning = isRunning;
+      stateLock.notifyAll();
+    }
+
+    cooja.updateProgress(!isRunning);
+    setChanged();
+    notifyObservers(this);
+  }
+
+  /**
+   * Request poll from simulation thread.
+   * Poll requests are prioritized over simulation events, and are
+   * executed between each simulation event.
+   *
+   * @param r Simulation thread action
+   */
+  public void invokeSimulationThread(Runnable r) {
+    if (!isShutdown) {
+      commandQueue.add(r);
+    }
+  }
+
+  /**
+   * @return True iff current thread is the simulation thread
+   */
+  public boolean isSimulationThread() {
+    return simulationThread == Thread.currentThread();
+  }
+
+  /**
+   * Schedule simulation event for given time.
+   * Already scheduled events must be removed before they are rescheduled.
+   * <p>
+   * If the simulation is running, this method may only be called from the simulation thread.
+   *
+   * @see #invokeSimulationThread(Runnable)
+   *
+   * @param e Event
+   * @param time Execution time
+   */
+  public void scheduleEvent(final TimeEvent e, final long time) {
+    assert isSimulationThread() : "Scheduling event from non-simulation thread: " + e;
+    eventQueue.addEvent(e, time);
   }
 
   /** Basic simulation configuration. */
@@ -303,7 +337,7 @@ public class Simulation extends Observable implements Runnable {
   /** Create a new script engine that logs to the logTextArea and add it to the list
    *  of active script engines. */
   public LogScriptEngine newScriptEngine(JTextArea logTextArea) {
-    var engine = new LogScriptEngine(this, logTextArea);
+    var engine = new LogScriptEngine(this, scriptEngines.size(), logTextArea);
     scriptEngines.add(engine);
     return engine;
   }
@@ -311,7 +345,6 @@ public class Simulation extends Observable implements Runnable {
   /** Remove a script engine from the list of active script engines. */
   public void removeScriptEngine(LogScriptEngine engine) {
     engine.deactivateScript();
-    engine.closeLog();
     scriptEngines.remove(engine);
   }
 
@@ -323,12 +356,11 @@ public class Simulation extends Observable implements Runnable {
   }
 
   public Integer startSimulation(boolean block) {
-    if (!isRunning()) {
-      isRunning = true;
-      simulationThread = new Thread(this, "sim");
-      simulationThread.start();
+    if (!isRunning() && !isShutdown) {
+      commandQueue.add(Command.START);
       if (block) {
         try {
+          // Wait for simulation to be shutdown
           simulationThread.join();
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
@@ -340,49 +372,49 @@ public class Simulation extends Observable implements Runnable {
   }
 
   /**
-   * Stop simulation (blocks) by calling stopSimulation(true, null).
+   * Stop simulation and block until it has stopped.
    */
   public void stopSimulation() {
-    stopSimulation(true, null);
+    if (stopSimulation(null)) {
+      waitFor(false, 250);
+    }
   }
 
   /**
    * Stop simulation
    *
-   * @param block Block until simulation has stopped, with timeout (100ms)
    * @param rv Return value from startSimulation, should be null unless > 0
+   * @return True if action was taken
    */
-  public void stopSimulation(boolean block, Integer rv) {
-    if (!isRunning()) {
-      return;
+  public boolean stopSimulation(Integer rv) {
+    if (!isRunning() || isShutdown) {
+      return false;
     }
     assert rv == null || rv > 0 : "Pass in rv = null or rv > 0";
     if (rv != null) {
       returnValue = rv;
     }
-    stopSimulation = true;
-
-    if (block) {
-      if (Thread.currentThread() == simulationThread) {
-        return;
-      }
-
-      /* Wait until simulation stops */
-      try {
-        Thread simThread = simulationThread;
-        if (simThread != null) {
-          simThread.join(100);
-        }
-      } catch (InterruptedException e) {
-      }
-    }
-    cooja.updateProgress(true);
+    commandQueue.add(Cooja.isVisualized() ? Command.STOP : Command.QUIT);
+    return true;
   }
 
-  public void stopScriptEngines() {
-    // FIXME: this should be at the end of run(), but that requires the sim thread to be persistent.
-    for (var engine : scriptEngines) {
-      engine.deactivateScript();
+  private void waitFor(boolean isRunning, long timeout) {
+    if (Thread.currentThread() == simulationThread) {
+      return;
+    }
+    long startTime = System.currentTimeMillis();
+    try {
+      synchronized (stateLock) {
+        while (this.isRunning != isRunning && !isShutdown) {
+          long maxWaitTime = timeout - (System.currentTimeMillis() - startTime);
+          if (timeout != 0 && maxWaitTime <= 0) {
+            return;
+          }
+          stateLock.wait(timeout == 0 ? 0 : maxWaitTime);
+        }
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
     }
   }
 
@@ -397,7 +429,6 @@ public class Simulation extends Observable implements Runnable {
     TimeEvent stopEvent = new TimeEvent() {
       @Override
       public void execute(long t) {
-        /* Stop simulation */
         stopSimulation();
       }
     };
@@ -683,9 +714,6 @@ public class Simulation extends Observable implements Runnable {
     setChanged();
     notifyObservers(this);
 
-    /* Execute simulation thread events now, before simulation starts */
-    runSimulationInvokes();
-
     return true;
   }
 
@@ -696,37 +724,24 @@ public class Simulation extends Observable implements Runnable {
    *          Mote to remove
    */
   public void removeMote(final Mote mote) {
+    invokeSimulationThread(() -> doRemoveMote(mote));
+  }
 
-    /* Simulation is running, remove mote in simulation loop */
-    Runnable removeMote = new Runnable() {
-      @Override
-      public void run() {
-        motes.remove(mote);
-        currentRadioMedium.unregisterMote(mote, Simulation.this);
+  private void doRemoveMote(Mote mote) {
+    motes.remove(mote);
+    currentRadioMedium.unregisterMote(mote, Simulation.this);
 
-        /* Dispose mote interface resources */
-        mote.removed();
-        for (MoteInterface i: mote.getInterfaces().getInterfaces()) {
-          i.removed();
-        }
-
-        setChanged();
-        notifyObservers(mote);
-
-        // Delete all events associated with deleted mote.
-        eventQueue.removeIf(
-          (TimeEvent ev) ->
-            ev instanceof MoteTimeEvent && ((MoteTimeEvent)ev).getMote() == mote);
-      }
-    };
-
-    if (!isRunning()) {
-      /* Simulation is stopped, remove mote immediately */
-      removeMote.run();
-    } else {
-      /* Remove mote from simulation thread */
-      invokeSimulationThread(removeMote);
+    /* Dispose mote interface resources */
+    mote.removed();
+    for (MoteInterface i: mote.getInterfaces().getInterfaces()) {
+      i.removed();
     }
+
+    setChanged();
+    notifyObservers(mote);
+
+    // Delete all events associated with deleted mote.
+    eventQueue.removeIf(ev -> ev instanceof MoteTimeEvent moteTimeEvent && moteTimeEvent.getMote() == mote);
 
     getCooja().closeMotePlugins(mote);
   }
@@ -736,15 +751,8 @@ public class Simulation extends Observable implements Runnable {
    * This method is called just before the simulation is removed.
    */
   public void removed() {
-  	/* Remove radio medium */
-  	if (currentRadioMedium != null) {
-  		currentRadioMedium.removed();
-  	}
-
-    /* Remove all motes */
-    Mote[] motes = getMotes();
-    for (Mote m: motes) {
-      removeMote(m);
+    if (!isShutdown) {
+      commandQueue.add(Command.QUIT);
     }
   }
 
@@ -755,7 +763,7 @@ public class Simulation extends Observable implements Runnable {
    *          Mote to add
    */
   public void addMote(final Mote mote) {
-    Runnable addMote = new Runnable() {
+    invokeSimulationThread(new Runnable() {
       @Override
       public void run() {
         if (mote.getInterfaces().getClock() != null) {
@@ -781,16 +789,7 @@ public class Simulation extends Observable implements Runnable {
         notifyObservers(mote);
         cooja.updateGUIComponentState();
       }
-    };
-
-    if (!isRunning()) {
-      /* Simulation is stopped, add mote immediately */
-      addMote.run();
-    } else {
-      /* Add mote from simulation thread */
-      invokeSimulationThread(addMote);
-    }
-    
+    });
   }
 
   /**
@@ -909,7 +908,7 @@ public class Simulation extends Observable implements Runnable {
    * @param newSpeedLimit
    */
   public void setSpeedLimit(final Double newSpeedLimit) {
-    Runnable r = new Runnable() {
+    invokeSimulationThread(new Runnable() {
       @Override
       public void run() {
         if (newSpeedLimit == null) {
@@ -929,14 +928,7 @@ public class Simulation extends Observable implements Runnable {
         Simulation.this.setChanged();
         Simulation.this.notifyObservers(this);
       }
-    };
-    if (!isRunning()) {
-    	/* Simulation is stopped, change speed immediately */
-    	r.run();
-    } else {
-    	/* Change speed from simulation thread */
-    	invokeSimulationThread(r);
-    }
+    });
   }
 
   /**
@@ -1029,12 +1021,7 @@ public class Simulation extends Observable implements Runnable {
    * @return True if simulation is runnable
    */
   public boolean isRunnable() {
-    if (isRunning || !eventQueue.isEmpty()) {
-      return true;
-    }
-    synchronized (pollRequests) {
-      return hasPollRequests;
-    }
+    return isRunning || !eventQueue.isEmpty();
   }
 
   /**

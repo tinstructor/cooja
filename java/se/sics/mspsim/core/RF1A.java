@@ -34,10 +34,10 @@ import se.sics.mspsim.chip.CC1101.GDOListener;
 import se.sics.mspsim.core.IOPort.PinState;
 
 public class RF1A extends IOUnit implements InterruptHandler {
-    private boolean DEBUG = true;
+    private final boolean DEBUG = true;
 
-    public static int ADDRESS = 0xf00;
-    public static int SIZE = 64;
+    public static final int ADDRESS = 0xf00;
+    public static final int SIZE = 64;
 
     private static final int RF1AIFCTL0 = 0x00;
     private static final int RF1AIFCTL1 = 0x02;
@@ -64,7 +64,7 @@ public class RF1A extends IOUnit implements InterruptHandler {
     private static final int RF1ARXFIFO = 0x3c;
     private static final int RF1ATXFIFO = 0x3e;
 
-    private CC1101 cc1101;
+    private final CC1101 cc1101;
 
     private boolean interruptOnCC1101GDO0 = false;
     private boolean gdo0IsHigh = false;
@@ -132,9 +132,6 @@ public class RF1A extends IOUnit implements InterruptHandler {
     private boolean expectingDummyWrite = false;
     @Override
     public void write(int address, int value, boolean word, long cycles) {
-        /*if (DEBUG) {
-            System.out.printf(this.getName() + ": Write to 0x%04x: 0x%04x\n", address, value);
-        }*/
 
         if (address == ADDRESS + RF1AIE) {
           /* Configure interrupts */
@@ -199,9 +196,6 @@ public class RF1A extends IOUnit implements InterruptHandler {
 
     @Override
     public int read(int address, boolean word, long cycles) {
-        /*if (DEBUG) {
-            System.out.printf(this.getName() + ": Read from 0x%04x\n", address);
-        }*/
 
         if (address == ADDRESS + RF1AIV) {
           if (interruptOnCC1101GDO0 && gdo0IsHigh) {
