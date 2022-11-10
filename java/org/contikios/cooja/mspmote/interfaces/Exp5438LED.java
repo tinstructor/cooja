@@ -45,7 +45,6 @@ import org.contikios.cooja.interfaces.LED;
 import org.contikios.cooja.mspmote.Exp5438Mote;
 import se.sics.mspsim.core.IOPort;
 import se.sics.mspsim.core.IOUnit;
-import se.sics.mspsim.core.PortListener;
 import se.sics.mspsim.platform.ti.Exp5438Node;
 
 /**
@@ -67,14 +66,11 @@ public class Exp5438LED extends LED {
     var mspMote = (Exp5438Mote) mote;
     IOUnit unit = mspMote.getCPU().getIOUnit("P1");
     if (unit instanceof IOPort) {
-      ((IOPort) unit).addPortListener(new PortListener() {
-        @Override
-        public void portWrite(IOPort source, int data) {
-          redOn = (data & Exp5438Node.LEDS_CONF_RED) != 0;
-          yellowOn = (data & Exp5438Node.LEDS_CONF_YELLOW) != 0;
-          setChanged();
-          notifyObservers();
-        }
+      ((IOPort) unit).addPortListener((source, data) -> {
+        redOn = (data & Exp5438Node.LEDS_CONF_RED) != 0;
+        yellowOn = (data & Exp5438Node.LEDS_CONF_YELLOW) != 0;
+        setChanged();
+        notifyObservers();
       });
     }
   }

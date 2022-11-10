@@ -37,6 +37,7 @@ import org.apache.logging.log4j.core.config.builder.api.AppenderComponentBuilder
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder;
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory;
 import org.apache.logging.log4j.core.config.builder.impl.BuiltConfiguration;
+import org.contikios.cooja.Cooja.Config;
 import picocli.CommandLine;
 import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.Command;
@@ -88,6 +89,12 @@ class Main {
   String coojaPath;
 
   /**
+   * Option for specifying javac path.
+   */
+  @Option(names = "-javac", paramLabel = "FILE", description = "the javac binary", required = true)
+  String javac;
+
+  /**
    * Option for specifying external config file of tools.
    */
   @Option(names = "-external_tools_config", paramLabel = "FILE", description = "the filename for external config")
@@ -113,7 +120,7 @@ class Main {
      * Option for specifying file to start the simulation with.
      */
     @Option(names = "-quickstart", paramLabel = "FILE", description = "start simulation with file")
-    String quickstart;
+    String[] quickstart;
 
     /**
      * Option for specifying file to start the simulation with.
@@ -181,7 +188,7 @@ class Main {
 
     // Verify soundness of -nogui/-quickstart argument.
     if (options.action != null) {
-      for (var file : options.action.nogui == null ? new String[] {options.action.quickstart} : options.action.nogui) {
+      for (var file : options.action.nogui == null ? options.action.quickstart : options.action.nogui) {
         if (!file.endsWith(".csc") && !file.endsWith(".csc.gz")) {
           String option = options.action.nogui == null ? "-quickstart" : "-nogui";
           System.err.println("Cooja " + option + " expects a filename extension of '.csc'");
@@ -237,10 +244,29 @@ class Main {
       System.exit(1);
     }
 
+    if (!Files.exists(Path.of(options.javac))) {
+      System.err.println("Java compiler '" + options.javac + "' does not exist");
+      System.exit(1);
+    }
+
     if (options.logName != null && !options.logName.endsWith(".log")) {
       options.logName += ".log";
     }
 
+    var vis = options.action == null || options.action.quickstart != null;
+    if (vis) {
+      try {
+        GUI.setLookAndFeel();
+      } catch (Exception e) {
+        System.err.println("Could not set look and feel: " + e.getMessage());
+        System.exit(1);
+      }
+    }
+
+    var cfg = new Config(options.randomSeed, options.externalToolsConfig, options.updateSimulation,
+            options.logDir, options.contikiPath, options.coojaPath, options.javac,
+            options.action == null ? null : options.action.quickstart,
+            options.action == null ? null : options.action.nogui);
     // Configure logger
     if (options.logConfigFile == null) {
       ConfigurationBuilder<BuiltConfiguration> builder = ConfigurationBuilderFactory.newConfigurationBuilder();
@@ -280,10 +306,10 @@ class Main {
       //        but go immediately returns which causes the log file to be closed
       //        while the simulation is still running.
       Configurator.initialize(builder.build());
-      Cooja.go(options);
+      Cooja.go(cfg);
     } else {
       Configurator.initialize("ConfigFile", options.logConfigFile);
-      Cooja.go(options);
+      Cooja.go(cfg);
     }
   }
 }

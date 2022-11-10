@@ -42,6 +42,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Objects;
+import jdk.incubator.foreign.MemoryAddress;
+import jdk.incubator.foreign.ResourceScope;
 import org.contikios.cooja.MoteType.MoteTypeCreationException;
 import org.contikios.cooja.contikimote.ContikiMoteType;
 import org.contikios.cooja.dialogs.MessageContainer;
@@ -83,6 +85,7 @@ import org.contikios.cooja.dialogs.MessageList;
 public abstract class CoreComm {
   private final static ArrayList<File> coreCommFiles = new ArrayList<>();
 
+  protected long offset = 0;
   private static int fileCounter = 1;
 
   /**
@@ -145,13 +148,14 @@ public abstract class CoreComm {
   /**
    * Compiles Java class.
    *
+   * @param cooja Cooja object
    * @param tempDir Directory for temporary files
    * @param className
    *          Java class name (without extension)
    * @throws MoteTypeCreationException
    *           If Java class compilation error occurs
    */
-  private static void compileSourceFile(Path tempDir, String className)
+  private static void compileSourceFile(Cooja cooja, Path tempDir, String className)
       throws MoteTypeCreationException {
       /* Try to create a message list with support for GUI - will give not UI if headless */
     MessageList compilationOutput = MessageContainer.createMessageList(true);
@@ -162,9 +166,8 @@ public abstract class CoreComm {
 
     try {
       int b;
-      String[] cmd = new String[] {
-          Cooja.getExternalToolsSetting("PATH_JAVAC"),
-          "-cp", System.getProperty("java.class.path"), "--release", "17",
+      String[] cmd = new String[] {cooja.configuration.javac(),
+          "-cp", System.getProperty("java.class.path"), "--release", String.valueOf(Runtime.version().feature()),
           // Disable warnings to avoid 3 lines of "warning: using incubating module(s): jdk.incubator.foreign".
           "-nowarn", "--add-modules", "jdk.incubator.foreign",
           tempDir + "/org/contikios/cooja/corecomm/" + className + ".java" };
@@ -201,6 +204,7 @@ public abstract class CoreComm {
    * Create and return an instance of the core communicator identified by
    * className. This core communicator will load the native library libFile.
    *
+   * @param cooja Cooja object
    * @param tempDir Directory for temporary files
    * @param className
    *          Class name of core communicator
@@ -208,10 +212,10 @@ public abstract class CoreComm {
    *          Native library file
    * @return Core Communicator
    */
-  public static CoreComm createCoreComm(Path tempDir, String className, File libFile)
+  public static CoreComm createCoreComm(Cooja cooja, Path tempDir, String className, File libFile)
       throws MoteTypeCreationException {
     generateLibSourceFile(tempDir, className);
-    compileSourceFile(tempDir, className);
+    compileSourceFile(cooja, tempDir, className);
 
     // Loading a class might leave residue in the JVM so use a new name for the next call.
     fileCounter++;
@@ -255,12 +259,13 @@ public abstract class CoreComm {
   public abstract long getReferenceAddress();
 
   /**
-   * Sets the relative memory address of the reference variable.
-   * Is used by Contiki to map between absolute and relative memory addresses.
+   * Set the offset between absolute and relative memory addresses.
    *
-   * @param addr Relative address
+   * @param offset Offset between absolute and relative addresses
    */
-  public abstract void setReferenceAddress(long addr);
+  public void setReferenceOffset(long offset) {
+    this.offset = offset;
+  }
 
   /**
    * Fills a byte array with memory segment identified by start and length.
@@ -269,7 +274,10 @@ public abstract class CoreComm {
    * @param length Length of segment
    * @param mem Array to fill with memory segment
    */
-  public abstract void getMemory(long relAddr, int length, byte[] mem);
+  public void getMemory(long relAddr, int length, byte[] mem) {
+    final var addr = MemoryAddress.ofLong(relAddr + offset);
+    addr.asSegment(length, ResourceScope.globalScope()).asByteBuffer().get(0, mem, 0, length);
+  }
 
   /**
    * Overwrites a memory segment identified by start and length.
@@ -278,6 +286,8 @@ public abstract class CoreComm {
    * @param length Length of segment
    * @param mem New memory segment data
    */
-  public abstract void setMemory(long relAddr, int length, byte[] mem);
-
+  public void setMemory(long relAddr, int length, byte[] mem) {
+    final var addr = MemoryAddress.ofLong(relAddr + offset);
+    addr.asSegment(length, ResourceScope.globalScope()).asByteBuffer().put(0, mem, 0, length);
+  }
 }

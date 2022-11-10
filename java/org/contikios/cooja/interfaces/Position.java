@@ -33,7 +33,6 @@ package org.contikios.cooja.interfaces;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Observable;
 import java.util.Observer;
 import javax.swing.BoxLayout;
 import javax.swing.JLabel;
@@ -151,14 +150,9 @@ public class Position extends MoteInterface {
     panel.add(positionLabel);
 
     Observer observer;
-    this.addObserver(observer = new Observer() {
-      @Override
-      public void update(Observable obs, Object obj) {
-        positionLabel.setText("x=" + form.format(getXCoordinate()) + " "
-            + "y=" + form.format(getYCoordinate()) + " "
-            + "z=" + form.format(getZCoordinate()));
-      }
-    });
+    this.addObserver(observer = (obs, obj) -> positionLabel.setText("x=" + form.format(getXCoordinate()) + " "
+        + "y=" + form.format(getYCoordinate()) + " "
+        + "z=" + form.format(getZCoordinate())));
 
     // Saving observer reference for releaseInterfaceVisualizer
     panel.putClientProperty("intf_obs", observer);

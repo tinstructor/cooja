@@ -33,8 +33,6 @@ package org.contikios.cooja.dialogs;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.text.NumberFormat;
 
 import javax.swing.AbstractAction;
@@ -87,18 +85,23 @@ public class BufferSettings extends JDialog {
     JButton okButton = new JButton(disposeAction);
     getRootPane().setDefaultButton(okButton);
 
-    JFormattedTextField value = addEntry(main, "Log output messages");
+    var box = Box.createHorizontalBox();
+    JLabel label = new JLabel("Log output messages");
+    label.setPreferredSize(LABEL_SIZE);
+    box.add(label);
+    box.add(Box.createHorizontalGlue());
+    var value = new JFormattedTextField(NumberFormat.getIntegerInstance());
+    value.setPreferredSize(LABEL_SIZE);
+    box.add(value);
+    main.add(box);
     value.setValue(central.getLogOutputBufferSize());
-    value.addPropertyChangeListener("value", new PropertyChangeListener() {
-      @Override
-      public void propertyChange(PropertyChangeEvent evt) {
-        int newVal = ((Number)evt.getNewValue()).intValue();
-        if (newVal < 1) {
-          newVal = 1;
-          ((JFormattedTextField)evt.getSource()).setValue(newVal);
-        }
-        central.setLogOutputBufferSize(newVal);
+    value.addPropertyChangeListener("value", evt -> {
+      int newVal = ((Number)evt.getNewValue()).intValue();
+      if (newVal < 1) {
+        newVal = 1;
+        ((JFormattedTextField)evt.getSource()).setValue(newVal);
       }
+      central.setLogOutputBufferSize(newVal);
     });
 
     main.add(Box.createVerticalStrut(10));
@@ -130,21 +133,6 @@ public class BufferSettings extends JDialog {
     main.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
     getContentPane().add(main);
     pack();
-  }
-
-  private static JFormattedTextField addEntry(JComponent container, String desc) {
-    Box box;
-    box = Box.createHorizontalBox();
-    JLabel label = new JLabel(desc);
-    label.setPreferredSize(LABEL_SIZE);
-    box.add(label);
-    box.add(Box.createHorizontalGlue());
-    JFormattedTextField value = new JFormattedTextField(NumberFormat.getIntegerInstance());
-    value.setPreferredSize(LABEL_SIZE);
-    box.add(value);
-
-    container.add(box);
-    return value;
   }
 
 }

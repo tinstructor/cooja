@@ -479,7 +479,7 @@ public class BufferListener extends VisPlugin {
         if (d == null) {
           return;
         }
-        simulation.getCooja().signalMoteHighlight(d.mote);
+        Cooja.signalMoteHighlight(d.mote);
       }
     });
 
@@ -752,8 +752,8 @@ public class BufferListener extends VisPlugin {
 
     updateTitle();
     pack();
-    setSize(gui.getDesktopPane().getWidth(), 150);
-    setLocation(0, gui.getDesktopPane().getHeight() - 300);
+    setSize(Cooja.getDesktopPane().getWidth(), 150);
+    setLocation(0, Cooja.getDesktopPane().getHeight() - 300);
   }
 
   private boolean startMonitoring(Mote mote) throws Exception {

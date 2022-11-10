@@ -158,13 +158,9 @@ public class ImportAppMoteDialog extends JDialog {
     });
     topPanel.add(createPanel("Application Mote Java Class:", classField, browseButton));
 
-    ActionListener cancelAction = new ActionListener() {
-
-      @Override
-      public void actionPerformed(ActionEvent e) {
-        setVisible(false);
-        dispose();
-      }
+    ActionListener cancelAction = e -> {
+      setVisible(false);
+      dispose();
     };
     cancelButton = new JButton("Cancel");
     cancelButton.addActionListener(cancelAction);
@@ -236,7 +232,7 @@ public class ImportAppMoteDialog extends JDialog {
   }
 
   private boolean trySetClass(Simulation simulation, ImportAppMoteType moteType, File classFile) {
-    try (var loader = moteType.createTestLoader(classFile)) {
+    try (var loader = moteType.createTestLoader(simulation, classFile)) {
       if (!loader.isTestSubclass(Mote.class)) {
         JOptionPane.showMessageDialog(ImportAppMoteDialog.this,
             "Class '" + classFile + "'\n is not of type Mote", "Failed to load class",

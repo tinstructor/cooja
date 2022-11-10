@@ -299,7 +299,7 @@ public class CC1120 extends Radio802154 implements USARTListener {
                 }
         };
 
-        protected final boolean DEBUG = false;
+        protected static final boolean DEBUG = false;
 
         public final static double BITRATE_BYTE_DURATION = 0.16; /* ms. Duration per byte transmitted, corresponds to 50kbit/s */
         public final static double FREQUENCY_CHANNEL_0 = 902; /* MHz */
@@ -311,7 +311,7 @@ public class CC1120 extends Radio802154 implements USARTListener {
   /* RSSI1: RSSI_11_4 */
         private int currentRssiReg1 = 0;
   /* RSSI0: RSSI_3_0 TODO XXX Ignored */
-        private final int currentRssiReg0 = 0;
+        private static final int currentRssiReg0 = 0;
 
         private double frequency = -1;
         private int nextFreq0 = -1, nextFreq1 = -1, nextFreq2 = -1; /* regs */
@@ -607,21 +607,24 @@ public class CC1120 extends Radio802154 implements USARTListener {
                 }
 
                 switch (address) {
-                case CC1120_DRATE0:
-                        if (data != 0x99) {
-                                System.err.println("Warning: incompatible CC1120 data rate. Only 50kbit/s (0x99) is currently supported. CC1120_DRATE0: " + Integer.toHexString(data));
+                        case CC1120_DRATE0 -> {
+                                if (data != 0x99) {
+                                        System.err.println("Warning: incompatible CC1120 data rate. Only 50kbit/s (0x99) is currently supported. CC1120_DRATE0: " + Integer.toHexString(data));
+                                }
+                                return 0;
                         }
-                        return 0;
-                case CC1120_DRATE1:
-                        if (data != 0x99) {
-                                System.err.println("Warning: incompatible CC1120 data rate. Only 50kbit/s (0x99) is currently supported. CC1120_DRATE1: " + Integer.toHexString(data));
+                        case CC1120_DRATE1 -> {
+                                if (data != 0x99) {
+                                        System.err.println("Warning: incompatible CC1120 data rate. Only 50kbit/s (0x99) is currently supported. CC1120_DRATE1: " + Integer.toHexString(data));
+                                }
+                                return 0;
                         }
-                        return 0;
-                case CC1120_DRATE2:
-                        if (data != 0x99) {
-                                System.err.println("Warning: incompatible CC1120 data rate. Only 50kbit/s (0x99) is currently supported. CC1120_DRATE2: " + Integer.toHexString(data));
+                        case CC1120_DRATE2 -> {
+                                if (data != 0x99) {
+                                        System.err.println("Warning: incompatible CC1120 data rate. Only 50kbit/s (0x99) is currently supported. CC1120_DRATE2: " + Integer.toHexString(data));
+                                }
+                                return 0;
                         }
-                        return 0;
                 }
 
                 int oldValue = registers[address];
@@ -663,20 +666,21 @@ public class CC1120 extends Radio802154 implements USARTListener {
                 }
 
                 switch (address) {
-                case CC1120_RXFIFO:
-                        if (rxfifo.size() > 0) {
-                                int ret = (int) rxfifo.remove(0);
-                                /* printRXFIFO(); */
+                        case CC1120_RXFIFO -> {
+                                if (rxfifo.size() > 0) {
+                                        int ret = (int) rxfifo.remove(0);
+                                        /* printRXFIFO(); */
 
-                                if (triggerGDO0onFifoThreshold && rxfifo.size() == 0) {
-                                        setGDO0(false);
+                                        if (triggerGDO0onFifoThreshold && rxfifo.size() == 0) {
+                                                setGDO0(false);
+                                        }
+                                        return ret;
                                 }
-                                return ret;
-                        }
 
-                /* RXFIFO underflow */
-            setState(CC1120RadioState.CC1120_STATE_RX_FIFO_ERR);
-                        return -1;
+                                /* RXFIFO underflow */
+                                setState(CC1120RadioState.CC1120_STATE_RX_FIFO_ERR);
+                                return -1;
+                        }
                 }
 
                 if (address != CC1120.CC1120_MARCSTATE) {

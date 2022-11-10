@@ -61,6 +61,9 @@ public class Simulation extends Observable {
   public static final long MICROSECOND = 1L;
   public static final long MILLISECOND = 1000*MICROSECOND;
 
+  /** The name of the directory to output logs to. */
+  private final String logDir;
+
   /** Lock used to wait for simulation state changes */
   private final Object stateLock = new Object();
 
@@ -152,8 +155,9 @@ public class Simulation extends Observable {
   /**
    * Creates a new simulation
    */
-  public Simulation(Cooja cooja, long seed) {
+  public Simulation(Cooja cooja, String logDir, long seed) {
     this.cooja = cooja;
+    this.logDir = logDir;
     randomGenerator = new SafeRandom(this);
     randomSeed = seed;
     simulationThread = new Thread(() -> {
@@ -228,15 +232,6 @@ public class Simulation extends Observable {
       for (Mote m: motes) {
         doRemoveMote(m);
       }
-
-      // Log test status to console in headless mode, ScriptRunner shows status in GUI mode.
-      if (!Cooja.isVisualized()) {
-        if (returnValue == null) {
-          logger.info("TEST OK\n");
-        } else {
-          logger.warn("TEST FAILED\n");
-        }
-      }
     }, "sim");
     simulationThread.start();
   }
@@ -268,7 +263,7 @@ public class Simulation extends Observable {
       stateLock.notifyAll();
     }
 
-    cooja.updateProgress(!isRunning);
+    Cooja.updateProgress(!isRunning);
     setChanged();
     notifyObservers(this);
   }
@@ -337,7 +332,7 @@ public class Simulation extends Observable {
   /** Create a new script engine that logs to the logTextArea and add it to the list
    *  of active script engines. */
   public LogScriptEngine newScriptEngine(JTextArea logTextArea) {
-    var engine = new LogScriptEngine(this, scriptEngines.size(), logTextArea);
+    var engine = new LogScriptEngine(this, logDir, scriptEngines.size(), logTextArea);
     scriptEngines.add(engine);
     return engine;
   }
@@ -620,7 +615,7 @@ public class Simulation extends Observable {
           break;
         }
         case "events":
-          eventCentral.setConfigXML(this, element.getChildren(), Cooja.isVisualized());
+          eventCentral.setConfigXML(element.getChildren());
           break;
         case "motetype": {
           String moteTypeClassName = element.getText().trim();
@@ -694,11 +689,7 @@ public class Simulation extends Observable {
             logger.fatal("Mote was not created: " + element.getText().trim());
             throw new Exception("All motes were not recreated");
           }
-          if (getMoteWithID(mote.getID()) != null) {
-            logger.warn("Ignoring duplicate mote ID: " + mote.getID());
-          } else {
-            addMote(mote);
-          }
+          addMote(mote);
           break;
         }
       }
@@ -787,7 +778,7 @@ public class Simulation extends Observable {
 
         setChanged();
         notifyObservers(mote);
-        cooja.updateGUIComponentState();
+        Cooja.updateGUIComponentState();
       }
     });
   }

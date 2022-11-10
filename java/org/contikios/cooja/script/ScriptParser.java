@@ -39,170 +39,72 @@ import org.contikios.cooja.Simulation;
 
 public class ScriptParser {
   private long timeoutTime = -1;
-  private String timeoutCode = null;
+  private String timeoutCode = "";
 
   private final String code;
 
   public ScriptParser(String code) throws ScriptSyntaxErrorException {
-
-    code = fixNewlines(code);
-
-    code = stripMultiLineComments(code);
-
-    code = stripSingleLineComments(code);
-
-    code = parseTimeout(code);
-
-    code = parseTimeoutWithAction(code);
-
-    code = replaceYieldThenWaitUntils(code);
-
-    code = replaceWaitUntils(code);
-
-    code = replaceTestStatus(code);
-
-    this.code = code;
-  }
-
-  private static String fixNewlines(String code) {
-    code = code.replaceAll("\r\n", "\n");
-    code = "\n" + code + "\n";
-    return code;
-  }
-
-  private static String stripSingleLineComments(String code) {
-    /* TODO Handle strings */
-    Pattern pattern = Pattern.compile("//.*\n");
-    Matcher matcher = pattern.matcher(code);
-    code = matcher.replaceAll("\n");
-    return code;
-  }
-
-  private static String stripMultiLineComments(String code) {
-    /* TODO Handle strings */
-    Pattern pattern =
-      Pattern.compile("/\\*([^*]|\n|(\\*+([^*/]|\n)))*\\*+/");
-    Matcher matcher = pattern.matcher(code);
-
+    code = "\n" + code.replaceAll("\r\n", "\n") + "\n";
+    Matcher matcher = Pattern.compile("/\\*([^*]|\n|(\\*+([^*/]|\n)))*\\*+/").matcher(code);
     while (matcher.find()) {
       String match = matcher.group();
       int newLines = match.split("\n").length;
       code = matcher.replaceFirst("\n".repeat(newLines));
       matcher.reset(code);
     }
-    return code;
-  }
+    code = Pattern.compile("//.*\n").matcher(code).replaceAll("\n");
 
-  private String parseTimeout(String code) throws ScriptSyntaxErrorException {
-    Pattern pattern = Pattern.compile(
-        "TIMEOUT\\(" +
-        "(\\d+)" /* timeout */ +
-        "\\)"
-    );
-    Matcher matcher = pattern.matcher(code);
-
-    if (!matcher.find()) {
-      return code;
+    Matcher matcher2 = Pattern.compile("TIMEOUT\\(" + "(\\d+)" + "\\)").matcher(code);
+    if (matcher2.find()) {
+      timeoutTime = Long.parseLong(matcher2.group(1)) * Simulation.MILLISECOND;
+      matcher2.reset(code);
+      code = matcher2.replaceFirst(";");
+      matcher2.reset(code);
+      if (matcher2.find()) {
+        throw new ScriptSyntaxErrorException("Only one timeout handler allowed");
+      }
     }
 
-    if (timeoutTime > 0) {
-      throw new ScriptSyntaxErrorException("Only one timeout handler allowed");
+    Matcher matcher3 = Pattern.compile("TIMEOUT\\(" + "(\\d+)" + "\\s*,\\s*" + "(.*)" + "\\)").matcher(code);
+    if (matcher3.find()) {
+      if (timeoutTime > 0) {
+        throw new ScriptSyntaxErrorException("Only one timeout handler allowed");
+      }
+      timeoutTime = Long.parseLong(matcher3.group(1)) * Simulation.MILLISECOND;
+      // FIXME: code6 should not be required, handled by last lines in constructor.
+      String code6 = matcher3.group(2);
+      code6 = Pattern.compile("log\\.testOK\\(\\)").matcher(code6).replaceAll("throw new TestOK()");
+      timeoutCode = Pattern.compile("log\\.testFailed\\(\\)").matcher(code6).replaceAll("throw new TestFailed()");
+      matcher3.reset(code);
+      code = matcher3.replaceFirst(";");
+      matcher3.reset(code);
+      if (matcher3.find()) {
+        throw new ScriptSyntaxErrorException("Only one timeout handler allowed");
+      }
     }
 
-    timeoutTime = Long.parseLong(matcher.group(1))*Simulation.MILLISECOND;
-    timeoutCode = ";";
-
-    matcher.reset(code);
-    code = matcher.replaceFirst(";");
-
-    matcher.reset(code);
-    if (matcher.find()) {
-      throw new ScriptSyntaxErrorException("Only one timeout handler allowed");
-    }
-    return code;
-  }
-
-  private String parseTimeoutWithAction(String code) throws ScriptSyntaxErrorException {
-    Pattern pattern = Pattern.compile(
-        "TIMEOUT\\(" +
-        "(\\d+)" /* timeout */ +
-        "\\s*,\\s*" +
-        "(.*)" /* code */ +
-        "\\)"
-    );
-    Matcher matcher = pattern.matcher(code);
-
-    if (!matcher.find()) {
-      return code;
+    Matcher matcher4 = Pattern.compile("YIELD_THEN_WAIT_UNTIL\\(" + "(.*)" + "\\)").matcher(code);
+    while (matcher4.find()) {
+      code = matcher4.replaceFirst("YIELD(); WAIT_UNTIL(" + matcher4.group(1) + ")");
+      matcher4.reset(code);
     }
 
-    if (timeoutTime > 0) {
-      throw new ScriptSyntaxErrorException("Only one timeout handler allowed");
+    Matcher matcher5 = Pattern.compile("WAIT_UNTIL\\(" + "(.*)" + "\\)").matcher(code);
+    while (matcher5.find()) {
+      code = matcher5.replaceFirst("while (!(" + matcher5.group(1) + ")) { " + " YIELD(); " + "}");
+      matcher5.reset(code);
     }
-
-    timeoutTime = Long.parseLong(matcher.group(1))*Simulation.MILLISECOND;
-    timeoutCode = replaceTestStatus(matcher.group(2));
-
-    matcher.reset(code);
-    code = matcher.replaceFirst(";");
-
-    matcher.reset(code);
-    if (matcher.find()) {
-      throw new ScriptSyntaxErrorException("Only one timeout handler allowed");
-    }
-    return code;
-  }
-
-  private static String replaceYieldThenWaitUntils(String code) {
-    Pattern pattern = Pattern.compile(
-        "YIELD_THEN_WAIT_UNTIL\\(" +
-        "(.*)" /* expression */ +
-        "\\)"
-    );
-    Matcher matcher = pattern.matcher(code);
-
-    while (matcher.find()) {
-      code = matcher.replaceFirst(
-          "YIELD(); WAIT_UNTIL(" + matcher.group(1) + ")");
-      matcher.reset(code);
-    }
-
-    return code;
-  }
-
-  private static String replaceWaitUntils(String code) {
-    Pattern pattern = Pattern.compile(
-        "WAIT_UNTIL\\(" +
-        "(.*)" /* expression */ +
-        "\\)"
-    );
-    Matcher matcher = pattern.matcher(code);
-
-    while (matcher.find()) {
-      code = matcher.replaceFirst(
-          "while (!(" + matcher.group(1) + ")) { " +
-          " YIELD(); " +
-      "}");
-      matcher.reset(code);
-    }
-
-    return code;
-  }
-
-  private static String replaceTestStatus(String code) {
     code = Pattern.compile("log\\.testOK\\(\\)").matcher(code).replaceAll("throw new TestOK()");
-    return Pattern.compile("log\\.testFailed\\(\\)").matcher(code).replaceAll("throw new TestFailed()");
+    code = Pattern.compile("log\\.testFailed\\(\\)").matcher(code).replaceAll("throw new TestFailed()");
+    code = Pattern.compile("log\\.generateMessage\\(").matcher(code).replaceAll("log.generateMsg(mote, ");
+    this.code = code;
   }
 
   public String getJSCode() {
-    return getJSCode(code, timeoutCode);
-  }
-    
-  public static String getJSCode(String code, String timeoutCode) {
     // Nashorn can be created with --language=es6, but "class TestFailed extends Error .." is not supported.
     return
-    """
-    function TestFailed(msg, name, line) {
+     """
+     function TestFailed(msg, name, line) {
        var err = new Error(msg, name, line);
        Object.setPrototypeOf(err, Object.getPrototypeOf(this));
        return err;
@@ -229,46 +131,48 @@ public class ScriptParser {
        constructor: { value: Error, enumerable: false, writable: true, configurable: true }
      });
      Object.setPrototypeOf(Shutdown, Error);
-    """ +
-    "timeout_function = null; " +
-    "function run() { try {" +
-    "YIELD(); " +
-    code + 
-    "\n" +
-    "\n" +
-    "while (true) { YIELD(); } " /* SCRIPT ENDED */+
-    "} catch (error) { " +
-    "SEMAPHORE_SCRIPT.release(); " +
-    "if (error instanceof TestOK) return 0; " +
-    "if (error instanceof TestFailed) return 1; " +
-    "if (error instanceof Shutdown) return -1; " +
-    "throw(error); }" +
-    "};" +
-    "\n" +
-    "function GENERATE_MSG(time, msg) { " +
-    " log.generateMessage(time, msg); " +
-    "};\n" +
-    "\n" +
-    "function SCRIPT_TIMEOUT() { " +
-    timeoutCode + "; " +
-    " if (timeout_function != null) { timeout_function(); } " +
-    " log.log('TEST TIMEOUT\\n'); " +
-    " throw new TestFailed(); " +
-    "};\n" +
-    "\n" +
-    "function YIELD() { " +
-    " SEMAPHORE_SIM.release(); " +
-    " SEMAPHORE_SCRIPT.acquire(); " /* SWITCH BLOCKS HERE! */ +
-    " if (TIMEOUT) { SCRIPT_TIMEOUT(); } " +
-    " if (SHUTDOWN) { throw new Shutdown(); } " +
-    " msg = new java.lang.String(msg); " +
-    " node.setMoteMsg(mote, msg); " +
-    "};\n" +
-    "\n" +
-    "function write(mote,msg) { " +
-    " mote.getInterfaces().getLog().writeString(msg); " +
-    "};\n" +
-    "run();\n";
+
+     function GENERATE_MSG(time, msg) {
+       log.generateMsg(mote, time, msg);
+     };
+
+     function YIELD() {
+       SEMAPHORE_SIM.release();
+       SEMAPHORE_SCRIPT.acquire(); // Wait for simulation here.
+       if (TIMEOUT) {
+     """ + timeoutCode + ";\n" +
+     """
+         if (timeout_function != null) { timeout_function(); }
+         log.log('TEST TIMEOUT\\n');
+         throw new TestFailed();
+       }
+       if (SHUTDOWN) { throw new Shutdown(); }
+       node.setMoteMsg(mote, msg);
+     };
+
+     function write(mote, msg) {
+       mote.getInterfaces().getLog().writeString(msg);
+     };
+     timeout_function = null;
+     function run() {
+       try {
+         YIELD();
+         // User script starting.
+     """ +
+     code +
+     """
+         // User script end.
+         while (true) { YIELD(); }
+       } catch (error) {
+         SEMAPHORE_SCRIPT.release();
+         if (error instanceof TestOK) return 0;
+         if (error instanceof TestFailed) return 1;
+         if (error instanceof Shutdown) return -1;
+         throw(error);
+       }
+     };
+     run();
+     """;
   }
 
   public long getTimeoutTime() {

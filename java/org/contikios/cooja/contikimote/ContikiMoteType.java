@@ -109,11 +109,6 @@ public class ContikiMoteType extends BaseContikiMoteType {
 
   private static final Logger logger = LogManager.getLogger(ContikiMoteType.class);
 
-  /**
-   * Library file suffix
-   */
-  private static final String librarySuffix = ".cooja";
-
   private final Cooja gui;
 
   /**
@@ -204,16 +199,6 @@ public class ContikiMoteType extends BaseContikiMoteType {
     return new ContikiMote(this, simulation);
   }
 
-  /**
-   * Get the mote file for the extension.
-   *
-   * @param extension File extension (.map)
-   * @return The mote file for the extension
-   */
-  private File getMoteFile(String extension) {
-    return new File(fileSource.getParentFile(), "build/cooja/" + identifier + extension);
-  }
-
   @Override
   public LinkedHashMap<String, String> getCompilationEnvironment() {
     var sources = new StringBuilder();
@@ -263,8 +248,8 @@ public class ContikiMoteType extends BaseContikiMoteType {
   }
 
   @Override
-  protected AbstractCompileDialog createCompilationDialog(Simulation sim, MoteTypeConfig cfg) {
-    return new ContikiMoteCompileDialog(sim, this, cfg);
+  protected AbstractCompileDialog createCompilationDialog(Cooja gui, MoteTypeConfig cfg) {
+    return new ContikiMoteCompileDialog(gui, this, cfg);
   }
 
   /** Load LibN.java and the corresponding .cooja file into memory. */
@@ -287,7 +272,7 @@ public class ContikiMoteType extends BaseContikiMoteType {
     // Allocate core communicator class
     final var firmwareFile = getContikiFirmwareFile();
     logger.debug("Creating core communicator between Java class " + javaClassName + " and Contiki library '" + firmwareFile.getPath() + "'");
-    myCoreComm = CoreComm.createCoreComm(tmpDir, javaClassName, firmwareFile);
+    myCoreComm = CoreComm.createCoreComm(gui, tmpDir, javaClassName, firmwareFile);
 
     /* Parse addresses using map file
      * or output of command specified in external tools settings (e.g. nm -a )
@@ -356,8 +341,8 @@ public class ContikiMoteType extends BaseContikiMoteType {
 
       try {
         long referenceVar = tmp.getSymbolMap().get("referenceVar").addr;
-        myCoreComm.setReferenceAddress(referenceVar);
         offset = myCoreComm.getReferenceAddress() - referenceVar;
+        myCoreComm.setReferenceOffset(offset);
       } catch (Exception e) {
         throw new MoteTypeCreationException("Error setting reference variable: " + e.getMessage(), e);
       }
@@ -419,7 +404,7 @@ public class ContikiMoteType extends BaseContikiMoteType {
 
   @Override
   public File getExpectedFirmwareFile(String name) {
-    return new File(new File(name).getParentFile(), "build/cooja/" + identifier + ContikiMoteType.librarySuffix);
+    return new File(new File(name).getParentFile(), "build/cooja/" + identifier + "." + getMoteType());
   }
 
   /**
@@ -842,7 +827,7 @@ public class ContikiMoteType extends BaseContikiMoteType {
     }
     final var sourceFile = getContikiSourceFile();
     if (sourceFile != null) { // Compensate for non-standard naming rules.
-      fileFirmware = getMoteFile(librarySuffix);
+      fileFirmware = getExpectedFirmwareFile(sourceFile.getAbsolutePath());
     }
     if (sourceFile == null) {
       throw new MoteTypeCreationException("No Contiki application specified");

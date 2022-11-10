@@ -96,14 +96,14 @@ public class ConsoleUI extends JComponent {
   private int len = 0;
   private int back = 0;
 
-  private final int charWidth = 7;
-  private final int charHeight = 11;
+  private static final int charWidth = 7;
+  private static final int charHeight = 11;
   private int bottomLine = 30;
 
   private CommandHandler commandHandler;
 
   /* editor variables */
-  private final boolean insert = true;
+  private static final boolean insert = true;
   private boolean editing = false;
   private boolean cursor;
 
@@ -302,24 +302,25 @@ public class ConsoleUI extends JComponent {
 
   private void handleChar(char c) {
     switch (c) {
-    case '\n':
-      String line = new String(chars, 0, len);
-      if (line.trim().length() > 0)
-        history[pos++] = line;
-      addLine(currentOutput + line);
-      if (pos >= history.length)
-        pos = 0;
-      back = 0;
-      executeCommand(line);
-      break;
-    default:
-      if (insert && editPos < len) {
-        System.arraycopy(chars, editPos, chars, editPos + 1, len - editPos);
+      case '\n' -> {
+        String line = new String(chars, 0, len);
+        if (line.trim().length() > 0)
+          history[pos++] = line;
+        addLine(currentOutput + line);
+        if (pos >= history.length)
+          pos = 0;
+        back = 0;
+        executeCommand(line);
       }
-      chars[editPos++] = c;
-      cursorX++;
-      len++;
-      editing = true;
+      default -> {
+        if (insert && editPos < len) {
+          System.arraycopy(chars, editPos, chars, editPos + 1, len - editPos);
+        }
+        chars[editPos++] = c;
+        cursorX++;
+        len++;
+        editing = true;
+      }
     }
     /*
      * complete re-layout - needs to be optimized later - layout is only needed
@@ -560,7 +561,7 @@ public class ConsoleUI extends JComponent {
   }
 
   /* just print space instead of tabs */
-  final String tabs = "           ";
+  static final String tabs = "           ";
 
   /* print char to the shell */
   public void output(int c) {

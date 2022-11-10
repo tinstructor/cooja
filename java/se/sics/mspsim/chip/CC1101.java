@@ -39,7 +39,7 @@ import se.sics.mspsim.core.USARTListener;
 import se.sics.mspsim.core.USARTSource;
 
 public class CC1101 extends Radio802154 implements USARTListener {
-    protected final boolean DEBUG = false;
+    protected static final boolean DEBUG = false;
 
         /* cc1101-const.h: Configuration registers */
         public static final int CC1101_IOCFG1 = 0x01;
@@ -183,8 +183,8 @@ public class CC1101 extends Radio802154 implements USARTListener {
 
   public final static int CCA_THRESHOLD = -95;
 
-  private final boolean triggerGDO0onSynch = false;
-  private final boolean triggerGDO0onFifoThreshold = true;
+  private static final boolean triggerGDO0onSynch = false;
+  private static final boolean triggerGDO0onFifoThreshold = true;
 
         private StateListener stateListener = null;
         private ReceiverListener receiverListener = null;
@@ -438,18 +438,19 @@ public class CC1101 extends Radio802154 implements USARTListener {
                 source.byteReceived(getMarcstate());
         }
         public int setReg(int address, int data) {
-                switch (address) {
-                case CC1101_TXFIFO:
-                        txfifo.add((byte) data);
-                        /*printTXFIFO();*/
-                        return txfifo.size();
-                case CC1101_CHANNR:
-                        channel = data;
-                        if (channelListener != null) {
-                                channelListener.channelChanged(channel);
-                        }
-                        return 0;
-                }
+          switch (address) {
+            case CC1101_TXFIFO -> {
+              txfifo.add((byte) data);
+              return txfifo.size();
+            }
+            case CC1101_CHANNR -> {
+              channel = data;
+              if (channelListener != null) {
+                channelListener.channelChanged(channel);
+              }
+              return 0;
+            }
+          }
 
                 log(String.format("setReg(0x%02x) 0x%02x", address, data));
                 int oldValue = registers[address];
