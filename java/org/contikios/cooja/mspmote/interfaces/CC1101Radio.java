@@ -311,6 +311,11 @@ public class CC1101Radio extends Radio implements CustomDataRadio {
 		return cc1101.getActiveChannel();
 	}
 
+	@Override
+	public int getCommMode() {
+		return -1;
+	}
+
 	public int getFrequency() {
 		return cc1101.getActiveFrequency();
 	}

@@ -123,6 +123,8 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
 
   private int oldRadioChannel = -1;
 
+  private int oldCommMode = -1;
+
   /**
    * Creates an interface to the radio at mote.
    *
@@ -183,6 +185,11 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
   @Override
   public int getChannel() {
     return myMoteMemory.getIntValueOf("simRadioChannel");
+  }
+
+  @Override
+  public int getCommMode() {
+    return myMoteMemory.getIntValueOf("simCommMode");
   }
 
   @Override
@@ -364,6 +371,14 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
     /* Check if radio channel changed */
     if (getChannel() != oldRadioChannel) {
       oldRadioChannel = getChannel();
+      lastEvent = RadioEvent.UNKNOWN;
+      this.setChanged();
+      this.notifyObservers();
+    }
+
+    /* Check if communication mode changed */
+    if(getCommMode() != oldCommMode) {
+      oldCommMode = getCommMode();
       lastEvent = RadioEvent.UNKNOWN;
       this.setChanged();
       this.notifyObservers();

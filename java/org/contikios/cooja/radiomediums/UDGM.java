@@ -221,6 +221,14 @@ public class UDGM extends AbstractRadioMedium {
       if (sender.getClass() != recv.getClass()) {
         continue;
       }
+      /* Fail if radios are using different (but configured) modes */
+      if (sender.getCommMode() >= 0 &&
+          recv.getCommMode() >= 0 &&
+          sender.getCommMode() != recv.getCommMode()) {
+        /* Add the connection in a dormant state */
+        newConnection.addInterfered(recv);
+        continue;
+      }
 
       /* Fail if radios are on different (but configured) channels */ 
       if (sender.getChannel() >= 0 &&
@@ -334,6 +342,12 @@ public class UDGM extends AbstractRadioMedium {
           continue;
         }
 
+        if (conn.getSource().getCommMode() >= 0 &&
+            dstRadio.getCommMode() >= 0 &&
+            conn.getSource().getCommMode() != dstRadio.getCommMode()) {
+          continue;
+        }
+
         double dist = conn.getSource().getPosition().getDistanceTo(dstRadio.getPosition());
 
         double maxTxDist = (conn.getSource().getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)
@@ -353,6 +367,12 @@ public class UDGM extends AbstractRadioMedium {
         if (conn.getSource().getChannel() >= 0 &&
             intfRadio.getChannel() >= 0 &&
             conn.getSource().getChannel() != intfRadio.getChannel()) {
+          continue;
+        }
+
+        if (conn.getSource().getCommMode() >= 0 &&
+            intfRadio.getCommMode() >= 0 &&
+            conn.getSource().getCommMode() != intfRadio.getCommMode()) {
           continue;
         }
 

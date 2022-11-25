@@ -169,6 +169,9 @@ public abstract class Radio802154 extends Radio implements CustomDataRadio {
     @Override
     public abstract int getChannel();
 
+    @Override
+    public abstract int getCommMode();
+
     public abstract int getFrequency();
 
     @Override

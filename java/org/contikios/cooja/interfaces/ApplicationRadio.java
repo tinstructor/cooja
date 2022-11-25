@@ -167,6 +167,11 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
   }
 
   @Override
+  public int getCommMode() {
+    return -1;
+  }
+
+  @Override
   public Position getPosition() {
     return mote.getInterfaces().getPosition();
   }
@@ -307,6 +312,7 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
     final JLabel statusLabel = new JLabel("");
     final JLabel lastEventLabel = new JLabel("");
     final JLabel channelLabel = new JLabel("");
+    final JLabel modeLabel = new JLabel("");
     final JLabel powerLabel = new JLabel("Output power (dBm):");
     final JLabel ssLabel = new JLabel("");
     final JButton updateButton = new JButton("Update SS");
@@ -348,6 +354,7 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
     box.add(updateButton);
     box.add(channelLabel);
     box.add(channelMenu);
+    box.add(modeLabel);
     box.add(powerLabel);
     box.add(outputPower);
 
@@ -377,6 +384,11 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
           channelLabel.setText("Current channel: ALL");
         } else {
           channelLabel.setText("Current channel: " + getChannel());
+        }
+        if (getCommMode() == -1) {
+          modeLabel.setText("Current mode: ALL");
+        } else {
+          modeLabel.setText("Current mode: " + getCommMode());
         }
       }
     };

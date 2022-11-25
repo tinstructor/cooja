@@ -232,6 +232,13 @@ public abstract class Radio extends MoteInterface {
   public abstract int getChannel();
 
   /**
+   * Returns the current communication mode (represented by number).
+   *
+   * @return The current communication mode (represented by number)
+   */
+  public abstract int getCommMode();
+
+  /**
    * Returns the radio position.
    * This is typically the position of the mote.
    *
@@ -256,6 +263,7 @@ public abstract class Radio extends MoteInterface {
     final JLabel statusLabel = new JLabel("");
     final JLabel lastEventLabel = new JLabel("");
     final JLabel channelLabel = new JLabel("");
+    final JLabel modeLabel = new JLabel("");
     final JLabel ssLabel = new JLabel("");
     final JButton updateButton = new JButton("Update SS");
 
@@ -264,6 +272,7 @@ public abstract class Radio extends MoteInterface {
     box.add(ssLabel);
     box.add(updateButton);
     box.add(channelLabel);
+    box.add(modeLabel);
 
     updateButton.addActionListener(new ActionListener() {
       @Override
@@ -291,6 +300,11 @@ public abstract class Radio extends MoteInterface {
           channelLabel.setText("Current channel: ALL");
         } else {
           channelLabel.setText("Current channel: " + getChannel());
+        }
+        if (getCommMode() == -1) {
+          modeLabel.setText("Current mode: ALL");
+        } else {
+          modeLabel.setText("Current mode: " + getCommMode());
         }
       }
     };
