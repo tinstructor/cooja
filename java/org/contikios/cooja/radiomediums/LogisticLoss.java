@@ -344,14 +344,6 @@ public class LogisticLoss extends AbstractRadioMedium {
             if (sender.getClass() != recv.getClass()) {
                 continue;
             }
-            /* Fail if radios are using different (but configured) modes */
-            if (sender.getCommMode() >= 0 &&
-                recv.getCommMode() >= 0 &&
-                sender.getCommMode() != recv.getCommMode()) {
-                /* Add the connection in a dormant state */
-                newConnection.addInterfered(recv);
-                continue;
-            }
             /* Fail if radios are on different (but configured) channels */
             if (sender.getChannel() >= 0 &&
                     recv.getChannel() >= 0 &&
@@ -426,6 +418,13 @@ public class LogisticLoss extends AbstractRadioMedium {
 
                             recv.interfereAnyReception();
                         }
+                    }
+
+                    /* If new transmission uses different mode, it can't be ok */
+                    if (sender.getCommMode() >= 0 &&
+                        recv.getCommMode() >= 0 &&
+                        sender.getCommMode() != recv.getCommMode()) {
+                        receiveNewOk = false;
                     }
 
                     if(receiveNewOk) {
@@ -538,12 +537,6 @@ public class LogisticLoss extends AbstractRadioMedium {
                     continue;
                 }
 
-                if (conn.getSource().getCommMode() >= 0 &&
-                    dstRadio.getCommMode() >= 0 &&
-                    conn.getSource().getCommMode() != dstRadio.getCommMode()) {
-                    continue;
-                }
-
                 double rssi = getRSSI(conn.getSource(), dstRadio);
                 if (dstRadio.getCurrentSignalStrength() < rssi) {
                     dstRadio.setCurrentSignalStrength(rssi);
@@ -557,12 +550,6 @@ public class LogisticLoss extends AbstractRadioMedium {
                 if (conn.getSource().getChannel() >= 0 &&
                         intfRadio.getChannel() >= 0 &&
                         conn.getSource().getChannel() != intfRadio.getChannel()) {
-                    continue;
-                }
-
-                if (conn.getSource().getCommMode() >= 0 &&
-                    intfRadio.getCommMode() >= 0 &&
-                    conn.getSource().getCommMode() != intfRadio.getCommMode()) {
                     continue;
                 }
 
