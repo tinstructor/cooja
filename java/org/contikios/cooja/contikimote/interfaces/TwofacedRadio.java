@@ -59,16 +59,7 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
 
     private static final Logger logger = LogManager.getLogger(TwofacedRadio.class);
 
-    /**
-     * Project default transmission bitrate (kbps).
-     */
-    private final double RADIO_TRANSMISSION_RATE_KBPS;
     private final CCITT_CRC txCrc = new CCITT_CRC();
-
-    /**
-     * Configured transmission bitrate (kbps).
-     */
-    private double radioTransmissionRateKBPS;
 
     private RadioPacket packetToMote = null;
 
@@ -97,11 +88,6 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
     private double oldTxRate = -1.0;
 
     public TwofacedRadio(Mote mote) {
-        // Read class configurations of this mote type
-        this.RADIO_TRANSMISSION_RATE_KBPS = mote.getType().getConfig().getDoubleValue(
-            TwofacedRadio.class, "RADIO_TRANSMISSION_RATE_kbps");
-        this.radioTransmissionRateKBPS = this.RADIO_TRANSMISSION_RATE_KBPS;
-
         this.mote = (ContikiMote) mote;
         this.myMoteMemory = new VarMemory(mote.getMemory());
 
@@ -110,31 +96,11 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
 
     @Override
     public Collection<Element> getConfigXML() {
-        // Only save radio transmission rate in configuration if different from project default
-        if (this.radioTransmissionRateKBPS == this.RADIO_TRANSMISSION_RATE_KBPS) {
-            return null;
-        }
-
-        ArrayList<Element> config = new ArrayList<>();
-
-        Element element;
-
-        /* Radio bitrate */
-        element = new Element("bitrate");
-        element.setText(String.valueOf(radioTransmissionRateKBPS));
-        config.add(element);
-
-        return config;
+        return null;
     }
 
     @Override
     public void setConfigXML(Collection<Element> configXML, boolean visAvailable) {
-        for (Element element : configXML) {
-            if (element.getName().equals("bitrate")) {
-                radioTransmissionRateKBPS = Double.parseDouble(element.getText());
-                logger.debug("Radio bitrate reconfigured to (kbps): " + radioTransmissionRateKBPS);
-            }
-        }
     }
 
     @Override
@@ -232,7 +198,7 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
 
             /* Calculate transmission duration (us) */
             /* XXX Currently floored due to millisecond scheduling! */
-            long duration = (int) (Simulation.MILLISECOND * ((8 * size /*bits*/) / radioTransmissionRateKBPS));
+            long duration = (int) (Simulation.MILLISECOND * ((8 * size /*bits*/) / getTxRate()));
             transmissionEndTime = now + Math.max(1, duration);
 
             lastEventTime = now;

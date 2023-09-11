@@ -113,8 +113,6 @@ public class ProjectConfig {
       FileNotFoundException {
     if (useDefault) {
       var settings = new Properties();
-      settings.put("org.contikios.cooja.contikimote.interfaces.ContikiRadio.RADIO_TRANSMISSION_RATE_kbps", "250");
-      settings.put("org.contikios.cooja.contikimote.interfaces.TwofacedRadio.RADIO_TRANSMISSION_RATE_kbps", "25");
       settings.put("org.contikios.cooja.contikimote.ContikiMoteType.MOTE_INTERFACES", "+ org.contikios.cooja.contikimote.interfaces.TwofacedRadio");
       settings.put("org.contikios.cooja.contikimote.ContikiMoteType.C_SOURCES", "");
       appendConfig(myConfig, settings);
