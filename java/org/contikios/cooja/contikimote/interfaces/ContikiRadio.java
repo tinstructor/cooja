@@ -193,6 +193,11 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
   }
 
   @Override
+  public double getTxRate() {
+    return this.radioTransmissionRateKBPS;
+  }
+
+  @Override
   public void signalReceptionStart(Radio sender) {
     packetToMote = null;
     /*

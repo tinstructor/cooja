@@ -394,6 +394,11 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
     }
 
     @Override
+    public double getTxRate() {
+        return this.radioTransmissionRateKBPS;
+    }
+
+    @Override
     public Position getPosition() {
         return mote.getInterfaces().getPosition();
     }

@@ -290,8 +290,12 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
   public int getCommMode() {
     return -1;
   }
+  @Override
+  public double getTxRate() {
+    return 250.0;
+  }
 
-  public int getFrequency() {
+    public int getFrequency() {
     return radio.getActiveFrequency();
   }
 

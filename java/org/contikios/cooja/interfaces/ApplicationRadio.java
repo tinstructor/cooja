@@ -172,6 +172,11 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
   }
 
   @Override
+  public double getTxRate() {
+    return -1.0;
+  }
+
+  @Override
   public Position getPosition() {
     return mote.getInterfaces().getPosition();
   }
@@ -313,6 +318,7 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
     final JLabel lastEventLabel = new JLabel("");
     final JLabel channelLabel = new JLabel("");
     final JLabel modeLabel = new JLabel("");
+    final JLabel rateLabel = new JLabel("");
     final JLabel powerLabel = new JLabel("Output power (dBm):");
     final JLabel ssLabel = new JLabel("");
     final JButton updateButton = new JButton("Update SS");
@@ -355,6 +361,7 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
     box.add(channelLabel);
     box.add(channelMenu);
     box.add(modeLabel);
+    box.add(rateLabel);
     box.add(powerLabel);
     box.add(outputPower);
 
@@ -390,6 +397,7 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
         } else {
           modeLabel.setText("Current mode: " + getCommMode());
         }
+        rateLabel.setText("Current Tx rate: " + getTxRate() + " kbps");
       }
     };
     this.addObserver(observer);

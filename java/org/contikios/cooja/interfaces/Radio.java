@@ -239,6 +239,13 @@ public abstract class Radio extends MoteInterface {
   public abstract int getCommMode();
 
   /**
+   * Returns the current Tx rate in kbps.
+   *
+   * @return The current Tx rate in kbps
+   */
+  public abstract double getTxRate();
+
+  /**
    * Returns the radio position.
    * This is typically the position of the mote.
    *
@@ -264,6 +271,7 @@ public abstract class Radio extends MoteInterface {
     final JLabel lastEventLabel = new JLabel("");
     final JLabel channelLabel = new JLabel("");
     final JLabel modeLabel = new JLabel("");
+    final JLabel rateLabel = new JLabel("");
     final JLabel ssLabel = new JLabel("");
     final JButton updateButton = new JButton("Update SS");
 
@@ -273,6 +281,7 @@ public abstract class Radio extends MoteInterface {
     box.add(updateButton);
     box.add(channelLabel);
     box.add(modeLabel);
+    box.add(rateLabel);
 
     updateButton.addActionListener(new ActionListener() {
       @Override
@@ -306,6 +315,7 @@ public abstract class Radio extends MoteInterface {
         } else {
           modeLabel.setText("Current mode: " + getCommMode());
         }
+        rateLabel.setText("Current Tx rate: " + getTxRate() + " kbps");
       }
     };
     this.addObserver(observer);

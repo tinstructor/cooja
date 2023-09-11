@@ -316,6 +316,11 @@ public class CC1101Radio extends Radio implements CustomDataRadio {
 		return -1;
 	}
 
+	@Override
+	public double getTxRate() {
+		return 250.0;
+	}
+
 	public int getFrequency() {
 		return cc1101.getActiveFrequency();
 	}
