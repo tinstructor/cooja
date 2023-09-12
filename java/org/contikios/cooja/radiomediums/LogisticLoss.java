@@ -248,21 +248,18 @@ public class LogisticLoss extends AbstractRadioMedium {
                             /* We're checking the mote instead of the Radio because
                              * a mote may possess multiple Radio interfaces. */
                             if (source.getMote() == dest.getMote()) {
-                                logger.info("Not adding edge because both interfaces belong to mote with ID = " + source.getMote().getID());
                                 continue;
                             }
                             /* TODO check if the following is really necessary */
                             /* Ignore dest interfaces of a different type */
                             if (source.getClass() != dest.getClass()) {
-                                logger.info("Not adding edge because both interfaces are of different type");
                                 continue;
                             }
                             double distance = sourcePos.getDistanceTo(destPos);
+                            /* TODO we need to check for the max range amongst all modes of of the given radio interface */
                             if (distance < (source.getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)) {
                                 /* Add potential destination */
-                                addEdge(
-                                        new DirectedGraphMedium.Edge(source,
-                                                new DGRMDestinationRadio(dest)));
+                                addEdge(new DirectedGraphMedium.Edge(source, new DGRMDestinationRadio(dest)));
 
                                 if (ENABLE_TIME_VARIATION) {
                                     int destID = dest.getMote().getID();
@@ -360,7 +357,9 @@ public class LogisticLoss extends AbstractRadioMedium {
             Position recvPos = recv.getPosition();
 
             double distance = senderPos.getDistanceTo(recvPos);
-            if (distance <= (sender.getClass() == TwofacedRadio.class ? TRANSMITTING_RANGE_868 : TRANSMITTING_RANGE_2400)) {
+            /* Using getTxRange(sender) is appropriate here because mode may have changed */
+            double txRange = getTxRange(sender);
+            if (txRange > 0 && distance <= txRange) {
                 /* Within transmission range */
 
                 if (!recv.isRadioOn()) {
@@ -455,28 +454,80 @@ public class LogisticLoss extends AbstractRadioMedium {
         return 1.0 / (1.0 + Math.exp(-x));
     }
 
-    /* Additive White Gaussian Noise, sampled from the distribution N(0.0, AWGN_SIGMA) */
-    private double getAWGN(Class<?> radioType) {
-        if(radioType == TwofacedRadio.class) {
-            return random.nextGaussian() * AWGN_SIGMA_868;
+    private double getCenterFrequencyInGHz(Radio radio) {
+        return radio.getClass() == TwofacedRadio.class ? 0.868 : 2.4;
+    }
+
+    private double getPathLossIndBm(Radio radio, double distance) {
+        double pathLossExponent = getPathLossExponent(radio);
+        if(pathLossExponent > 0) {
+            return getPathLossAtReferenceDistance(radio) + 10 * pathLossExponent * Math.log10((distance > 0 ? distance : 0.01) / REFERENCE_DISTANCE);
         }
-        return random.nextGaussian() * AWGN_SIGMA_2400;
+        return 0;
+    }
+
+    private double getPathLossAtReferenceDistance(Radio radio) {
+        return 20 * Math.log10(4 * Math.PI * getCenterFrequencyInGHz(radio) * REFERENCE_DISTANCE / 0.3) - 2 * ANTENNA_GAIN_DBI;
+    }
+
+    private double getAWGNSigma(Radio radio) {
+        int commMode = radio.getCommMode();
+        Class<?> radioType = radio.getClass();
+        if(radioType == TwofacedRadio.class) {
+            if(commMode == 1) {
+                return 5.0;
+            } else if(commMode == 2) {
+                return 5.0;
+            }
+        } else {
+            if(commMode == 1) {
+                return 3.0;
+            } else if(commMode == 2) {
+                return 3.0;
+            }
+        }
+        return 0;
+    }
+
+    private double getPathLossExponent(Radio radio) {
+        int commMode = radio.getCommMode();
+        Class<?> radioType = radio.getClass();
+        if(radioType == TwofacedRadio.class) {
+            if(commMode == 1) {
+                return 3.0;
+            } else if(commMode == 2) {
+                return 3.0;
+            }
+        } else {
+            if(commMode == 1) {
+                return 3.0;
+            } else if(commMode == 2) {
+                return 3.0;
+            }
+        }
+        return 0;
+    }
+
+    private double getTxRange(Radio radio) {
+        double pathLossExponent = getPathLossExponent(radio);
+        if (pathLossExponent > 0) {
+            return REFERENCE_DISTANCE * Math.pow(10.0, (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN_DBI - 20.0 * Math.log10(4.0 * Math.PI * getCenterFrequencyInGHz(radio) * REFERENCE_DISTANCE / 0.3)) / (10.0 * pathLossExponent));
+        }
+        return 0;
+    }
+
+    private double getInterferenceRange(Radio radio) {
+        return getTxRange(radio);
+    }
+
+    /* Additive White Gaussian Noise, sampled from the distribution N(0.0, AWGN_SIGMA) */
+    private double getAWGN(Radio radio) {
+        return random.nextGaussian() * getAWGNSigma(radio);
     }
 
     private double getRSSI(Radio source, Radio dst) {
-        double d = source.getPosition().getDistanceTo(dst.getPosition());
-        if (d <= 0) {
-            /* Do not allow the distance to be zero */
-            d = 0.01;
-        }
-
         /* Using the log-distance formula */
-        double path_loss_dbm;
-        if(source.getClass() == TwofacedRadio.class) {
-            path_loss_dbm = PATH_LOSS_REF_DIST_868 + 10 * PATH_LOSS_EXPONENT_868 * Math.log10(d / REFERENCE_DISTANCE);
-        } else {
-            path_loss_dbm = PATH_LOSS_REF_DIST_2400 + 10 * PATH_LOSS_EXPONENT_2400 * Math.log10(d / REFERENCE_DISTANCE);
-        }
+        double path_loss_dbm = getPathLossIndBm(source, source.getPosition().getDistanceTo(dst.getPosition()));
 
         /* Add the time-varying component if enabled */
         if (ENABLE_TIME_VARIATION) {
@@ -491,7 +542,7 @@ public class LogisticLoss extends AbstractRadioMedium {
 
         /* getAWGN() may cause an exception to be thrown when reloading a simulation */
         /* The solution is to simply not call it when the simulation is not running! */
-        return DEFAULT_TX_POWER_DBM - path_loss_dbm + (sim.isRunning() ? getAWGN(source.getClass()) : 0);
+        return DEFAULT_TX_POWER_DBM - path_loss_dbm + (sim.isRunning() ? getAWGN(source) : 0);
     }
 
     private void updateTimeVariationComponent() {
