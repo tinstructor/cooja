@@ -35,6 +35,7 @@ import java.util.*;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
+import org.contikios.cooja.contikimote.interfaces.ContikiRadio;
 import org.contikios.cooja.contikimote.interfaces.TwofacedRadio;
 import org.jdom.Element;
 
@@ -174,7 +175,7 @@ public class LogisticLoss extends AbstractRadioMedium {
     private static final Map<Class<? extends Radio>, Map<Integer, Double>> pathLossExponentMap = new HashMap<>();
 
     static {
-        // Define AWGN sigma values for Radio class
+        // Define AWGN sigma values for ContikiRadio class
         Map<Integer, Double> radioAWGNSigmas = new HashMap<>();
         radioAWGNSigmas.put(1, 3.0);
         radioAWGNSigmas.put(2, 3.0);
@@ -186,18 +187,18 @@ public class LogisticLoss extends AbstractRadioMedium {
 
         // Define path loss exponent values for Radio class
         Map<Integer, Double> radioPathLossExponents = new HashMap<>();
-        radioPathLossExponents.put(1, 3.0);
+        radioPathLossExponents.put(1, 2.9);
         radioPathLossExponents.put(2, 3.0);
 
         // Define path loss exponent values for TwofacedRadio class
         Map<Integer, Double> twofacedPathLossExponents = new HashMap<>();
         twofacedPathLossExponents.put(1, 3.0);
-        twofacedPathLossExponents.put(2, 3.0);
+        twofacedPathLossExponents.put(2, 3.1);
 
-        awgnSigmaMap.put(Radio.class, radioAWGNSigmas);
+        awgnSigmaMap.put(ContikiRadio.class, radioAWGNSigmas);
         awgnSigmaMap.put(TwofacedRadio.class, twofacedAWGNSigmas);
 
-        pathLossExponentMap.put(Radio.class, radioPathLossExponents);
+        pathLossExponentMap.put(ContikiRadio.class, radioPathLossExponents);
         pathLossExponentMap.put(TwofacedRadio.class, twofacedPathLossExponents);
     }
 
