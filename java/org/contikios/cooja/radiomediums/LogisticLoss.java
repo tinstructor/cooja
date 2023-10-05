@@ -170,9 +170,9 @@ public class LogisticLoss extends AbstractRadioMedium {
 
     private final HashMap<Index, TimeVaryingEdge> edgesTable = new HashMap<>();
 
-    private static final Map<Class<? extends Radio>, Map<Integer, Double>> awgnSigmaMap = new HashMap<>();
+    private static final ObservableMap<Class<? extends Radio>, Map<Integer, Double>> awgnSigmaMap = new ObservableMap<>();
 
-    private static final Map<Class<? extends Radio>, Map<Integer, Double>> pathLossExponentMap = new HashMap<>();
+    private static final ObservableMap<Class<? extends Radio>, Map<Integer, Double>> pathLossExponentMap = new ObservableMap<>();
 
     static {
         // Define AWGN sigma values for ContikiRadio class
@@ -272,6 +272,9 @@ public class LogisticLoss extends AbstractRadioMedium {
         for (Mote mote: simulation.getMotes()) {
             mote.getInterfaces().getPosition().addObserver(positionObserver);
         }
+        /* Register as observer of awgnSigmaMap and pathLossExponentMap */
+        awgnSigmaMap.addObserver((o, arg) -> dgrm.requestEdgeAnalysis());
+        pathLossExponentMap.addObserver((o, arg) -> dgrm.requestEdgeAnalysis());
         dgrm.requestEdgeAnalysis();
 
         /* Register visualizer skin */
@@ -829,6 +832,70 @@ public class LogisticLoss extends AbstractRadioMedium {
 
         }
         return true;
+    }
+
+    // Method to update a single AWGN sigma value
+    public boolean updateAWGNSigma(String radioClassName, int mode, double sigma) {
+        Class<? extends Radio> radioClass = getRadioClassByName(radioClassName);
+        if (radioClass != null) {
+            Map<Integer, Double> sigmaMap = awgnSigmaMap.get(radioClass);
+            if (sigmaMap != null && sigmaMap.containsKey(mode)) {
+                sigmaMap.put(mode, sigma);
+                awgnSigmaMap.put(radioClass, sigmaMap);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Method to update a single path loss exponent value
+    public boolean updatePathLossExponent(String radioClassName, int mode, double exponent) {
+        Class<? extends Radio> radioClass = getRadioClassByName(radioClassName);
+        if (radioClass != null) {
+            Map<Integer, Double> exponentMap = pathLossExponentMap.get(radioClass);
+            if (exponentMap != null && exponentMap.containsKey(mode)) {
+                exponentMap.put(mode, exponent);
+                pathLossExponentMap.put(radioClass, exponentMap);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Utility method to get a Class object from its name
+    private Class<? extends Radio> getRadioClassByName(String className) {
+        try {
+            return (Class<? extends Radio>) Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private static class ObservableMap<K, V> extends Observable {
+        private Map<K, V> map;
+
+        public ObservableMap() {
+            this.map = new HashMap<>();
+        }
+
+        public void put(K key, V value) {
+            map.put(key, value);
+            setChanged();
+            notifyObservers();
+        }
+
+        public V get(K key) {
+            return map.get(key);
+        }
+
+        public Set<K> keySet() {
+            return map.keySet();
+        }
+
+        public boolean containsKey(K key) {
+            return map.containsKey(key);
+        }
     }
 
     // Invariant: x <= y
