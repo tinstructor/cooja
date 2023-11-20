@@ -272,6 +272,7 @@ public abstract class Radio extends MoteInterface {
     final JLabel channelLabel = new JLabel("");
     final JLabel modeLabel = new JLabel("");
     final JLabel rateLabel = new JLabel("");
+    final JLabel powerLabel = new JLabel("");
     final JLabel ssLabel = new JLabel("");
     final JButton updateButton = new JButton("Update SS");
 
@@ -282,6 +283,7 @@ public abstract class Radio extends MoteInterface {
     box.add(channelLabel);
     box.add(modeLabel);
     box.add(rateLabel);
+    box.add(powerLabel);
 
     updateButton.addActionListener(new ActionListener() {
       @Override
@@ -316,6 +318,7 @@ public abstract class Radio extends MoteInterface {
           modeLabel.setText("Current mode: " + getCommMode());
         }
         rateLabel.setText("Current Tx rate: " + getTxRate() + " kbps");
+        powerLabel.setText("Current Tx power: " + getCurrentOutputPower() + " dBm");
       }
     };
     this.addObserver(observer);
