@@ -135,7 +135,6 @@ public class LogisticLoss extends AbstractRadioMedium {
 
   /**
    * The transmission power.
-   * TODO figure out how to getCurrentOutputPowerIndicator() to dBm use that.
    */
   public static final double DEFAULT_TX_POWER_DBM = 0.0;
 
@@ -559,7 +558,7 @@ public class LogisticLoss extends AbstractRadioMedium {
     double pathLossExponent = getPathLossExponent(source);
     if (pathLossExponent > 0) {
       return REFERENCE_DISTANCE * Math.pow(10.0,
-          (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN_DBI - 20.0 * Math.log10(
+          (source.getCurrentOutputPower() - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN_DBI - 20.0 * Math.log10(
               4.0 * Math.PI * getCenterFrequencyInGHz(source) * REFERENCE_DISTANCE / 0.3)) / (10.0
               * pathLossExponent));
     }
@@ -573,7 +572,7 @@ public class LogisticLoss extends AbstractRadioMedium {
       Map<Integer, Double> pathLossExponents = pathLossExponentMap.get(radioType);
       for (Double pathLossExponent : pathLossExponents.values()) {
         double txRange = REFERENCE_DISTANCE * Math.pow(10.0,
-            (DEFAULT_TX_POWER_DBM - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN_DBI - 20.0 * Math.log10(
+            (source.getCurrentOutputPower() - RX_SENSITIVITY_DBM + 2.0 * ANTENNA_GAIN_DBI - 20.0 * Math.log10(
                 4.0 * Math.PI * getCenterFrequencyInGHz(source) * REFERENCE_DISTANCE / 0.3)) / (10.0
                 * pathLossExponent));
         maxTxRange = txRange > maxTxRange ? txRange : maxTxRange;
@@ -610,7 +609,7 @@ public class LogisticLoss extends AbstractRadioMedium {
 
     /* getAWGN() may cause an exception to be thrown when reloading a simulation */
     /* The solution is to simply not call it when the simulation is not running! */
-    return DEFAULT_TX_POWER_DBM - path_loss_dbm + (sim.isRunning() ? getAWGN(source) : 0);
+    return source.getCurrentOutputPower() - path_loss_dbm + (sim.isRunning() ? getAWGN(source) : 0);
   }
 
   private void updateTimeVariationComponent() {

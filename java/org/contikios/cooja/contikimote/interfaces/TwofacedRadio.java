@@ -81,6 +81,8 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
 
     private int oldOutputPowerIndicator = -1;
 
+    private int oldOutputPower = -1;
+
     private int oldRadioChannel = -1;
 
     private int oldCommMode = -1;
@@ -132,6 +134,13 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
         /* Check if radio output power changed */
         if (myMoteMemory.getByteValueOf("simPowerTwofaced") != oldOutputPowerIndicator) {
             oldOutputPowerIndicator = myMoteMemory.getByteValueOf("simPowerTwofaced");
+            lastEvent = RadioEvent.UNKNOWN;
+            this.setChanged();
+            this.notifyObservers();
+        }
+
+        if (getCurrentOutputPower() != oldOutputPower) {
+            oldOutputPower = myMoteMemory.getIntValueOf("simPowerdBmTwofaced");
             lastEvent = RadioEvent.UNKNOWN;
             this.setChanged();
             this.notifyObservers();
@@ -334,9 +343,7 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
 
     @Override
     public double getCurrentOutputPower() {
-        /* TODO Implement method */
-        logger.warn("Not implemented, always returning 0 dBm");
-        return 0;
+        return myMoteMemory.getIntValueOf("simPowerdBmTwofaced");
     }
 
     @Override

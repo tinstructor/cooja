@@ -112,6 +112,8 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
 
   private int oldOutputPowerIndicator = -1;
 
+  private int oldOutputPower = -1;
+
   private int oldRadioChannel = -1;
 
   private int oldCommMode = -1;
@@ -267,9 +269,7 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
 
   @Override
   public double getCurrentOutputPower() {
-    /* TODO Implement method */
-    logger.warn("Not implemented, always returning 0 dBm");
-    return 0;
+    return myMoteMemory.getIntValueOf("simPowerdBm");
   }
 
   @Override
@@ -356,6 +356,13 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
     /* Check if radio output power changed */
     if (myMoteMemory.getByteValueOf("simPower") != oldOutputPowerIndicator) {
       oldOutputPowerIndicator = myMoteMemory.getByteValueOf("simPower");
+      lastEvent = RadioEvent.UNKNOWN;
+      this.setChanged();
+      this.notifyObservers();
+    }
+
+    if (getCurrentOutputPower() != oldOutputPower) {
+      oldOutputPower = myMoteMemory.getIntValueOf("simPowerdBm");
       lastEvent = RadioEvent.UNKNOWN;
       this.setChanged();
       this.notifyObservers();
