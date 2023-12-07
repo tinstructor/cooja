@@ -89,6 +89,8 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
 
     private double oldTxRate = -1.0;
 
+    private byte[] oldBrokenLink = {0, 0};
+
     public TwofacedRadio(Mote mote) {
         this.mote = (ContikiMote) mote;
         this.myMoteMemory = new VarMemory(mote.getMemory());
@@ -165,6 +167,14 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
         /* Check if tx rate has changed */
         if(getTxRate() != oldTxRate) {
             oldTxRate = getTxRate();
+            lastEvent = RadioEvent.UNKNOWN;
+            this.setChanged();
+            this.notifyObservers();
+        }
+
+        /* Check if broken link has changed */
+        if(getBrokenLink() != oldBrokenLink) {
+            oldBrokenLink = getBrokenLink();
             lastEvent = RadioEvent.UNKNOWN;
             this.setChanged();
             this.notifyObservers();
@@ -379,6 +389,11 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
     @Override
     public double getTxRate() {
         return myMoteMemory.getIntValueOf("simTxRateTwofaced");
+    }
+
+    @Override
+    public byte[] getBrokenLink() {
+        return myMoteMemory.getByteArray("simBrokenLinkTwofaced", 2);
     }
 
     @Override

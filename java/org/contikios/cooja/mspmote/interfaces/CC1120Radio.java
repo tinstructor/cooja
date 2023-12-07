@@ -312,17 +312,23 @@ public class CC1120Radio extends Radio implements CustomDataRadio {
 		return cc1120.getActiveChannel()+1000;
 	}
 
-    @Override
-    public int getCommMode() {
-        return -1;
-    }
+	@Override
+	public int getCommMode() {
+			return -1;
+	}
 
-    @Override
-    public double getTxRate() {
-        return 200.0;
-    }
+	@Override
+	public double getTxRate() {
+			return 200.0;
+	}
 
-    public int getFrequency() {
+	@Override
+	public byte[] getBrokenLink() {
+		byte[] brokenLink = {0, 0};
+		return brokenLink;
+	}
+
+  public int getFrequency() {
 		return cc1120.getActiveFrequency();
 	}
 

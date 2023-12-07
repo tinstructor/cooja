@@ -321,7 +321,13 @@ public class CC1101Radio extends Radio implements CustomDataRadio {
 		return 250.0;
 	}
 
-	public int getFrequency() {
+	@Override
+	public byte[] getBrokenLink() {
+		byte[] brokenLink = {0, 0};
+		return brokenLink;
+	}
+
+  public int getFrequency() {
 		return cc1101.getActiveFrequency();
 	}
 

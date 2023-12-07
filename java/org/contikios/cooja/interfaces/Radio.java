@@ -246,6 +246,13 @@ public abstract class Radio extends MoteInterface {
   public abstract double getTxRate();
 
   /**
+   * Returns the current broken link.
+   *
+   * @return current broken link
+   */
+  public abstract byte[] getBrokenLink();
+
+  /**
    * Returns the radio position.
    * This is typically the position of the mote.
    *

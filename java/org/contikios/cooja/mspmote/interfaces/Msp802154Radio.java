@@ -295,7 +295,13 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
     return 250.0;
   }
 
-    public int getFrequency() {
+  @Override
+  public byte[] getBrokenLink() {
+    byte[] brokenLink = {0, 0};
+    return brokenLink;
+  }
+
+  public int getFrequency() {
     return radio.getActiveFrequency();
   }
 

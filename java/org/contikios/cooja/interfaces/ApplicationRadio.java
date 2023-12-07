@@ -177,6 +177,12 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
   }
 
   @Override
+  public byte[] getBrokenLink() {
+    byte[] brokenLink = {0, 0};
+    return brokenLink;
+  }
+
+  @Override
   public Position getPosition() {
     return mote.getInterfaces().getPosition();
   }

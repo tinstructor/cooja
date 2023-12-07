@@ -120,6 +120,8 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
 
   private double oldTxRate = -1.0;
 
+  private byte[] oldBrokenLink = {0, 0};
+
   /**
    * Creates an interface to the radio at mote.
    *
@@ -185,6 +187,11 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
   @Override
   public double getTxRate() {
     return myMoteMemory.getIntValueOf("simTxRate");
+  }
+
+  @Override
+  public byte[] getBrokenLink() {
+    return myMoteMemory.getByteArray("simBrokenLink", 2);
   }
 
   @Override
@@ -387,6 +394,14 @@ public class ContikiRadio extends Radio implements PolledAfterActiveTicks {
     /* Check if tx rate has changed */
     if(getTxRate() != oldTxRate) {
       oldTxRate = getTxRate();
+      lastEvent = RadioEvent.UNKNOWN;
+      this.setChanged();
+      this.notifyObservers();
+    }
+
+    /* Check if broken link has changed */
+    if(getBrokenLink() != oldBrokenLink) {
+      oldBrokenLink = getBrokenLink();
       lastEvent = RadioEvent.UNKNOWN;
       this.setChanged();
       this.notifyObservers();

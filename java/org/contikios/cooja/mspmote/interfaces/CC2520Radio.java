@@ -253,12 +253,18 @@ public class CC2520Radio extends Radio implements CustomDataRadio {
     return -1;
   }
 
-    @Override
-    public double getTxRate() {
-        return 250.0;
-    }
+  @Override
+  public double getTxRate() {
+      return 250.0;
+  }
 
-    public int getFrequency() {
+  @Override
+  public byte[] getBrokenLink() {
+    byte[] brokenLink = {0, 0};
+    return brokenLink;
+  }
+
+  public int getFrequency() {
     return radio.getActiveFrequency();
   }
 
