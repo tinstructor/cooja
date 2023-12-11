@@ -437,7 +437,8 @@ public class LogisticLoss extends AbstractRadioMedium {
 
           /* If new transmission is on a link that is marked as broken, it can't be ok */
           byte[] currentLink = {(byte)recv.getMote().getID(), (byte)recv.getCommMode()};
-          if (Arrays.equals(sender.getBrokenLink(), currentLink)) {
+          if (Arrays.equals(sender.getBrokenLink(), currentLink) ||
+              Arrays.equals(sender.getBrokenLink2(), currentLink)) {
             receiveNewOk = false;
           }
 

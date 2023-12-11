@@ -268,7 +268,8 @@ public class UDGM extends AbstractRadioMedium {
             (random.nextDouble() > getRxSuccessProbability(sender, recv)) ||
             (sender.getCommMode() >= 0 && recv.getCommMode() >= 0 &&
              sender.getCommMode() != recv.getCommMode()) ||
-            (Arrays.equals(sender.getBrokenLink(), new byte[]{(byte)recv.getMote().getID(), (byte)recv.getCommMode()}))) {
+            (Arrays.equals(sender.getBrokenLink(), new byte[]{(byte)recv.getMote().getID(), (byte)recv.getCommMode()})) ||
+            (Arrays.equals(sender.getBrokenLink2(), new byte[]{(byte)recv.getMote().getID(), (byte)recv.getCommMode()}))) {
           /* Was receiving, or reception failed: start interfering */
           /* Also interfere when using different modes */
           newConnection.addInterfered(recv);
