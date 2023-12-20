@@ -178,13 +178,13 @@ public class ApplicationRadio extends Radio implements NoiseSourceRadio, Directi
 
   @Override
   public byte[] getBrokenLink() {
-    byte[] brokenLink = {0, 0};
+    byte[] brokenLink = {0, 0, 0, 0};
     return brokenLink;
   }
 
   @Override
   public byte[] getBrokenLink2() {
-    byte[] brokenLink2 = {0, 0};
+    byte[] brokenLink2 = {0, 0, 0, 0};
     return brokenLink2;
   }
 

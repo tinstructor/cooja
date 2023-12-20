@@ -297,13 +297,13 @@ public class Msp802154Radio extends Radio implements CustomDataRadio {
 
   @Override
   public byte[] getBrokenLink() {
-    byte[] brokenLink = {0, 0};
+    byte[] brokenLink = {0, 0, 0, 0};
     return brokenLink;
   }
 
   @Override
   public byte[] getBrokenLink2() {
-    byte[] brokenLink2 = {0, 0};
+    byte[] brokenLink2 = {0, 0, 0, 0};
     return brokenLink2;
   }
 
