@@ -439,7 +439,7 @@ public class LogisticLoss extends AbstractRadioMedium {
           byte[] brokenLink = sender.getBrokenLink();
           byte[] brokenLink2 = sender.getBrokenLink2();
           byte recvMoteID = (byte)recv.getMote().getID();
-          byte recvCommMode = (byte)recv.getMote().getID();
+          byte recvCommMode = (byte)recv.getCommMode();
           if((recvMoteID == brokenLink[0] && (recvCommMode == brokenLink[1] || recvCommMode == brokenLink[2])) ||
               (recvMoteID == brokenLink2[0] && (recvCommMode == brokenLink2[1] || recvCommMode == brokenLink2[2]))) {
             receiveNewOk = false;
