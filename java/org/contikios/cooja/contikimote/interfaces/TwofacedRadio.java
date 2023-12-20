@@ -89,9 +89,9 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
 
     private double oldTxRate = -1.0;
 
-    private byte[] oldBrokenLink = {0, 0, 0, 0};
+    private byte[] oldBrokenLink = {0, 0, 0};
 
-    private byte[] oldBrokenLink2 = {0, 0, 0, 0};
+    private byte[] oldBrokenLink2 = {0, 0, 0};
 
     public TwofacedRadio(Mote mote) {
         this.mote = (ContikiMote) mote;
@@ -402,12 +402,12 @@ public class TwofacedRadio extends Radio implements PolledAfterActiveTicks {
 
     @Override
     public byte[] getBrokenLink() {
-        return myMoteMemory.getByteArray("simBrokenLinkTwofaced", 4);
+        return myMoteMemory.getByteArray("simBrokenLinkTwofaced", 3);
     }
 
     @Override
     public byte[] getBrokenLink2() {
-        return myMoteMemory.getByteArray("simBrokenLinkTwofaced2", 4);
+        return myMoteMemory.getByteArray("simBrokenLinkTwofaced2", 3);
     }
 
     @Override
